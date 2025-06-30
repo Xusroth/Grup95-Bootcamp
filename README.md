@@ -9,7 +9,7 @@ Developer: Bora Eren Erdem
 Developer: Nevroz Aslan
 Developer: Nuri Alp Mutlu
 
-Ürün İsmi:
+Ürün İsmi:CodeBite
 
 Ürün Açıklaması:
 
