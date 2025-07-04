@@ -1,0 +1,78 @@
+
+
+from typing import Optional
+import re # metinlerde regex ile desen arama ve tanımlama için re kütüphanesini kullandım
+from pydantic import BaseModel, Field, field_validator, EmailStr # EmailStr -> input olan string'in' geçerli bir e-posta adresi olup olmadığını kontrol eder
+# field_validator -> belirli alanlara özel doğrulama ve iş kuralları tanımlar
+
+# bu dosyada veri doğrulama ve veri yapıları tanımlanıyor. yani request ve response veri yapıları tanımlanıyor ve request doğrulaması yapılıyor.
+
+
+# user
+class UserRegister(BaseModel): # kullanıcının kayıt olabilmesi için kullanıcıdan gelmesi gereken veriler ve tipleri
+    username: str = Field(max_length=60)
+    email: EmailStr
+    password: str = Field(min_length=8)
+    role: Optional[str] = 'user' # varsayılan user # bunun kullanıcıya görünmemesini nasıl sağlarım ?
+
+    @field_validator('username', mode='before')
+    def username_kontrol(username):
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            raise ValueError('Username sadece harf, rakam ve alt çizgi içerebilir..!')
+        return username
+
+    @field_validator('email', mode='before')
+    def eposta_kontrol(value):
+        mail_types = ['@gmail.com', '@outlook.com', '@hotmail.com', '@yahoo.com', '@icloud.com'] # özel mailler ve öğrenci mailleri için çözüm bul!!!
+        if not any(value.endswith(i) for i in mail_types):
+            raise ValueError('Geçersiz E-posta adresi. Lütfen tekrar deneyiniz..!')
+        return value
+
+    @field_validator('password', mode='before')
+    def password_kontrol(password):
+        if not re.search(r'[A-Z]', password):
+            raise ValueError('Şifre en az bir büyük harf içermeli..!')
+        if not re.search(r'[a-z]', password):
+            raise ValueError('Şifre en az bir küçük harf içermeli..!')
+        if not re.search(r'\d', password):
+            raise ValueError('Şifre en az bir rakam içermeli..!')
+        return password
+
+
+class UserLogin(BaseModel): # kullanıcının login olabilmesi için kullanıcıdan gelmesi gereken veriler ve tipleri
+    username: str # email kısmını değiştirdim..!
+    password: str
+
+
+
+# lesson
+class LessonBase(BaseModel):
+    title: str
+    description: str
+    category: str
+
+
+class LessonCreate(LessonBase):
+    pass
+
+
+class Lesson(LessonBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+
+
+# progress
+class ProgressCreate(BaseModel):
+    completed_questions: int = 0
+    total_questions: int = 0
+
+
+class Progress(ProgressCreate):
+    id: int
+    user_id: int
+    lesson_id: int
+    completion_percentage: float
+    class Config:
+        from_attributes = True
