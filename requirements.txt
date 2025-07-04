@@ -1,0 +1,18 @@
+fastapi # kullanacağımız framework
+pydantic # veri doğrulama ve basitleştirme
+bcrypt # parola şifreleme gibi güvenlik işlemleri
+cryptography # veri şifreleme vb. güvenlik işlemleri
+python-jose # Json Web Token (JWT) için kullanıcaz. JWT ile kimlik doğrulama ve yetkilendirme için lazım.
+sqlalchemy # sql veri tabanları için kullanıcaz
+uvicorn # kullanacağımız sanal sunucu
+passlib # parola yönetimi ve şifreleme
+aiofiles # asenkron dosya işlemleri
+jinja2 # html şablonlarını bununla backend kısmına bağlıcaz
+langchain # NLP işlemleri
+python-dotenv # .env dosyasındaki değişkenleri projeye aktarmak için kullanıcaz
+google-generativeai # google yapay zeka araçlarına erişicez
+langchain-google-genai # google yapay zeka araçları ve langchain ile entegrasyonunun sağlayan kütüphane
+markdown # markdownları html'e dönüştürücez (özellikle Gemini'den gelen responseları)
+bs4 # html ve xml'den veri çekmek
+starlette
+python-multipart # access tokenlardaki form data request için gerekli
