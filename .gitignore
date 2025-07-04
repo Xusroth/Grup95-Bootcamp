@@ -1,0 +1,12 @@
+# IDE ayarları
+.idea/
+
+# Python sanal ortam
+.venv/
+
+# Python derlenmiş dosyalar
+__pycache__/
+*.pyc
+
+# Yerel veritabanı
+codebite.db
