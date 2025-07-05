@@ -128,7 +128,9 @@ Yazılıma adım atmak hiç bu kadar kolay olmamıştı. *İlk ısırığını a
 ## Sprint Review
 
 ![tree.jpg](photos/tree.jpg)
+
 ![main.jpg](photos/main.jpg)
+
 ![profile.jpg](photos/profile.jpg)
 
 [Figma Sayfamız](https://www.figma.com/design/Z4ecMTd5l7ImfNgZhS8Bgz/codebite?node-id=0-1&p=f&t=E1Le1psq5lt68imt-0)
