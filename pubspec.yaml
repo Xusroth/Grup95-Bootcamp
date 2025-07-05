@@ -1,0 +1,142 @@
+name: android_studio
+description: "app"
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  gradient_slide_to_act: ^0.0.2
+  flutter_launcher_icons: ^0.13.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+
+
+
+flutter_icons:
+  android: true
+  ios: false
+  image_path: "assets/app_logo.png"
+
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+
+  assets:
+    - assets/anasayfa_maskot.png
+    - assets/google_icon.png
+    - assets/misafir_icon.png
+    - assets/selamveren_maskot.png
+    - assets/yakisikli_maskot.png
+    - assets/konusmabalonu.png
+    - assets/python_icon.png
+    - assets/java_icon.png
+    - assets/csharp_icon.png
+    - assets/algoritma_icon.png
+    - assets/codebite_logo.png
+    - assets/arkaplan.png
+    - assets/konusmabaloncuklu_maskot.png
+    - assets/bitingcode_maskot.png
+    - assets/corner_gradient_rectangle.png
+    - assets/locked_icon.png
+    - assets/ders_card.png
+    - assets/open_lock.png
+    - assets/yan_konusmabaloncuklu_maskot.png
+    - assets/user_bar.png
+    - assets/upper_bar.png
+    - assets/profile_pic.png
+    - assets/health_bar.png
+    - assets/report.png
+    - assets/1-3_ders.png
+    - assets/2-3_ders.png
+    - assets/3-3_ders.png
+    - assets/bos_ders.png
+    - assets/kilitli_dosya.png
+    - assets/app_logo.png
+
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+  fonts:
+    - family: Poppins-Black
+      fonts:
+        - asset: fonts/Poppins-Black.ttf
+
+    - family: Poppins-Bold
+      fonts:
+        - asset: fonts/Poppins-Bold.ttf
+
+    - family: Poppins-ExtraBold
+      fonts:
+        - asset: fonts/Poppins-ExtraBold.ttf
+
+    - family: Poppins-SemiBold
+      fonts:
+        - asset: fonts/Poppins-SemiBold.ttf
+
+    - family: Poppins-Regular
+      fonts:
+        - asset: fonts/Poppins-Regular.ttf
+
+    - family: Poppins-Thin
+      fonts:
+        - asset: fonts/Poppins-Thin.ttf
+
+    - family: Poppins-Medium
+      fonts:
+        - asset: fonts/Poppins-Medium.ttf
+
+    - family: Poppins-Light
+      fonts:
+        - asset: fonts/Poppins-Light.ttf
+
+    - family: Poppins-ExtraLight
+      fonts:
+        - asset: fonts/Poppins-ExtraLight.ttf
+
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
