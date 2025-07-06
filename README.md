@@ -125,12 +125,100 @@ Yazılıma adım atmak hiç bu kadar kolay olmamıştı. *İlk ısırığını a
 
 ---
 
+# Uygulama Ekran görüntüleri
+
+[Uygulama Ekran Kaydımız](https://youtube.com/shorts/k9HM3KN2m-A)
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="photos/1.jpg" width="200"/><br/>
+      <b>Açılış Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/2.jpg" width="200"/><br/>
+      <b>Kayıt Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/3.jpg" width="200"/><br/>
+      <b>Profil Oluşturma Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/4.jpg" width="200"/><br/>
+      <b>Giriş Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/5.jpg" width="200"/><br/>
+      <b>Giriş Ekranı</b>
+    </td>
+</tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="photos/6.jpg" width="200"/><br/>
+      <b>Ders Seçme Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/7.jpg" width="200"/><br/>
+      <b>Soru Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/8.jpg" width="200"/><br/>
+      <b>Soruya Yanlış Cevap Verilirse</b>
+    </td>
+    <td align="center">
+      <img src="photos/10.jpg" width="200"/><br/>
+      <b>Soruya Doğru Cevap Verilirse</b>
+    </td>
+    <td align="center">
+      <img src="photos/9.jpg" width="200"/><br/>
+      <b>Öğrenme Yolu</b>
+    </td>
+</tr>
+</table>
+
+---
+# Sprint Puanları ve Görev Dağılımı
+
+## Sprint Board Güncellemeleri
+![table.jpg](photos/table.jpg)
+
+
+# Burndown Chart
+![burndown_chart_sprint1.jpg](photos/burndown_chart_sprint1.jpg)
+
+Puan Tamamlama Mantığı
+
+| #  | Görev                                                                                   | Puan |
+|----|------------------------------------------------------------------------------------------|------|
+| 1  | Uygulama fikrine karar verilmesi                                                         | 5    |
+| 2  | Userflow diyagramının oluşturulması                                                      | 5    |
+| 3  | Figma üzerinden ilk tasarımların oluşturulması                                           | 7    |
+| 4  | Android Studio veya VS Code kurulumu                                                     | 3    |
+| 5  | Front-end tarafında ilk beş sayfanın kodlanması                                          | 15   |
+| 6  | Figma tasarımının yenilenmesi                                                            | 5    |
+| 7  | Güncellenen tasarımların kodlanması                                                      | 10   |
+| 8  | İlk commit işleminin gerçekleştirilmesi                                                  | 2    |
+| 9  | Backend ile veritabanı bağlantısının sağlanması                                          | 12   |
+| 10 | Uygulama iskeletinin ve yetkilendirme (authentication) yapısının oluşturulması          | 10   |
+| 11 | Kayıt ve giriş işlemlerinin yapılması (Register/Login)                                  | 8    |
+| 12 | Sprint 1 dokümantasyonunun yazılması                                                     | 4    |
+| 13 | Son commitlerin yapılması                                                                | 1    |
+| 14 | README dosyasının yazılması ve düzenlenmesi                                              | 3    |
+
+*Toplam:* **100 Puan**
+
+---
+
+
+
+---
 ## Sprint Review
 
 ![tree.jpg](photos/tree.jpg)
-
 ![main.jpg](photos/main.jpg)
-
 ![profile.jpg](photos/profile.jpg)
 
 [Figma Sayfamız](https://www.figma.com/design/Z4ecMTd5l7ImfNgZhS8Bgz/codebite?node-id=0-1&p=f&t=E1Le1psq5lt68imt-0)
@@ -184,7 +272,6 @@ Yapay zekayı nasıl kullanacağımıza 2.sprintte karar verilecek.
 - Git reposunu temiz ve düzenli bir şekilde yapılandırmak, .gitignore ile gereksiz dosyaları yoksaymak.
 
 - Flutter entegrasyonuna hazırlık yapmak için API’nin temel işlevselliğini tamamlamak.
-
 
 
 
