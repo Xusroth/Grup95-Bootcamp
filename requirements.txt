@@ -10,7 +10,7 @@ aiofiles # asenkron dosya işlemleri
 jinja2 # html şablonlarını bununla backend kısmına bağlıcaz
 langchain # NLP işlemleri
 python-dotenv # .env dosyasındaki değişkenleri projeye aktarmak için kullanıcaz
-google-generativeai # google yapay zeka araçlarına erişicez
+google-generativeai # google yapay zeka araçlarına erişicez (gemini)
 langchain-google-genai # google yapay zeka araçları ve langchain ile entegrasyonunun sağlayan kütüphane
 markdown # markdownları html'e dönüştürücez (özellikle Gemini'den gelen responseları)
 bs4 # html ve xml'den veri çekmek
