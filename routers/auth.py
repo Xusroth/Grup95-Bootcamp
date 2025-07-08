@@ -13,15 +13,13 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # a
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 from typing import List
+from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 
 
 router = APIRouter(prefix='/auth', tags=['Authentication']) # bu routerları oluşturup sonra hepsini main dosyasındaki app'e bağlıcaz
 
-SECRET_KEY = "4kaLkOHYe5wWZdq1lsPYS76sjP8SjK" # signature  ### Bu kısmı .env dosyasına saklamamız lazım..! ###
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 oauth2 = OAuth2PasswordBearer(tokenUrl='auth/login')
 
 
