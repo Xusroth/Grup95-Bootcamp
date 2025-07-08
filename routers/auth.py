@@ -7,7 +7,7 @@ from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
 from models import User
-from schemas import UserRegister, UserLogin
+from schemas import UserRegister, UserLogin, UserResponse
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
 from jose import jwt, JWTError
@@ -46,22 +46,22 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2)], db: db_dependency):
+async def get_current_user(token: Annotated[str, Depends(oauth2)], db: db_dependency): # email'e göre düzenledim
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail='Geçersiz token',
         headers={'WWW-Authenticate': 'Bearer'})
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
-        user_id: str = payload.get('sub')
-        if user_id is None:
+        email: str = payload.get('sub')
+        if email is None:
             raise credentials_exception
+        user = db.query(User).filter(User.email == email).first()
+        if user is None:
+            raise credentials_exception
+        return user
     except JWTError:
         raise credentials_exception
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        raise credentials_exception
-    return user
 
 
 class Token(BaseModel):
@@ -120,8 +120,24 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
     if not bcrypt.checkpw(form_data.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Şifre yanlış.")
-    access_token = create_access_token(data={'sub': str(db_user.id)})
+    access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncelledim
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get('/me', response_model=UserResponse) # login olan kullanıcının bilgilerini görebilmesi için
+async def get_current_user_info(db: db_dependency, token: str = Depends(oauth2)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get('sub')
+        if email is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz token.")
+        user = db.query(User).filter(User.email == email).first()
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User bulunamadı.")
+        return user
+    except JWTError as err:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Not authenticated: {str(err)}")
+
 
 
 @router.post('/make_admin/{user_id}', status_code=status.HTTP_200_OK)
