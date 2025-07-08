@@ -44,6 +44,16 @@ class UserLogin(BaseModel): # kullanıcının login olabilmesi için kullanıcı
     password: str
 
 
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
 
 # lesson
 class LessonBase(BaseModel):
