@@ -86,3 +86,23 @@ class Progress(ProgressCreate):
     completion_percentage: float
     class Config:
         from_attributes = True
+
+
+
+# question
+class QuestionCreate(BaseModel):
+    content: str
+    options: list[str]
+    correct_answer: str
+    lesson_id: int
+
+
+class QuestionResponse(BaseModel):
+    id: int
+    content: str
+    options: list[str]
+    correct_answer: str
+    lesson_id: int
+
+    class Config:
+        from_attributes = True
