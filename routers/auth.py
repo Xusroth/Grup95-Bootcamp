@@ -12,7 +12,6 @@ import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
-from typing import List
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
