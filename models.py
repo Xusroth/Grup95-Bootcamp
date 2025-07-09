@@ -30,6 +30,18 @@ class Progress(Base):
     lesson = relationship('Lesson', back_populates='progress')
 
 
+class Question(Base):
+    __tablename__ = 'questions'
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(String, nullable=False) # soru içeriği
+    options = Column(String, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin
+    correct_answer = Column(String, nullable=False) # doğru şık
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), index=True)
+
+    lesson = relationship('Lesson', back_populates='questions')
+
+
 class Lesson(Base):
     __tablename__ = 'lessons'
 
@@ -40,6 +52,7 @@ class Lesson(Base):
 
     users = relationship('User', secondary=user_lessons, back_populates='lessons')
     progress = relationship('Progress', back_populates='lesson')
+    questions = relationship('Question', back_populates='lesson') # one to many ilişki
 
 
 class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=True diyerek index oluşturdum (böylece select işlemi hızlanır)
