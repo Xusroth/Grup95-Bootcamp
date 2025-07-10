@@ -121,12 +121,7 @@ class SeviyeSecSayfasi extends StatelessWidget {
                     isRegistered
                         ? ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => QuestionPage(),
-                          ),
-                        );
+
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white.withOpacity(0.1),

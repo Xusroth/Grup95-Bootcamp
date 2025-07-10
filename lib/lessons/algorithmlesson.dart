@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:android_studio/lessons/question_page.dart';
 
 class AlgorithmLessonOverview extends StatefulWidget {
   final String userNickname;
 
-  const AlgorithmLessonOverview({super.key, required this.userNickname, });
+  const AlgorithmLessonOverview({super.key, required this.userNickname});
 
   @override
   State<AlgorithmLessonOverview> createState() => _AlgorithmLessonOverviewState();
@@ -45,12 +46,6 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         level['completedContent']++;
       }
 
-      // Kart tamamlandıysa sıradaki açılıyor
-      if (level['completedContent'] == 3 && levelIndex < 5) {
-        // Bir sonraki kartı açmak için hiçbir işlem gerekmiyor çünkü zaten build içinde kontrol var
-      }
-
-      // Eğer tüm kartlar tamamlandıysa, bir sonraki section açılır
       final allCompleted = lessonSections[sectionIndex]['levels']
           .every((lvl) => lvl['completedContent'] == 3);
 
@@ -85,7 +80,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                       left: 60,
                       child: Text(
                         'Merhaba ${widget.userNickname}',
-                        style: const TextStyle(fontFamily: 'Poppins-Regular', color: Colors.white, fontSize: 14),
+                        style: const TextStyle(
+                          fontFamily: 'Poppins-Regular',
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     Positioned(right: 48, child: Image.asset('assets/health_bar.png', height: 24)),
@@ -111,7 +110,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                         children: [
                           Text(
                             section['title'],
-                            style: const TextStyle(fontFamily: 'Poppins-SemiBold', fontSize: 18, color: Colors.white),
+                            style: const TextStyle(
+                              fontFamily: 'Poppins-SemiBold',
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           GridView.builder(
@@ -128,18 +131,19 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                               final level = levels[levelIndex];
                               final completedContent = level['completedContent'];
 
-                              // Unlocked logic: ilk kart açık, diğerleri bir önceki 3/3 ise açık
                               final isUnlocked = section['unlocked'] &&
                                   (levelIndex == 0 ||
                                       levels[levelIndex - 1]['completedContent'] == 3);
 
+                              final isCompleted = completedContent == 3;
+
                               String imageAsset;
                               if (completedContent == 3) {
                                 imageAsset = 'assets/3-3_ders.png';
-                              } else if (completedContent ==1) {
-                                imageAsset = 'assets/1-3_ders.png';
-                              }  else if (completedContent ==2) {
+                              } else if (completedContent == 2) {
                                 imageAsset = 'assets/2-3_ders.png';
+                              } else if (completedContent == 1) {
+                                imageAsset = 'assets/1-3_ders.png';
                               } else {
                                 imageAsset = 'assets/bos_ders.png';
                               }
@@ -149,8 +153,20 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                 children: [
                                   GestureDetector(
                                     onTap: () {
-                                      if (isUnlocked) {
-                                        onContentCompleted(sectionIndex, levelIndex);
+                                      if (isUnlocked && !isCompleted) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => QuestionPage(
+                                              sectionIndex: sectionIndex,
+                                              levelIndex: levelIndex,
+                                              isLevelCompleted: isCompleted,
+                                              onCompleted: () {
+                                                onContentCompleted(sectionIndex, levelIndex);
+                                              },
+                                            ),
+                                          ),
+                                        );
                                       }
                                     },
                                     child: SizedBox(
@@ -183,24 +199,19 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  if (!isUnlocked)
-                                    const Text(
-                                      "Kilitli Aşama",
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Poppins-Regular', color: Colors.white70),
-                                      textAlign: TextAlign.center,
-                                    )
-                                  else if (completedContent < 3)
-                                    const Text(
-                                      "Devam Ediyor",
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Poppins-Regular', color: Colors.white70),
-                                      textAlign: TextAlign.center,
-                                    )
-                                  else
-                                    const Text(
-                                      "Tamamlandı",
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Poppins-Regular', color: Colors.white70),
-                                      textAlign: TextAlign.center,
+                                  Text(
+                                    !isUnlocked
+                                        ? "Kilitli Aşama"
+                                        : isCompleted
+                                        ? "Tamamlandı"
+                                        : "Devam Ediyor",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontFamily: 'Poppins-Regular',
+                                      color: Colors.white70,
                                     ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ],
                               );
                             },

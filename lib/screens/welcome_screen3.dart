@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 
+
 class WelcomeScreen3 extends StatelessWidget {
   final String userName;
   final String userNickname;

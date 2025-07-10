@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:android_studio/lessons/general_question_page.dart';
 
 class QuestionPage extends StatefulWidget {
-  const QuestionPage({super.key});
+  final int sectionIndex;
+  final int levelIndex;
+  final VoidCallback onCompleted;
+  final bool isLevelCompleted;
+
+  const QuestionPage({
+    super.key,
+    required this.sectionIndex,
+    required this.levelIndex,
+    required this.onCompleted,
+    required this.isLevelCompleted,
+  });
 
   @override
   State<QuestionPage> createState() => _QuestionPageState();
@@ -12,22 +22,76 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
   String selectedAnswer = '';
   bool answered = false;
   bool isCorrect = false;
+  int currentQuestionIndex = 0;
+  double progress = 0.0;
 
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
 
-  final String questionText = "Aşağıdakilerden hangisi python kütüphanesi değildir? ";
-  final Map<String, String> options = {
-    "A": "pandas",
-    "B": "numpy",
-    "C": "matplotlib",
-    "D": "sockpp"
-  };
-  final String correctAnswer = "D";
+  final List<Map<String, dynamic>> questions = [
+    {
+      'question': "Aşağıdakilerden hangisi python kütüphanesi değildir?",
+      'options': {
+        "A": "pandas",
+        "B": "numpy",
+        "C": "matplotlib",
+        "D": "sockpp"
+      },
+      'correct': "D"
+    },
+    {
+      'question': "Python'da liste elemanlarını sıralamak için hangi fonksiyon kullanılır?",
+      'options': {
+        "A": "sort()",
+        "B": "map()",
+        "C": "filter()",
+        "D": "list()"
+      },
+      'correct': "A"
+    },
+    {
+      'question': "Python'da sözlük (dictionary) tanımlamak için kullanılan sembol nedir?",
+      'options': {
+        "A": "()",
+        "B": "[]",
+        "C": "{}",
+        "D": "<>"
+      },
+      'correct': "C"
+    },
+    {
+      'question': "Python'da yorum satırı hangi karakterle başlar?",
+      'options': {
+        "A": "//",
+        "B": "/*",
+        "C": "#",
+        "D": "--"
+      },
+      'correct': "C"
+    },
+    {
+      'question': "Hangi veri tipi sadece True veya False değerini alır?",
+      'options': {
+        "A": "int",
+        "B": "bool",
+        "C": "float",
+        "D": "str"
+      },
+      'correct': "B"
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
+
+    // Eğer zaten tamamlandıysa sayfadan çıkar.
+    if (widget.isLevelCompleted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pop(context);
+      });
+    }
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -44,7 +108,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
     setState(() {
       selectedAnswer = key;
       answered = true;
-      isCorrect = key == correctAnswer;
+      isCorrect = key == questions[currentQuestionIndex]['correct'];
     });
 
     _controller.forward();
@@ -52,9 +116,26 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
 
   Color getButtonColor(String key) {
     if (!answered) return Colors.white.withOpacity(0.1);
-    if (key == correctAnswer) return Colors.green;
+    if (key == questions[currentQuestionIndex]['correct']) return Colors.green;
     if (key == selectedAnswer) return Colors.red;
     return Colors.white.withOpacity(0.1);
+  }
+
+  void goToNextQuestion() {
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        selectedAnswer = '';
+        answered = false;
+        isCorrect = false;
+        _controller.reset();
+        progress += 0.2;
+      });
+    } else {
+      // Tüm sorular bitince
+      widget.onCompleted(); // 3/3 artışı için
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -65,6 +146,8 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final question = questions[currentQuestionIndex];
+
     return Scaffold(
       body: Stack(
         children: [
@@ -78,6 +161,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
             ),
           ),
 
+          // Kullanıcı barı
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -90,7 +174,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    // Profil fotoğrafı
+                    // Profil
                     Container(
                       width: 55,
                       height: 55,
@@ -105,12 +189,11 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                     ),
                     const SizedBox(width: 10),
 
-                    // Progress bar
+                    // Progress Bar
                     Expanded(
                       child: Stack(
                         alignment: Alignment.centerLeft,
                         children: [
-                          // Arka plan bar
                           Container(
                             height: 40,
                             decoration: BoxDecoration(
@@ -118,9 +201,8 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          // Dolu kısım
                           FractionallySizedBox(
-                            widthFactor: 0.2, // ilerleme belirleme değişkeni
+                            widthFactor: progress,
                             child: Container(
                               height: 40,
                               decoration: BoxDecoration(
@@ -131,12 +213,11 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                               ),
                             ),
                           ),
-                          // Yüzde metni
-                          const Positioned(
+                          Positioned(
                             left: 10,
                             child: Text(
-                              "%0",
-                              style: TextStyle(
+                              "%${(progress * 100).round()}",
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
                                 fontFamily: 'Poppins-Bold',
@@ -147,12 +228,9 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                       ),
                     ),
 
-
-
                     Row(
                       children: [
                         Image.asset('assets/health_bar.png', height: 24),
-
                         Image.asset('assets/report.png', height: 24),
                       ],
                     ),
@@ -162,7 +240,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
             ),
           ),
 
-          // Soru ve cevaplar
+          // Soru kısmı
           Center(
             child: Stack(
               alignment: Alignment.topCenter,
@@ -178,26 +256,19 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Soru metni
                       Container(
                         padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical:20 ),
+                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical: 20),
                         decoration: BoxDecoration(
                           color: Colors.white12,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          questionText,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
+                          question['question'],
+                          style: const TextStyle(fontSize: 14, color: Colors.white),
                           textAlign: TextAlign.center,
                         ),
                       ),
-
-
-                      // Cevap şıkları
                       SizedBox(
                         width: 260,
                         child: GridView.count(
@@ -207,7 +278,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                           crossAxisSpacing: 30,
                           childAspectRatio: 2.7,
                           physics: const NeverScrollableScrollPhysics(),
-                          children: options.entries.map((entry) {
+                          children: question['options'].entries.map<Widget>((entry) {
                             return ElevatedButton(
                               onPressed: () => handleAnswer(entry.key),
                               style: ElevatedButton.styleFrom(
@@ -215,11 +286,10 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
                               ),
                               child: Text(
                                 "${entry.key}) ${entry.value}",
-                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                style: const TextStyle(color: Colors.white, fontSize: 14),
                               ),
                             );
                           }).toList(),
@@ -232,7 +302,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
             ),
           ),
 
-          // Cevap sonrası çıkan alttan panel
+          // Alttan çıkan panel
           Positioned(
             bottom: 0,
             left: 0,
@@ -262,12 +332,16 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                     const SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => GeneralQuestionPage(),
-                          ),
-                        );
+                        if (isCorrect) {
+                          goToNextQuestion(); // sonraki soruya geç
+                        } else {
+                          setState(() {
+                            answered = false;
+                            selectedAnswer = '';
+                            isCorrect = false;
+                            _controller.reset();
+                          });
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -277,7 +351,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: const Text("Sonraki Soru"),
+                      child: Text(isCorrect ? "Sonraki Soru" : "Tekrar Dene"),
                     ),
                   ],
                 ),
