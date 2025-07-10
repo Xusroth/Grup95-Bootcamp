@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from starlette import status
 from typing import Annotated
+from pydantic import BaseModel
 from database import SessionLocal
 from models import User
 from models import Progress as ProgressModels # sqlalchemy modeli
@@ -12,10 +13,12 @@ from models import Question as QuestionModels # sqlalchemy modeli
 from schemas import Lesson, LessonCreate # pydantic modeli
 from schemas import Progress, ProgressCreate # pydantic modeli
 from schemas import QuestionCreate, QuestionResponse # pydantic modeli
+from schemas import UserPublicResponse # pydantic modeli
 from routers.auth import get_current_user # routers package'daki auth.py dosyasından import ettim   # gerekli endpointlere ekledim..! # authorize için kullanıyorum gerekli olanlara koyuyorum..!
 from config import GEMINI_API_KEY
 import google.generativeai as genai
 import json
+import logging
 
 
 
@@ -30,6 +33,17 @@ def get_db():
         db.close()
 
 db_dependency = Annotated[Session, Depends(get_db)]
+
+
+
+class LevelTestAnswer(BaseModel):
+    question_id: int
+    selected_answer: str
+
+
+class LevelTestSubmit(BaseModel):
+    answers: list[LevelTestAnswer]
+
 
 
 
@@ -194,8 +208,156 @@ async def generate_questions(db: db_dependency, lesson_id: int, current_user: Us
     # google genai kısmı
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.5-flash') # gemini modelini seçip belirlicez
+    if current_user.username == 'admin':
+        prompt = f"""
+            Generate exactly 5 multiple-choice programming questions for a lesson titled '{lesson.title}' in category '{lesson.category}'.
+            Each question must strictly follow this format and include exactly 4 options:
+            - Question: [The question text]
+            - A: [Option A]
+            - B: [Option B]
+            - C: [Option C]
+            - D: [Option D]
+            - Correct Answer: [A, B, C, or D]
+            - Level: [beginner, intermediate, advanced]
+
+            Ensure the questions are relevant to the lesson topic and category, suitable for all levels (beginner to advanced).
+            Provide clear, concise, and accurate programming questions. Do not include any introductory text, additional comments, or explanations.
+            Ensure exactly 5 questions are generated, with at least one question per level (beginner, intermediate, advanced).
+
+            Example:
+            - Question: What is the correct syntax to print "Hello" in Python?
+            - A: print("Hello")
+            - B: echo "Hello"
+            - C: printf("Hello")
+            - D: print['Hello']
+            - Correct Answer: A
+            - Level: beginner
+            """
+    else:
+        prompt = f"""
+            Generate exactly 5 multiple-choice programming questions for a lesson titled '{lesson.title}' in category '{lesson.category}' for a {current_user.level} level user.
+            Each question must strictly follow this format and include exactly 4 options:
+            - Question: [The question text]
+            - A: [Option A]
+            - B: [Option B]
+            - C: [Option C]
+            - D: [Option D]
+            - Correct Answer: [A, B, C, or D]
+            - Level: [beginner, intermediate, advanced]
+
+            Ensure the questions are relevant to the lesson topic, category, and user level ({current_user.level}). 
+            For beginner level, focus on basic concepts (e.g., syntax, variables, basic functions).
+            For intermediate level, include moderately complex topics (e.g., loops, conditionals, basic data structures).
+            For advanced level, include complex topics (e.g., object-oriented programming, advanced algorithms).
+            Provide clear, concise, and accurate programming questions. Do not include any introductory text, additional comments, or explanations.
+            Ensure exactly 5 questions are generated.
+
+            Example:
+            - Question: What is the correct syntax to print "Hello" in Python?
+            - A: print("Hello")
+            - B: echo "Hello"
+            - C: printf("Hello")
+            - D: print['Hello']
+            - Correct Answer: A
+            - Level: beginner
+            """
+    try:
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+    except Exception as err:
+        logging.error(f"Gemini API error for lesson_id {lesson_id}: {str(err)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Gemini API hatası. {err}")
+
+    # response'un parse edilmesi
+    questions = []
+    current_question = None
+    lines = response_text.split("\n")
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("- Question:"):
+            if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
+                questions.append(current_question)
+            current_question = {"content": line.replace("- Question:", "").strip(), "options": [], "correct_answer": "", "level": ""}
+        elif current_question:
+            if line.startswith("- A:"):
+                current_question["options"].append(line.replace("- A:", "").strip())
+            elif line.startswith("- B:"):
+                current_question["options"].append(line.replace("- B:", "").strip())
+            elif line.startswith("- C:"):
+                current_question["options"].append(line.replace("- C:", "").strip())
+            elif line.startswith("- D:"):
+                current_question["options"].append(line.replace("- D:", "").strip())
+            elif line.startswith("- Correct Answer:"):
+                current_question["correct_answer"] = line.replace("- Correct Answer:", "").strip()
+            elif line.startswith("- Level:"):
+                current_question["level"] = line.replace("- Level:", "").strip()
+    if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
+        questions.append(current_question)
+
+    if len(questions) < 5:
+        logging.error(
+            f"Insufficient valid questions parsed for lesson_id {lesson_id}: {len(questions)} questions, expected 5. Response: {response_text}")
+
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Yetersiz geçerli soru üretildi: {len(questions)}/5.")
+
+
+    created_questions = []
+    for q in questions:
+        if len(q["options"]) == 4 and q["correct_answer"] in ["A", "B", "C", "D"] and q["content"] and q["level"] in ["beginner", "intermediate", "advanced"]:
+            question = QuestionModels(
+                content=q["content"],
+                options=json.dumps(q["options"]),
+                correct_answer=q["correct_answer"],
+                lesson_id=lesson_id,
+                level=q["level"]
+            )
+            db.add(question)
+            created_questions.append(question)
+        else:
+            logging.warning(f"Invalid question skipped for lesson_id {lesson_id}: {q}")
+
+    db.commit()
+
+    response_questions = []
+    for q in created_questions:
+        db.refresh(q)
+        response_questions.append(
+            QuestionResponse(
+                id=q.id,
+                content=q.content,
+                options=json.loads(q.options),
+                correct_answer=q.correct_answer,
+                lesson_id=q.lesson_id,
+                level=q.level
+            )
+        )
+
+    if not response_questions:
+        logging.error(f"No questions saved to database for lesson_id {lesson_id}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Geçerli soru üretilemedi.")
+
+    return response_questions
+
+
+
+@router.post('/users/{user_id}/level-test', response_model=dict) # seviye tespiti için 10 soruluk test (sonuçlara göre -> beginner/intermediate/advanced) (bunu geliştirelim..!)
+async def level_test(user_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    if user.role == 'admin': # admin seviye testi almasın diye yaptım.
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin kullanıcıları seviye testi alamaz.")
+
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
     prompt = f"""
-    Generate exactly 5 multiple-choice programming questions for a lesson titled {lesson.title} in category {lesson.category}.
+    Generate 10 multiple-choice programming questions to assess the programming level of a user (beginner, intermediate, or advanced).
     Each question must strictly follow this format and include exactly 4 options:
     - Question: [The question text]
     - A: [Option A]
@@ -203,8 +365,10 @@ async def generate_questions(db: db_dependency, lesson_id: int, current_user: Us
     - C: [Option C]
     - D: [Option D]
     - Correct Answer: [A, B, C, or D]
+    - Level: [beginner, intermediate, advanced]
 
-    Ensure the questions are relevant to the lesson topic and category. Provide clear, concise, and accurate programming questions. Do not include any introductory text or additional comments.
+    Ensure questions are distributed across levels (at least 3 beginner, 4 intermediate, 3 advanced).
+    Provide clear, concise, and accurate programming questions. Do not include any introductory text, additional comments, or explanations.
 
     Example:
     - Question: What is the correct syntax to print "Hello" in Python?
@@ -213,65 +377,114 @@ async def generate_questions(db: db_dependency, lesson_id: int, current_user: Us
     - C: printf("Hello")
     - D: print['Hello']
     - Correct Answer: A
+    - Level: beginner
     """
     try:
         response = model.generate_content(prompt)
         response_text = response.text.strip()
+        logging.info(f"Level Test Response for user_id {user_id}:\n{response_text}")
+        if not response_text:
+            logging.error(f"Gemini API returned empty response for user_id {user_id}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Gemini API boş yanıt döndü.")
     except Exception as err:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Gemini API hatası. {err}")
+        logging.error(f"Gemini API error for user_id {user_id}: {str(err)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Gemini API hatası: {str(err)}")
 
-    # response'un parse edilmesi
+    # yanıtın parse edilmesi
     questions = []
-    current_question = {}
+    current_question = None
     lines = response_text.split("\n")
-    for i in lines:
-        i = i.strip()
-        if i.startswith("- Question:"):
-            if current_question:
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("- Question:"):
+            if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
                 questions.append(current_question)
-            current_question = {"content": i.replace("- Question:", "").strip(), "options": [], "correct_answer": ""}
-        elif i.startswith("- A:"):
-            current_question["options"].append(i.replace("- A:", "").strip())
-        elif i.startswith("- B:"):
-            current_question["options"].append(i.replace("- B:", "").strip())
-        elif i.startswith("- C:"):
-            current_question["options"].append(i.replace("- C:", "").strip())
-        elif i.startswith("- D:"):
-            current_question["options"].append(i.replace("- D:", "").strip())
-        elif i.startswith("- Correct Answer:"):
-            current_question["correct_answer"] = i.replace("- Correct Answer:", "").strip()
-    if current_question:
+            current_question = {"content": line.replace("- Question:", "").strip(), "options": [], "correct_answer": "", "level": ""}
+        elif current_question:
+            if line.startswith("- A:"):
+                current_question["options"].append(line.replace("- A:", "").strip())
+            elif line.startswith("- B:"):
+                current_question["options"].append(line.replace("- B:", "").strip())
+            elif line.startswith("- C:"):
+                current_question["options"].append(line.replace("- C:", "").strip())
+            elif line.startswith("- D:"):
+                current_question["options"].append(line.replace("- D:", "").strip())
+            elif line.startswith("- Correct Answer:"):
+                current_question["correct_answer"] = line.replace("- Correct Answer:", "").strip()
+            elif line.startswith("- Level:"):
+                current_question["level"] = line.replace("- Level:", "").strip()
+    if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
         questions.append(current_question)
 
-    # veritabanına kaydedilir
+    if not questions:
+        logging.error(f"No valid questions parsed for user_id {user_id}: {response_text}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Hiçbir geçerli soru parse edilemedi: {response_text[:200]}...")
+
+        # test sorularını kaydet
     created_questions = []
-    for i in questions:
-        if len(i["options"]) == 4 and i["correct_answer"] in ["A", "B", "C", "D"] and i["content"]:
+    for q in questions:
+        if len(q["options"]) == 4 and q["correct_answer"] in ["A", "B", "C", "D"] and q["content"] and q["level"] in ["beginner", "intermediate", "advanced"]:
             question = QuestionModels(
-                content=i["content"],
-                options=json.dumps(i["options"]),
-                correct_answer=i["correct_answer"],
-                lesson_id=lesson_id
+                content=q["content"],
+                options=json.dumps(q["options"]),
+                correct_answer=q["correct_answer"],
+                lesson_id=None,
+                level=q["level"]  # seviyeleri kaydetme
             )
             db.add(question)
             created_questions.append(question)
+        else:
+            logging.warning(f"Invalid question skipped for user_id {user_id}: {q}")
+
     db.commit()
 
-    # JSON stringleri list[str] formatına çevirerek yanıt oluşturulur
+    # yanıtın hazırlanması
     response_questions = []
-    for i in created_questions:
-        db.refresh(i)
-        response_questions.append(
-            QuestionResponse(
-                id=i.id,
-                content=i.content,
-                options=json.loads(i.options),  # JSON string'i listeye çevirme
-                correct_answer=i.correct_answer,
-                lesson_id=i.lesson_id
-            )
-        )
+    for q in created_questions:
+        db.refresh(q)
+        response_questions.append({
+            "id": q.id,
+            "content": q.content,
+            "options": json.loads(q.options),
+            "correct_answer": q.correct_answer,
+            "level": q.level
+        })
 
     if not response_questions:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Geçerli soru üretilemedi.")
+        logging.error(f"No questions saved to database for user_id {user_id}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Sorular veritabanına kaydedilemedi.")
 
-    return response_questions
+    return {"questions": response_questions}
+
+
+@router.post('/users/{user_id}/level_test/submit', response_model=UserPublicResponse)
+async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTestSubmit, current_user: User = Depends(get_current_user)):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    # admin kullanıcıları seviye testi gönderemesin
+    if user.role == 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin kullanıcıları seviye testi gönderemez.")
+
+    correct_count = 0
+    for answer in submission.answers:
+        question = db.query(QuestionModels).filter(QuestionModels.id == answer.question_id).first()
+        if question and question.correct_answer == answer.selected_answer:
+            correct_count += 1
+
+    if correct_count <= 4:
+        user.level = 'beginner'
+    elif correct_count <= 7:
+        user.level = 'intermediate'
+    else:
+        user.level = 'advanced'
+
+    user.has_taken_level_test = True   # kullanıcı teste girdi True döndü
+    db.commit()
+    db.refresh(user)
+    return user
