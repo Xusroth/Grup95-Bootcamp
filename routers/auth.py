@@ -7,7 +7,7 @@ from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
 from models import User
-from schemas import UserRegister, UserLogin, UserResponse
+from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
 from jose import jwt, JWTError
@@ -71,7 +71,7 @@ def create_admin(): # admin oluşturmak için fonksiyon. email -> admin@gmail.co
     db = SessionLocal()
     try:
         hashed_password = bcrypt.hashpw('Admin123!'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        admin_user = User(username='admin', email='admin@gmail.com', hashed_password=hashed_password, role='admin')
+        admin_user = User(username='admin', email='admin@gmail.com', hashed_password=hashed_password, role='admin', level=None) # admin her seviyeden soru generate edebilsin diye -> None
 
         db.add(admin_user)
         db.commit()
@@ -85,10 +85,8 @@ def create_admin(): # admin oluşturmak için fonksiyon. email -> admin@gmail.co
 
 
 
-@router.post('/register', status_code=status.HTTP_201_CREATED) # kullanıcı kayıt
+@router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserPublicResponse) # kullanıcı kayıt
 async def register(db: db_dependency, user: UserRegister):
-    if user.role == 'admin':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin rolü sadece adminler tarafından atanabilir.")
     mevcut_user = db.query(User).filter((User.email == user.email) | (User.username == user.username)).first()
     if mevcut_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu kullanıcı adı veya email zaten kayıtlı.")
@@ -101,13 +99,15 @@ async def register(db: db_dependency, user: UserRegister):
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role=user.role
+        role='user',   # role kısmını user olarak sabitledim
+        level='beginner',  # kullanıcıların leveli default olarak beginner belirledim
+        has_taken_level_test=False # en başta kullanıcılar seviye testine girmediği için False yaptım. sınava girmesine göre boolean değiştirecek
     )
 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return {"message": "Kullanıcı başarıyla oluşturuldu.", "user_id": db_user.id, "username": db_user.username, "email": db_user.email, "role": db_user.role}
+    return db_user
 
 
 @router.post('/login', response_model=Token) # kullanıcı login kısmı (token ekledim güncelledim)
@@ -121,7 +121,7 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get('/me', response_model=UserResponse) # login olan kullanıcının bilgilerini görebilmesi için
+@router.get('/me', response_model=UserPublicResponse) # login olan kullanıcının bilgilerini görebilmesi için
 async def get_current_user_info(db: db_dependency, token: str = Depends(oauth2)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -145,6 +145,7 @@ async def make_admin(db: db_dependency, user_id: int, current_user: User = Depen
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
     user.role = 'admin'
+    user.level = None
     db.commit()
     return {"message": f"{user.username} kullanıcısına admin yetkisi verildi."}
 
@@ -154,7 +155,7 @@ async def list_users(db: db_dependency, current_user: User = Depends(get_current
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcıları listeleyebilir.")
     user = db.query(User).all()
-    return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role} for i in user]
+    return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role, "level": i.level, "has_taken_level_test": i.has_taken_level_test} for i in user]
 
 
 @router.delete('/admin/users/{user_id}', status_code=status.HTTP_200_OK)
