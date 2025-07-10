@@ -38,6 +38,7 @@ class Question(Base):
     options = Column(String, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin
     correct_answer = Column(String, nullable=False) # doğru şık
     lesson_id = Column(Integer, ForeignKey('lessons.id'), index=True)
+    level = Column(String, nullable=True, index=True) # soruların seviyesini saklamak (beginner, intermediate, advanced)
 
     lesson = relationship('Lesson', back_populates='questions')
 
@@ -63,6 +64,8 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String) # parolanın şifrelenmiş hali
     role = Column(String, default='user', index=True) # admin ve kullanıcıyı ayırmak için role ekledim
+    level = Column(String, nullable=True, index=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
+    has_taken_level_test = Column(Boolean, default=False, index=True) # seviye testine girdi mi girmedi mi onun kontrolü
 
     lessons = relationship('Lesson', secondary=user_lessons, back_populates='users')
     progress = relationship('Progress', back_populates='user')
