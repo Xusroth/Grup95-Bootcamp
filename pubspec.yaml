@@ -31,9 +31,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  http: ^0.13.6
   cupertino_icons: ^1.0.8
   gradient_slide_to_act: ^0.0.2
   flutter_launcher_icons: ^0.13.1
+
 
 dev_dependencies:
   flutter_test:
@@ -94,6 +96,7 @@ flutter:
     - assets/bos_ders.png
     - assets/kilitli_dosya.png
     - assets/app_logo.png
+    - assets/corner_gradient_rectangle_long.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

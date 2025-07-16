@@ -8,13 +8,11 @@ import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
 
 class DersSec extends StatefulWidget {
   final String userName;
-  final String userNickname;
   final String userMail;
 
   const DersSec({
     super.key,
     required this.userName,
-    required this.userNickname,
     required this.userMail,
   });
 
@@ -45,28 +43,28 @@ class _DersSecState extends State<DersSec> {
         'icon': 'assets/algoritma_icon.png',
         'description': 'Algoritmik düşünme temelleri.',
         'locked': algoritmaKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userNickname: widget.userNickname,),
+        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
       },
       {
         'title': 'Python',
         'icon': 'assets/python_icon.png',
         'description': 'Python programlamaya giriş.',
         'locked': pythonKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userNickname: widget.userNickname,),
+        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
       },
       {
         'title': 'Java',
         'icon': 'assets/java_icon.png',
         'description': 'Java ile nesne yönelimli programlama.',
         'locked': javaKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userNickname: widget.userNickname,),
+        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
       },
       {
         'title': 'C#',
         'icon': 'assets/python_icon.png',
         'description': 'C# ile Windows uygulamaları.',
         'locked': csharpKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userNickname: widget.userNickname,),
+        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
       },
     ];
 
@@ -101,7 +99,7 @@ class _DersSecState extends State<DersSec> {
                           const SizedBox(width: 5),
                           Image.asset('assets/profile_pic.png', height: 48),
                           Text(
-                            "Merhaba ${widget.userNickname}",
+                            "Merhaba ${widget.userName}",
                             style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white,

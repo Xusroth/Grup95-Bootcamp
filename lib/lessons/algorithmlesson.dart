@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:android_studio/lessons/question_page.dart';
 
 class AlgorithmLessonOverview extends StatefulWidget {
-  final String userNickname;
+  final String userName;
 
-  const AlgorithmLessonOverview({super.key, required this.userNickname});
+  const AlgorithmLessonOverview({super.key, required this.userName});
 
   @override
   State<AlgorithmLessonOverview> createState() => _AlgorithmLessonOverviewState();
@@ -13,29 +13,19 @@ class AlgorithmLessonOverview extends StatefulWidget {
 class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   List<Map<String, dynamic>> lessonSections = [
     {
-      'title': "Algoritmalara Giriş",
+      'title': "Beginner",
       'unlocked': true,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
+      'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
-      'title': 'Değişken Tanımlama',
+      'title': 'Intermediate',
       'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
+      'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
-      'title': 'For / While Loops',
+      'title': 'Advanced',
       'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
-    },
-    {
-      'title': 'Fonksiyonlar',
-      'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
-    },
-    {
-      'title': 'Nesneler',
-      'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
+      'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
   ];
 
@@ -79,7 +69,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                     Positioned(
                       left: 60,
                       child: Text(
-                        'Merhaba ${widget.userNickname}',
+                        'Merhaba ${widget.userName}',
                         style: const TextStyle(
                           fontFamily: 'Poppins-Regular',
                           color: Colors.white,

@@ -6,12 +6,14 @@ class WelcomeScreen3 extends StatelessWidget {
   final String userName;
   final String userNickname;
   final String userMail;
+  final String userPassword;
 
   const WelcomeScreen3({
     super.key,
     required this.userName,
     required this.userNickname,
     required this.userMail,
+    required this.userPassword
   });
 
   @override
@@ -68,8 +70,7 @@ class WelcomeScreen3 extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => DersSec(
-                            userName: userName,
-                            userNickname: userNickname,
+                            userName: userNickname,
                             userMail: userMail,
                           ),
                         ),

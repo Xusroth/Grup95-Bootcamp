@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/welcome_screen3.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:android_studio/constants.dart';
 
 class ProfileCreation extends StatefulWidget {
   const ProfileCreation({super.key});
@@ -13,29 +16,47 @@ class _ProfileCreationState extends State<ProfileCreation> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _mailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   bool notificationsOn = true;
   String? warningMessage;
+
+  final String baseUrl = '$baseURL';
+
+  Future<void> registerUser() async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'username': _nicknameController.text.trim(),
+        'email': _mailController.text.trim(),
+        'password': _passwordController.text.trim(),
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      print("Kayıt başarılı: ${response.body}");
+    } else {
+      print("Kayıt başarısız: ${response.body}");
+      throw Exception('Kayıt başarısız: ${response.body}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // arka plan için
           SizedBox.expand(
             child: Image.asset(
               'assets/arkaplan.png',
               fit: BoxFit.cover,
             ),
           ),
-
-          // içerikler için
           SafeArea(
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Üst Bar ve Profil Fotoğrafı
                   Stack(
                     alignment: Alignment.topCenter,
                     children: [
@@ -49,10 +70,7 @@ class _ProfileCreationState extends State<ProfileCreation> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Fotoğrafı değiştir Butonu
                   ElevatedButton(
                     onPressed: () {},
                     style: ElevatedButton.styleFrom(
@@ -71,10 +89,7 @@ class _ProfileCreationState extends State<ProfileCreation> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Bildirimler
                   const Text(
                     'Bildirimler',
                     style: TextStyle(
@@ -105,10 +120,7 @@ class _ProfileCreationState extends State<ProfileCreation> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 10),
-
-                  // Kullancıı bilgileri
                   const Text(
                     'Kullanıcı Bilgileri',
                     style: TextStyle(
@@ -118,14 +130,11 @@ class _ProfileCreationState extends State<ProfileCreation> {
                     ),
                   ),
                   const SizedBox(height: 12),
-
                   _buildTextField('Ad Soyad', _nameController),
                   _buildTextField('Kullanıcı Adı', _nicknameController),
                   _buildTextField('E-Posta', _mailController),
-
+                  _buildTextField('Şifre', _passwordController),
                   const SizedBox(height: 24),
-
-                  // Günlük Görev Süresi
                   const Text(
                     'Günlük Görev',
                     style: TextStyle(
@@ -161,10 +170,7 @@ class _ProfileCreationState extends State<ProfileCreation> {
                       );
                     }).toList(),
                   ),
-
                   const SizedBox(height: 30),
-
-                  // Uyarı mesajı
                   if (warningMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -177,30 +183,37 @@ class _ProfileCreationState extends State<ProfileCreation> {
                         ),
                       ),
                     ),
-
-                  // Oluştur Butonu
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_nameController.text.trim().isEmpty ||
                           _nicknameController.text.trim().isEmpty ||
-                          _mailController.text.trim().isEmpty) {
+                          _mailController.text.trim().isEmpty ||
+                          _passwordController.text.trim().isEmpty) {
                         setState(() {
-                          warningMessage = "Boş bırakılmamalıdır";
+                          warningMessage = "Tüm alanlar doldurulmalıdır.";
                         });
                       } else {
                         setState(() {
                           warningMessage = null;
                         });
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => WelcomeScreen3(
-                              userName: _nameController.text.trim(),
-                              userNickname: _nicknameController.text.trim(),
-                              userMail: _mailController.text.trim(),
+                        try {
+                          await registerUser();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => WelcomeScreen3(
+                                userName: _nameController.text.trim(),
+                                userNickname: _nicknameController.text.trim(),
+                                userMail: _mailController.text.trim(),
+                                userPassword: _passwordController.text.trim(),
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        } catch (e) {
+                          setState(() {
+                            warningMessage = 'Kayıt başarısız. Lütfen bilgileri gözden geçirin.';
+                          });
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -219,7 +232,6 @@ class _ProfileCreationState extends State<ProfileCreation> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 40),
                 ],
               ),

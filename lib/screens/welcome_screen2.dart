@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/welcome_screen3.dart';
 import 'package:android_studio/screens/profile_creation.dart';
+import 'package:android_studio/screens/login_screen.dart';
 
 class WelcomeScreen2 extends StatelessWidget {
   const WelcomeScreen2({super.key});
@@ -139,6 +140,7 @@ class WelcomeScreen2 extends StatelessWidget {
                             userName: '',
                             userNickname: nickname,
                             userMail: '',
+                            userPassword: '',
                           ),
                         ),
                       );
@@ -175,6 +177,26 @@ class WelcomeScreen2 extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+
+                  // Zaten hesabım var 
+                  GestureDetector(
+                    onTap: () {
+                    Navigator.push(context, 
+                    MaterialPageRoute(builder: (_) => LoginScreen()));
+                    },
+                    child: const Text(
+                      "Zaten hesabım var",
+                      style: TextStyle(
+                        decoration: TextDecoration.underline,
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontFamily: 'Poppins-Regular',
                       ),
                     ),
                   ),

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:android_studio/constants.dart';
 
 class QuestionPage extends StatefulWidget {
   final int sectionIndex;
@@ -28,69 +31,37 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
 
-  final List<Map<String, dynamic>> questions = [
-    {
-      'question': "Aşağıdakilerden hangisi python kütüphanesi değildir?",
-      'options': {
-        "A": "pandas",
-        "B": "numpy",
-        "C": "matplotlib",
-        "D": "sockpp"
-      },
-      'correct': "D"
-    },
-    {
-      'question': "Python'da liste elemanlarını sıralamak için hangi fonksiyon kullanılır?",
-      'options': {
-        "A": "sort()",
-        "B": "map()",
-        "C": "filter()",
-        "D": "list()"
-      },
-      'correct': "A"
-    },
-    {
-      'question': "Python'da sözlük (dictionary) tanımlamak için kullanılan sembol nedir?",
-      'options': {
-        "A": "()",
-        "B": "[]",
-        "C": "{}",
-        "D": "<>"
-      },
-      'correct': "C"
-    },
-    {
-      'question': "Python'da yorum satırı hangi karakterle başlar?",
-      'options': {
-        "A": "//",
-        "B": "/*",
-        "C": "#",
-        "D": "--"
-      },
-      'correct': "C"
-    },
-    {
-      'question': "Hangi veri tipi sadece True veya False değerini alır?",
-      'options': {
-        "A": "int",
-        "B": "bool",
-        "C": "float",
-        "D": "str"
-      },
-      'correct': "B"
-    },
-  ];
+  List<Map<String, dynamic>> questions = [];
+
+  Future<void> fetchQuestions() async {
+    final response = await http.get(
+    Uri.parse('$baseURL/lesson/questions/1'),
+    headers: {
+      'Content-Type': 'application/json',
+  },
+);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        questions = data.cast<Map<String, dynamic>>();
+      });
+    } else {
+      throw Exception('Soru çekme başarısız: ${response.body}');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
 
-    // Eğer zaten tamamlandıysa sayfadan çıkar.
     if (widget.isLevelCompleted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pop(context);
       });
     }
+
+    fetchQuestions(); // soruları getir
 
     _controller = AnimationController(
       vsync: this,
@@ -108,7 +79,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
     setState(() {
       selectedAnswer = key;
       answered = true;
-      isCorrect = key == questions[currentQuestionIndex]['correct'];
+      isCorrect = key == questions[currentQuestionIndex]['correct_answer'];
     });
 
     _controller.forward();
@@ -116,7 +87,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
 
   Color getButtonColor(String key) {
     if (!answered) return Colors.white.withOpacity(0.1);
-    if (key == questions[currentQuestionIndex]['correct']) return Colors.green;
+    if (key == questions[currentQuestionIndex]['correct_answer']) return Colors.green;
     if (key == selectedAnswer) return Colors.red;
     return Colors.white.withOpacity(0.1);
   }
@@ -129,11 +100,10 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
         answered = false;
         isCorrect = false;
         _controller.reset();
-        progress += 0.2;
+        progress += 1 / questions.length;
       });
     } else {
-      // Tüm sorular bitince
-      widget.onCompleted(); // 3/3 artışı için
+      widget.onCompleted();
       Navigator.pop(context);
     }
   }
@@ -146,6 +116,12 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    if (questions.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final question = questions[currentQuestionIndex];
 
     return Scaffold(
@@ -174,7 +150,6 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    // Profil
                     Container(
                       width: 55,
                       height: 55,
@@ -188,8 +163,6 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                       ),
                     ),
                     const SizedBox(width: 10),
-
-                    // Progress Bar
                     Expanded(
                       child: Stack(
                         alignment: Alignment.centerLeft,
@@ -227,7 +200,6 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                         ],
                       ),
                     ),
-
                     Row(
                       children: [
                         Image.asset('assets/health_bar.png', height: 24),
@@ -246,53 +218,60 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
               alignment: Alignment.topCenter,
               children: [
                 Image.asset(
-                  'assets/corner_gradient_rectangle.png',
-                  width: 400,
-                  height: 430,
+                  'assets/corner_gradient_rectangle_long.png',
+                  height: 570,
                 ),
-
                 Padding(
-                  padding: const EdgeInsets.only(top: 40.0),
+                  padding: const EdgeInsets.only(top: 10.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical: 30),
                         decoration: BoxDecoration(
                           color: Colors.white12,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          question['question'],
-                          style: const TextStyle(fontSize: 14, color: Colors.white),
+                          question['content'],
+                          style: const TextStyle(fontSize: 16, color: Colors.white, fontFamily: 'Poppins-Regular'),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       SizedBox(
                         width: 260,
-                        child: GridView.count(
-                          shrinkWrap: true,
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 30,
-                          crossAxisSpacing: 30,
-                          childAspectRatio: 2.7,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: question['options'].entries.map<Widget>((entry) {
-                            return ElevatedButton(
-                              onPressed: () => handleAnswer(entry.key),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: getButtonColor(entry.key),
-                                shape: RoundedRectangleBorder(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(4, (index) {
+                            String key = String.fromCharCode(65 + index); // A, B, C, D
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10.0),
+                              child: Container(
+                                width: double.infinity,
+                                height: 75,
+                                decoration: BoxDecoration(
+                                  color: getButtonColor(key),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                              ),
-                              child: Text(
-                                "${entry.key}) ${entry.value}",
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                child: TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    alignment: Alignment.centerLeft, 
+                                  ),
+                                  onPressed: () => handleAnswer(key),
+                                  child: Text(
+                                    "$key) ${question['options'][index]}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ),
                               ),
                             );
-                          }).toList(),
+                          }),
                         ),
                       ),
                     ],
@@ -333,7 +312,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                     ElevatedButton(
                       onPressed: () {
                         if (isCorrect) {
-                          goToNextQuestion(); // sonraki soruya geç
+                          goToNextQuestion();
                         } else {
                           setState(() {
                             answered = false;

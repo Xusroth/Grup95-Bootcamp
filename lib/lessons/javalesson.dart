@@ -12,29 +12,19 @@ class JavaLessonOverview extends StatefulWidget {
 class _JavaLessonOverviewState extends State<JavaLessonOverview> {
   List<Map<String, dynamic>> lessonSections = [
     {
-      'title': "Java'ya Giriş",
+      'title': "Beginner",
       'unlocked': true,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
+      'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
-      'title': 'Değişken Tanımlama',
+      'title': 'Intermediate',
       'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
+      'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
-      'title': 'For / While Loops',
+      'title': 'Advanced',
       'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
-    },
-    {
-      'title': 'Fonksiyonlar',
-      'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
-    },
-    {
-      'title': 'Nesneler',
-      'unlocked': false,
-      'levels': List.generate(6, (_) => {'completedContent': 0}),
+      'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
   ];
 
@@ -128,7 +118,7 @@ class _JavaLessonOverviewState extends State<JavaLessonOverview> {
                               final level = levels[levelIndex];
                               final completedContent = level['completedContent'];
 
-                              // Unlocked logic: ilk kart açık, diğerleri bir önceki 3/3 ise açık
+                              // ilk kart açık, diğerleri bir önceki 3/3 ise açık
                               final isUnlocked = section['unlocked'] &&
                                   (levelIndex == 0 ||
                                       levels[levelIndex - 1]['completedContent'] == 3);

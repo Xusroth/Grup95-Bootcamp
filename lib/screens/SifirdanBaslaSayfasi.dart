@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 class SeviyeSecSayfasi extends StatelessWidget {
   final String userMail; // mail kontrolü için
-  final String userNickname; // kullanıcı adını taşımak için
-  const SeviyeSecSayfasi({super.key, required this.userMail, required this.userNickname});
+  final String userName; // kullanıcı adını taşımak için
+  const SeviyeSecSayfasi({super.key, required this.userMail, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +95,7 @@ class SeviyeSecSayfasi extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AlgorithmLessonOverview(userNickname: userNickname),
+                            builder: (_) => AlgorithmLessonOverview(userName: userName),
                           ),
                         );
                       },
