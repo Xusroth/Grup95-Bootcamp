@@ -1,11 +1,16 @@
 import 'package:android_studio/lessons/algorithmlesson.dart';
 import 'package:android_studio/lessons/question_page.dart';
 import 'package:flutter/material.dart';
+import 'package:android_studio/screens/ReportScreen1.dart';
 
 class SeviyeSecSayfasi extends StatelessWidget {
   final String userMail; // mail kontrolü için
-  final String userName; // kullanıcı adını taşımak için
-  const SeviyeSecSayfasi({super.key, required this.userMail, required this.userName});
+  final String userNickname; // kullanıcı adını taşımak için
+  const SeviyeSecSayfasi({
+    super.key,
+    required this.userMail,
+    required this.userNickname,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,20 +36,27 @@ class SeviyeSecSayfasi extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Geri Butonu (user_bar değil)
+                  // Geri Butonu
                   IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    tooltip: 'Geri',
                   ),
 
-                  // Report ikonu
-                  Image.asset(
-                    'assets/report.png',
-                    width: 36,
-                    height: 36,
+                  // Report ikonu - IconButton ile
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReportScreen1(),
+                        ),
+                      );
+                    },
+                    icon: Image.asset(
+                      'assets/report.png',
+                      width: 36,
+                      height: 36,
+                    ),
                   ),
                 ],
               ),
@@ -65,14 +77,14 @@ class SeviyeSecSayfasi extends StatelessWidget {
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/selamveren_maskot.png',
-                      width: 120,
-                    ),
+                    Image.asset('assets/selamveren_maskot.png', width: 120),
                     const SizedBox(height: 20),
 
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 30,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(30),
@@ -95,23 +107,25 @@ class SeviyeSecSayfasi extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AlgorithmLessonOverview(userName: userName),
+                            builder: (_) => AlgorithmLessonOverview(
+                              userNickname: userNickname,
+                            ),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white.withOpacity(0.1),
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
                       child: const Text(
                         'Sıfırdan Başla',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
                     ),
 
@@ -120,49 +134,53 @@ class SeviyeSecSayfasi extends StatelessWidget {
                     // Seviyeni Belirle butonu (aktif/pasif kontrolü)
                     isRegistered
                         ? ElevatedButton(
-                      onPressed: () {
-
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.1),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                      ),
-                      child: const Text(
-                        'Seviyeni Belirle',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                      ),
-                    )
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: const Text(
+                              'Seviyeni Belirle',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                          )
                         : Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: const Column(
-                        children: [
-                          Text(
-                            'Seviyeni Belirle',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 20,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: const Column(
+                              children: [
+                                Text(
+                                  'Seviyeni Belirle',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  '(Kayıtlı Kullanıcılar için Geçerli)',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Text(
-                            '(Kayıtlı Kullanıcılar için Geçerli)',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 9,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ],
