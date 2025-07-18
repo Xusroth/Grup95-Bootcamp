@@ -1,6 +1,7 @@
 
 
 from typing import Optional
+from datetime import datetime
 import re # metinlerde regex ile desen arama ve tanımlama için re kütüphanesini kullandım
 from pydantic import BaseModel, Field, field_validator, EmailStr # EmailStr -> input olan string'in' geçerli bir e-posta adresi olup olmadığını kontrol eder
 # field_validator -> belirli alanlara özel doğrulama ve iş kuralları tanımlar
@@ -119,5 +120,23 @@ class QuestionResponse(BaseModel):
     lesson_id: int
     level: Optional[str]
 
+    class Config:
+        from_attributes = True
+
+
+
+# error
+class ErrorReportCreate(BaseModel):
+    user_id: Optional[int] = None
+    error_message: str = Field(min_length=1)
+    details: Optional[str] = None
+
+
+class ErrorReportResponse(BaseModel):
+    id: int
+    user_id: Optional[int]
+    error_message: str
+    details: Optional[str]
+    timestamp: datetime
     class Config:
         from_attributes = True
