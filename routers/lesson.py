@@ -2,11 +2,12 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import delete
 from starlette import status
 from typing import Annotated
 from pydantic import BaseModel
 from database import SessionLocal
-from models import User
+from models import User, user_lessons
 from models import Progress as ProgressModels # sqlalchemy modeli
 from models import Lesson as LessonModels # sqlalchemy modeli
 from models import Question as QuestionModels # sqlalchemy modeli
@@ -55,7 +56,7 @@ async def list_lessons(db: db_dependency):
 
 @router.post('/users/{user_id}/lessons/{lesson_id}') # kullanıcının ders seçmesi
 async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
-    if current_user.id != user_id:
+    if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
     user = db.query(User).filter(User.id == user_id).first()
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
@@ -68,9 +69,9 @@ async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current
     return {"message": f"{lesson.title} dersini seçtiniz."}
 
 
-@router.get('/users/{user_id}/lessons')  # kullanıcının seçtiği dersleri görmek
+@router.get('/users/{user_id}/lessons')  # kullanıcının seçtiği dersleri görmek    # admin yetkisine sahip kullanıcılar tüm userların derslerini görebiliyor!
 async def get_user_lessons(user_id: int, db:db_dependency, current_user: User = Depends(get_current_user)):
-    if current_user.id != user_id:
+    if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -80,7 +81,7 @@ async def get_user_lessons(user_id: int, db:db_dependency, current_user: User = 
 
 @router.delete('/users/{user_id}/lessons/{lesson_id}') # ders takibi bırakma (ilerleme kayıtlı kalıcak)
 async def unfollow_lesson(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
-    if current_user.id != user_id:
+    if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
     user = db.query(User).filter(User.id == user_id).first()
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
@@ -107,9 +108,29 @@ async def create_lesson(db: db_dependency, lesson: LessonCreate, current_user: U
     return new_lesson
 
 
+@router.delete('/lessons/{lesson_id}', status_code=status.HTTP_200_OK) # backend için ders silme (SADECE ADMİNLER) # dersi silince veritabanında dersle ilgili her şey siler.
+async def delete_lesson(lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler ders silebilir.")
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
+
+    db.execute(delete(user_lessons).where(user_lessons.c.lesson_id == lesson_id))
+
+    db.query(ProgressModels).filter(ProgressModels.lesson_id == lesson_id).delete()
+
+    db.query(QuestionModels).filter(QuestionModels.lesson_id == lesson_id).delete()
+
+    db.delete(lesson)
+    db.commit()
+    return {'message': f"{lesson.title} dersi silindi."}
+
+
+
 @router.post('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress) # progress bar ekleme
 async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
-    if current_user.id != user_id:
+    if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
     user = db.query(User).filter(User.id == user_id).first()
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
@@ -130,9 +151,9 @@ async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progr
     return db_progress
 
 
-@router.get('/users/{user_id}/progress', response_model=list[Progress]) # progress bar görüntüleme
+@router.get('/users/{user_id}/progress', response_model=list[Progress]) # progress bar görüntüleme  # admin yetkisine sahip kullanıcılar tüm userların progress bar ilerlemesini görebiliyor!
 async def get_user_progress(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
-    if current_user.id != user_id:
+    if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -342,8 +363,8 @@ async def generate_questions(db: db_dependency, lesson_id: int, current_user: Us
 
 
 
-@router.post('/users/{user_id}/level-test', response_model=dict) # seviye tespiti için 10 soruluk test (sonuçlara göre -> beginner/intermediate/advanced) (bunu geliştirelim..!)
-async def level_test(user_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
+@router.post('/users/{user_id}/level-test/{lesson_id}', response_model=dict) # seviye tespiti için 10 soruluk test (sonuçlara göre -> beginner/intermediate/advanced) # !!! GÜNCELLENDİ !!!
+async def level_test(user_id: int, lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
 
@@ -354,10 +375,16 @@ async def level_test(user_id: int, db: db_dependency, current_user: User = Depen
     if user.role == 'admin': # admin seviye testi almasın diye yaptım.
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin kullanıcıları seviye testi alamaz.")
 
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
+    if lesson not in user.lessons:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu dersi seçmediğiniz için bu dersin seviye testini alamazsınız.")
+
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel("gemini-2.5-flash")
     prompt = f"""
-    Generate 10 multiple-choice programming questions to assess the programming level of a user (beginner, intermediate, or advanced).
+    Generate 10 multiple-choice programming questions for a lesson titled '{lesson.title}' in category '{lesson.category}' to assess the programming level of a user (beginner, intermediate, or advanced).
     Each question must strictly follow this format and include exactly 4 options:
     - Question: [The question text]
     - A: [Option A]
@@ -366,10 +393,12 @@ async def level_test(user_id: int, db: db_dependency, current_user: User = Depen
     - D: [Option D]
     - Correct Answer: [A, B, C, or D]
     - Level: [beginner, intermediate, advanced]
-
-    Ensure questions are distributed across levels (at least 3 beginner, 4 intermediate, 3 advanced).
+    Ensure questions are relevant to the lesson topic ('{lesson.title}') and category ('{lesson.category}').
+    Distribute questions across levels: at least 3 beginner, 4 intermediate, 3 advanced.
+    For beginner level, focus on basic concepts (e.g., syntax, variables, basic functions).
+    For intermediate level, include moderately complex topics (e.g., loops, conditionals, basic data structures).
+    For advanced level, include complex topics (e.g., algorithms, advanced programming concepts).
     Provide clear, concise, and accurate programming questions. Do not include any introductory text, additional comments, or explanations.
-
     Example:
     - Question: What is the correct syntax to print "Hello" in Python?
     - A: print("Hello")
@@ -382,12 +411,12 @@ async def level_test(user_id: int, db: db_dependency, current_user: User = Depen
     try:
         response = model.generate_content(prompt)
         response_text = response.text.strip()
-        logging.info(f"Level Test Response for user_id {user_id}:\n{response_text}")
+        logging.info(f"Level test response for user_id {user_id}, lesson_id {lesson_id}:\n{response_text}")
         if not response_text:
-            logging.error(f"Gemini API returned empty response for user_id {user_id}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Gemini API boş yanıt döndü.")
+            logging.error(f"Gemini API returned empty response for user_id {user_id}, lesson_id {lesson_id}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Gemini API boş yanıt döndürdü.")
     except Exception as err:
-        logging.error(f"Gemini API error for user_id {user_id}: {str(err)}")
+        logging.error(f"Gemini API error for user_id {user_id}, lesson_id {lesson_id}: {str(err)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Gemini API hatası: {str(err)}")
 
     # yanıtın parse edilmesi
@@ -430,13 +459,13 @@ async def level_test(user_id: int, db: db_dependency, current_user: User = Depen
                 content=q["content"],
                 options=json.dumps(q["options"]),
                 correct_answer=q["correct_answer"],
-                lesson_id=None,
+                lesson_id=lesson_id,
                 level=q["level"]  # seviyeleri kaydetme
             )
             db.add(question)
             created_questions.append(question)
         else:
-            logging.warning(f"Invalid question skipped for user_id {user_id}: {q}")
+            logging.warning(f"Invalid question skipped for user_id {user_id}, lesson_id {lesson_id}: {q}")
 
     db.commit()
 
@@ -449,11 +478,12 @@ async def level_test(user_id: int, db: db_dependency, current_user: User = Depen
             "content": q.content,
             "options": json.loads(q.options),
             "correct_answer": q.correct_answer,
-            "level": q.level
+            "level": q.level,
+            "lesson_id": q.lesson_id
         })
 
     if not response_questions:
-        logging.error(f"No questions saved to database for user_id {user_id}")
+        logging.error(f"No questions saved to database for user_id {user_id}, lesson_id {lesson_id}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Sorular veritabanına kaydedilemedi.")
 
     return {"questions": response_questions}
