@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 import 'package:android_studio/screens/welcome_screen1.dart';
-import 'package:android_studio/screens/auth_service.dart';
 
 void main() {
   runApp(const MyApp());

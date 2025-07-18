@@ -5,11 +5,11 @@ import 'package:android_studio/screens/ReportScreen1.dart';
 
 class SeviyeSecSayfasi extends StatelessWidget {
   final String userMail; // mail kontrolü için
-  final String userNickname; // kullanıcı adını taşımak için
+  final String userName; // kullanıcı adını taşımak için
   const SeviyeSecSayfasi({
     super.key,
     required this.userMail,
-    required this.userNickname,
+    required this.userName,
   });
 
   @override
@@ -108,7 +108,7 @@ class SeviyeSecSayfasi extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => AlgorithmLessonOverview(
-                              userNickname: userNickname,
+                              userName: userName,
                             ),
                           ),
                         );

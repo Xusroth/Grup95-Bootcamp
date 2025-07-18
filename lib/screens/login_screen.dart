@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<Map<String, dynamic>> fetchUserInfo(String token) async {
     final response = await http.get(
-      Uri.parse('http://$baseURL:8080/auth/me'), // kendi backend IP'n
+      Uri.parse('$baseURL/auth/me'), // kendi backend IP'n
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => isLoading = true);
 
-    final url = Uri.parse('http://$baseURL/auth/login'); // kendi backend IP'n
+    final url = Uri.parse('$baseURL/auth/login'); // kendi backend IP'n
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},

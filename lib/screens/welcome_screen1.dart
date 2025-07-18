@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/welcome_screen2.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
-import 'package:android_studio/screens/auth_service.dart';
 import 'package:gradient_slide_to_act/gradient_slide_to_act.dart'; //kaydırmalı buton için
 
 class WelcomeScreen1 extends StatelessWidget {
