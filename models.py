@@ -1,8 +1,10 @@
 
 
-from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, Table, DateTime
 from database import Base
 from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+
 
 # bu kısımda ilişki many to many olucak çünkü birden fazla kullanıcı birden fazla ders alabilir. Ayrıca bu tür many to many ilişkilerde direkt ForeignKey ile bağlamak mümkün olmaz. Bu yüzden ara tablo yaptım.   # many-to-many ilişkili ara tablolarda her iki sütun da primary key olarak tanımlanır.
 
@@ -69,3 +71,15 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
 
     lessons = relationship('Lesson', secondary=user_lessons, back_populates='users')
     progress = relationship('Progress', back_populates='user')
+    error_reports = relationship('ErrorReport', back_populates='user') # yeni eklenen error report ilişkisi
+
+
+class ErrorReport(Base): # error report feedback kısmı için
+    __tablename__ = 'error_reports'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
+    error_message = Column(String, nullable=False)
+    details = Column(String, nullable=True) # daha açıklayıcı olması için ek detaylar ekledim (duruma göre kaldırırız) !!
+    timestamp = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    user = relationship('User', back_populates='error_reports')
