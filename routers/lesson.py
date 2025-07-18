@@ -488,3 +488,21 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get('/questions/{lesson_id}', response_model=list[QuestionResponse])
+async def get_questions_by_lesson(lesson_id: int, db: db_dependency):
+    questions = db.query(QuestionModels).filter(QuestionModels.lesson_id == lesson_id).all()
+    if not questions:
+        raise HTTPException(status_code=404, detail="Bu derse ait soru bulunamadı.")
+    
+    return [
+        QuestionResponse(
+            id=q.id,
+            content=q.content,
+            options=json.loads(q.options),
+            correct_answer=q.correct_answer,
+            lesson_id=q.lesson_id,
+            level=q.level
+        ) for q in questions
+    ]
