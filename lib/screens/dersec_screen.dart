@@ -5,6 +5,8 @@ import 'package:android_studio/lessons/pythonlesson.dart';
 import 'package:android_studio/lessons/javalesson.dart';
 import 'package:android_studio/lessons/csharplesson.dart';
 import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
+import 'package:android_studio/screens/home_screen.dart';
+import 'package:android_studio/screens/profile_screen.dart';
 
 class DersSec extends StatefulWidget {
   final String userName;
@@ -96,8 +98,26 @@ class _DersSecState extends State<DersSec> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const SizedBox(width: 5),
-                          Image.asset('assets/profile_pic.png', height: 48),
+                          GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => HomeScreen(userMail: widget.userMail, userName: widget.userName,)),
+                            );
+                          },
+                          child: Container(
+                            width: 55,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: const DecorationImage(
+                                image: AssetImage('assets/profile_pic.png'),
+                                fit: BoxFit.cover,
+                              ),
+                              border: Border.all(color: Colors.white, width: 1),
+                            ),
+                          ),
+                        ),
                           Text(
                             "Merhaba ${widget.userName}",
                             style: const TextStyle(
