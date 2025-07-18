@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:android_studio/screens/FeedbackThanksScreen.dart';
 import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
 
-void main() {
-  runApp(MaterialApp(home: ReportScreen1()));
-}
-
 class ReportScreen1 extends StatefulWidget {
   const ReportScreen1({super.key});
 

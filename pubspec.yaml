@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  shared_preferences: ^2.5.3
   http: ^1.4.0
   cupertino_icons: ^1.0.8
   gradient_slide_to_act: ^0.0.2

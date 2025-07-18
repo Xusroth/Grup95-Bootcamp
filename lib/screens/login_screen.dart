@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:android_studio/screens/dersec_screen.dart'; 
 import 'package:android_studio/constants.dart';
+import 'package:android_studio/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -51,6 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final token = data['access_token'];
+      final prefs = AuthService();
+      await prefs.setString('token', token.toString());
 
     try {
       final userInfo = await fetchUserInfo(token);

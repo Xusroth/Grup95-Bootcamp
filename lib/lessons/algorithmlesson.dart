@@ -15,7 +15,7 @@ class AlgorithmLessonOverview extends StatefulWidget {
 
 class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   List<Map<String, dynamic>> lessonSections = [
-    {
+    {   
       'title': "Beginner",
       'unlocked': true,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
