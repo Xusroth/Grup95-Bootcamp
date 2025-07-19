@@ -36,7 +36,7 @@ Bootcamp Grup 95
       <td><a href="https://www.linkedin.com/in/bora-eren-erdem-9b132b339/"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="20"/></a></td>
     </tr>
     <tr>
-      <td><img src="photos/nevrosaslan.jpg" width="100" /></td>
+      <td><img src="photos/nevrozaslan.jpg" width="100" /></td>
       <td>Nevroz Aslan</td>
       <td>Developer</td>
       <td><a href="https://www.linkedin.com/in/nevroz-aslan-60ab78251/"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="20"/></a></td>
