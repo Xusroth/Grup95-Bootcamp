@@ -107,7 +107,7 @@ flutter:
     - assets/kart2.png
     - assets/kart3.png
     - assets/graph.png
-
+    - assets/genis_card.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -3,6 +3,7 @@ import 'package:android_studio/screens/welcome_screen3.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:android_studio/constants.dart';
+import 'package:android_studio/auth_service.dart';
 
 class ProfileCreation extends StatefulWidget {
   const ProfileCreation({super.key});
@@ -23,24 +24,60 @@ class _ProfileCreationState extends State<ProfileCreation> {
 
   final String baseUrl = '$baseURL';
 
-  Future<void> registerUser() async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'username': _nicknameController.text.trim(),
-        'email': _mailController.text.trim(),
+Future<void> registerUser() async {
+  
+  final registerResponse = await http.post(
+    Uri.parse('$baseUrl/auth/register'),
+    headers: {'Content-Type': 'application/json'},
+    body: json.encode({
+      'username': _nicknameController.text.trim(),
+      'email': _mailController.text.trim(),
+      'password': _passwordController.text.trim(),
+    }),
+  );
+
+  if (registerResponse.statusCode == 201) {
+    print("✅ Kayıt başarılı");
+
+    
+    final loginResponse = await http.post(
+      Uri.parse('$baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {
+        'username': _mailController.text.trim(), 
         'password': _passwordController.text.trim(),
-      }),
+      }
     );
 
-    if (response.statusCode == 201) {
-      print("Kayıt başarılı: ${response.body}");
+    if (loginResponse.statusCode == 200) {
+      final loginData = jsonDecode(loginResponse.body);
+      final token = loginData['access_token'];
+
+      final auth = AuthService();
+      await auth.setString('token', token);
+
+      print("🔐 Token alındı ve kaydedildi: $token");
+
+      
+      final meResponse = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (meResponse.statusCode == 200) {
+        final userInfo = jsonDecode(meResponse.body);
+        print("👤 Kullanıcı Bilgisi: $userInfo");
+        
+      } else {
+        print("⚠️ Kullanıcı bilgisi alınamadı");
+      }
     } else {
-      print("Kayıt başarısız: ${response.body}");
-      throw Exception('Kayıt başarısız: ${response.body}');
+      throw Exception('Giriş başarısız: ${loginResponse.body}');
     }
+  } else {
+    throw Exception('Kayıt başarısız: ${registerResponse.body}');
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +170,7 @@ class _ProfileCreationState extends State<ProfileCreation> {
                   _buildTextField('Ad Soyad', _nameController),
                   _buildTextField('Kullanıcı Adı', _nicknameController),
                   _buildTextField('E-Posta', _mailController),
-                  _buildTextField('Şifre', _passwordController),
+                  _buildTextField('Şifre', _passwordController, isPassword: true),
                   const SizedBox(height: 24),
                   const Text(
                     'Günlük Görev',
@@ -242,11 +279,12 @@ class _ProfileCreationState extends State<ProfileCreation> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller, {bool isPassword = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 6),
       child: TextField(
         controller: controller,
+        obscureText: isPassword,
         style: const TextStyle(color: Colors.white, fontFamily: 'Poppins-Regular'),
         decoration: InputDecoration(
           hintText: label,
