@@ -70,11 +70,11 @@ async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current
     if lesson in user.lessons:
         return {"message": "Ders zaten seçili."}
 
-    user.lessons.append(lesson) # ders user'a eklendi
+    user.lessons.append(lesson) # ders user'a ekleniyor
 
     db_progress = db.query(ProgressModels).filter(ProgressModels.user_id == user_id, ProgressModels.lesson_id == lesson_id).first()
     if not db_progress:
-        db_progress = ProgressModels(
+        db_progress = ProgressModels( # ilerleme kaydı ders seçilince otomatik olarak oluşturuluyor !
             user_id=user_id,
             lesson_id=lesson_id,
             completed_questions=0,
