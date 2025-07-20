@@ -22,11 +22,11 @@ class Progress(Base):
     __tablename__ = 'progress'
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'), index=True)
-    lesson_id = Column(Integer, ForeignKey('lessons.id'), index=True)
-    completed_questions = Column(Integer, default=0)
-    total_questions = Column(Integer, default=0)
-    completion_percentage = Column(Float, default=0.0)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False)
+    completed_questions = Column(Integer, nullable=True)
+    total_questions = Column(Integer, nullable=True)
+    completion_percentage = Column(Float, default=0.0) # tamamlama yüzdesi
 
     user = relationship('User', back_populates='progress')
     lesson = relationship('Lesson', back_populates='progress')
@@ -39,7 +39,7 @@ class Question(Base):
     content = Column(String, nullable=False) # soru içeriği
     options = Column(String, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin
     correct_answer = Column(String, nullable=False) # doğru şık
-    lesson_id = Column(Integer, ForeignKey('lessons.id'), index=True)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
     level = Column(String, nullable=True, index=True) # soruların seviyesini saklamak (beginner, intermediate, advanced)
 
     lesson = relationship('Lesson', back_populates='questions')
@@ -65,11 +65,11 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String) # parolanın şifrelenmiş hali
-    role = Column(String, default='user', index=True) # admin ve kullanıcıyı ayırmak için role ekledim
-    level = Column(String, nullable=True, index=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
-    has_taken_level_test = Column(Boolean, default=False, index=True) # seviye testine girdi mi girmedi mi onun kontrolü
+    role = Column(String, default='user') # admin ve kullanıcıyı ayırmak için role ekledim
+    level = Column(String, nullable=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
+    has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi onun kontrolü
 
-    lessons = relationship('Lesson', secondary=user_lessons, back_populates='users')
+    lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
     progress = relationship('Progress', back_populates='user')
     error_reports = relationship('ErrorReport', back_populates='user') # yeni eklenen error report ilişkisi
 
@@ -82,4 +82,5 @@ class ErrorReport(Base): # error report feedback kısmı için
     error_message = Column(String, nullable=False)
     details = Column(String, nullable=True) # daha açıklayıcı olması için ek detaylar ekledim (duruma göre kaldırırız) !!
     timestamp = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+
     user = relationship('User', back_populates='error_reports')
