@@ -97,6 +97,8 @@ class Progress(ProgressCreate):
     id: int
     user_id: int
     lesson_id: int
+    completed_questions: int
+    total_questions: int
     completion_percentage: float
 
     class Config:
