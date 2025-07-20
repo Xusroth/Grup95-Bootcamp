@@ -344,6 +344,9 @@ Yapay zekayı nasıl kullanacağımıza 2.sprintte karar verilecek.
 
 ## Sprint Notları:
 
+### Bu sprintte gerçekleştirdiğimiz toplantılar, geliştirme süreçleri ve diğer detaylar için [Daily Scrum sayfamızı](https://www.notion.so/Daily-Scrum-Sprint2-23382b3b80e8805a9bebdfd8e8b1cd9a) inceleyebilirsiniz.
+
+
 - Bu sprintte en önemli hedef, frontend ve backend kısımlarının entegrasyonunun sağlanmasıydı.
 - Figmada tasarlanan sayfaların Flutter ile kodlanması tamamlandı.
 - Backend tarafında SQLite veritabanı kullanıldı; DBeaver ile veritabanı yönetimi kolaylaştırıldı.
@@ -432,15 +435,14 @@ Yapay zekayı nasıl kullanacağımıza 2.sprintte karar verilecek.
 </table>
 
 ---
-**Sprint Puanları ve Görev Dağılımı**
-
+# Sprint Puanları ve Görev Dağılımı
+----
+## Sprint Board Güncellemeleri
 ![Sprint2 Board](photos/sprint2_board.png)
-
-**Burndown chart**
-
+## Burndown chart
 ![Sprint2 Burndown Chart](photos/burndown_chart_sprint2.png)
+## Puan tamamlama mantığı 200 puan
 
-**Puan tamamlama mantığı 200 puan**
 |  | Görevler | Front-end Puanı | Back-end Puanı |
 | --- | --- | --- | --- |
 | 1 | Yetkilendirme geliştirmesi |  | 15 |
