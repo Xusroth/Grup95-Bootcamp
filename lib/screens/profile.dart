@@ -25,6 +25,7 @@ class ProfileMainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
+      resizeToAvoidBottomInset: false, // alt taşma hatası için
       body: Stack(
         children: [
           Container(
@@ -36,6 +37,7 @@ class ProfileMainScreen extends StatelessWidget {
             ),
             child: SafeArea(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100), // alttaki taşma için boşluk
                 child: Column(
                   children: [
                     Stack(
@@ -56,7 +58,6 @@ class ProfileMainScreen extends StatelessWidget {
                     const Text("Turkey", style: TextStyle(color: Colors.grey, fontSize: 14)),
                     const SizedBox(height: 20),
 
-                    // Butonlar
                     buildButton("Profili Düzenle"),
                     const SizedBox(height: 8),
                     buildButton("Devam Eden Eğitimler"),
@@ -64,7 +65,6 @@ class ProfileMainScreen extends StatelessWidget {
                     buildButton("Ayarlar"),
                     const SizedBox(height: 8),
 
-                    // Çıkış
                     Container(
                       height: 46,
                       width: 272,
@@ -85,11 +85,9 @@ class ProfileMainScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 32),
 
-                    // Hedef kartı
                     buildKart("assets/hedef_kart.png", "Hedef Tamamlama", "4/5 tamamlandı", 0.8),
                     const SizedBox(height: 16),
 
-                    // Genişletilmiş Leaderboard kartı
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20),
                       height: 160,
@@ -113,7 +111,6 @@ class ProfileMainScreen extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 100), // Alt bar çakışmasın diye boşluk
                   ],
                 ),
               ),
@@ -122,14 +119,14 @@ class ProfileMainScreen extends StatelessWidget {
 
           // Alt bar
           Positioned(
-            bottom: 20,
+            bottom: 0,
             left: 0,
             right: 0,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 350,
+                  width: double.infinity,
                   child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
                 ),
                 Padding(
