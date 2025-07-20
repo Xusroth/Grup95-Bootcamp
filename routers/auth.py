@@ -7,7 +7,7 @@ from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
 from models import User
-from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse
+from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
 from jose import jwt, JWTError
@@ -119,6 +119,35 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Şifre yanlış.")
     access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncelledim
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.put('/users/{user_id}', response_model=UserPublicResponse)
+async def update_user(db: db_dependency, user_id: int, user_update: UserUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin' and current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    if user_update.username and user_update.username != user.username:
+        existing_user = db.query(User).filter(User.username == user_update.username).first()
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu kullanıcı adı zaten kayıtlı.")
+        user.username = user_update.username
+
+    if user_update.email and user_update.email != user.email:
+        existing_user = db.query(User).filter(User.email == user_update.email).first()
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu e-posta zaten kayıtlı.")
+        user.email = user_update.email
+
+    if user_update.level:
+        user.level = user_update.level
+
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @router.get('/me', response_model=UserPublicResponse) # login olan kullanıcının bilgilerini görebilmesi için
