@@ -81,21 +81,3 @@ async def startup_event():
 @app.get('/') # welcome fonksiyonu gibi düşün
 async def root(request: Request): # request kullanmamın sebebi uygulamaya giren cihazdan gelen bilgileri görebilmek
     return {"message": "Codebite'a hoşgeldin!"}
-
-
-@app.get('/get_all_user') # veritabanındaki tüm User verisini görmek
-async def get_all_user(db:db_dependency):
-    return db.query(User).all()
-
-
-@app.get('/get_all_lesson') # veritabanındaki tüm Lesson verisini görmek
-async def get_all_lesson(db: db_dependency):
-    return db.query(Lesson).all()
-
-
-@app.get('/get_by_id/{user_id}') # kullanıcıları id'sine göre getirmek
-async def get_by_id(db: db_dependency, user_id: int = Path(gt=0)):
-    user = db.query(User).filter(User.id == user_id).first() # first() yazmayı unutma yoksa sonsuz istek atıyor server çöküyor!
-    if user is not None:
-        return user
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User bulunamadı..!")
