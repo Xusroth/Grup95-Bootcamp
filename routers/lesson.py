@@ -11,15 +11,18 @@ from models import User, user_lessons
 from models import Progress as ProgressModels # sqlalchemy modeli
 from models import Lesson as LessonModels # sqlalchemy modeli
 from models import Question as QuestionModels # sqlalchemy modeli
-from schemas import Lesson, LessonCreate # pydantic modeli
+from models import Streak as StreakModels # sqlalchemy modeli
+from schemas import Lesson, LessonCreate, LessonUpdate # pydantic modeli
 from schemas import Progress, ProgressCreate # pydantic modeli
-from schemas import QuestionCreate, QuestionResponse # pydantic modeli
+from schemas import QuestionCreate, QuestionResponse, QuestionUpdate # pydantic modeli
 from schemas import UserPublicResponse # pydantic modeli
+from schemas import StreakUpdate # pydantic model
 from routers.auth import get_current_user # routers package'daki auth.py dosyasından import ettim   # gerekli endpointlere ekledim..! # authorize için kullanıyorum gerekli olanlara koyuyorum..!
 from config import GEMINI_API_KEY
 import google.generativeai as genai
 import json
 import logging
+from datetime import datetime, timezone, timedelta
 
 
 
@@ -58,15 +61,30 @@ async def list_lessons(db: db_dependency):
 async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
+
     user = db.query(User).filter(User.id == user_id).first()
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
     if not user or not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Kullanıcı veya ders bulunamadı!')
+
     if lesson in user.lessons:
         return {"message": "Ders zaten seçili."}
-    user.lessons.append(lesson)
+
+    user.lessons.append(lesson) # ders user'a eklendi
+
+    db_progress = db.query(ProgressModels).filter(ProgressModels.user_id == user_id, ProgressModels.lesson_id == lesson_id).first()
+    if not db_progress:
+        db_progress = ProgressModels(
+            user_id=user_id,
+            lesson_id=lesson_id,
+            completed_questions=0,
+            total_questions=0,
+            completion_percentage=0.0
+        )
+        db.add(db_progress)
+
     db.commit()
-    return {"message": f"{lesson.title} dersini seçtiniz."}
+    return {"message": f"{lesson.title} dersini seçtiniz. İlerleme kaydı oluşturuldu."}
 
 
 @router.get('/users/{user_id}/lessons')  # kullanıcının seçtiği dersleri görmek    # admin yetkisine sahip kullanıcılar tüm userların derslerini görebiliyor!
@@ -108,6 +126,32 @@ async def create_lesson(db: db_dependency, lesson: LessonCreate, current_user: U
     return new_lesson
 
 
+@router.put('/lessons/{lesson_id}', response_model=Lesson) # !!! SADECE ADMİNLER DERS BİLGİLERİNİ GÜNCELLER !!!
+async def update_lesson(db: db_dependency, lesson_id: int, lesson_update: LessonUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler ders güncelleyebilir.")
+
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
+
+    if lesson_update.title and lesson_update.title != lesson.title:
+        existing_lesson = db.query(LessonModels).filter(LessonModels.title == lesson_update.title).first()
+        if existing_lesson:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu başlıkta ders zaten mevcut.")
+        lesson.title = lesson_update.title
+
+    if lesson_update.description:
+        lesson.description = lesson_update.description
+
+    if lesson_update.category:
+        lesson.category = lesson_update.category
+
+    db.commit()
+    db.refresh(lesson)
+    return lesson
+
+
 @router.delete('/lessons/{lesson_id}', status_code=status.HTTP_200_OK) # backend için ders silme (SADECE ADMİNLER) # dersi silince veritabanında dersle ilgili her şey siler.
 async def delete_lesson(lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
@@ -127,25 +171,58 @@ async def delete_lesson(lesson_id: int, db: db_dependency, current_user: User = 
     return {'message': f"{lesson.title} dersi silindi."}
 
 
-
-@router.post('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress) # progress bar ekleme
-async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
+@router.post('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress, status_code=status.HTTP_201_CREATED) # progress bar ekleme
+async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+
     user = db.query(User).filter(User.id == user_id).first()
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
     if not user or not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Kullanıcı veya ders bulunamadı.')
 
+    if lesson not in user.lessons: # dersin user tarafından seçilip seçilmediğinin kontrolü
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu ders kullanıcı tarafından seçilmemiş.")
+
+    db_progress = db.query(ProgressModels).filter(ProgressModels.user_id == user_id, ProgressModels.lesson_id == lesson_id).first() # mevcut ilerleme kaydının kontrolü
+    if db_progress:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu kullanıcı için bu derse ait ilerleme zaten mevcut.")
+
+    db_progress = ProgressModels( # yeni ilerleme kaydı oluşturma kısmı
+        user_id=user_id,
+        lesson_id=lesson_id,
+        completed_questions=progress.completed_questions,
+        total_questions=progress.total_questions,
+        completion_percentage=0.0 if progress.total_questions == 0 else (progress.completed_questions / progress.total_questions * 100)
+    )
+
+    db.add(db_progress)
+    db.commit()
+    db.refresh(db_progress)
+    return db_progress
+
+
+@router.put('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress) # progress bar güncelleme
+async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin' and current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not user or not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Kullanıcı veya ders bulunamadı.')
+
+    if lesson not in user.lessons:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu ders kullanıcı tarafından seçilmemiş.")
+
     db_progress = db.query(ProgressModels).filter(ProgressModels.user_id == user_id, ProgressModels.lesson_id == lesson_id).first()
     if not db_progress:
-        db_progress = ProgressModels(user_id=user_id, lesson_id=lesson_id, **progress.dict())
-        db.add(db_progress)
-    else:
-        db_progress.completed_questions = progress.completed_questions
-        db_progress.total_questions = progress.total_questions
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu kullanıcı için bu derse ait ilerleme bulunamadı. Önce ilerleme kaydı oluşturmalısınız.")
 
+    db_progress.completed_questions = progress.completed_questions
+    db_progress.total_questions = progress.total_questions
     db_progress.completion_percentage = (progress.completed_questions / progress.total_questions * 100) if progress.total_questions > 0 else 0
+
     db.commit()
     db.refresh(db_progress)
     return db_progress
@@ -515,6 +592,39 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
     return user
 
 
+@router.put('/questions/{question_id}', response_model=QuestionResponse)
+async def update_question(db: db_dependency, question_update: QuestionUpdate, question_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler soruları güncelleyebilir.")
+
+    question = db.query(QuestionModels).filter(QuestionModels.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soru bulunamadı.")
+
+    if question_update.content:
+        question.content = question_update.content
+
+    if question_update.options:
+        question.options = json.dumps(question_update.options)
+
+    if question_update.correct_answer:
+        question.correct_answer = question_update.correct_answer
+
+    if question_update.level:
+        question.level = question_update.level
+
+    db.commit()
+    db.refresh(question)
+    return QuestionResponse(
+        id=question.id,
+        content=question.content,
+        options=json.loads(question.options),
+        correct_answer=question.correct_answer,
+        lesson_id=question.lesson_id,
+        level=question.level
+    )
+
+
 @router.get('/questions/{lesson_id}', response_model=list[QuestionResponse])
 async def get_questions_by_lesson(lesson_id: int, db: db_dependency):
     questions = db.query(QuestionModels).filter(QuestionModels.lesson_id == lesson_id).all()
@@ -531,3 +641,60 @@ async def get_questions_by_lesson(lesson_id: int, db: db_dependency):
             level=q.level
         ) for q in questions
     ]
+
+
+@router.put('/users/{user_id}/lessons/{lesson_id}/streak', response_model=dict)
+async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin' and current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not user or not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı veya ders bulunamadı.")
+
+    streak = db.query(StreakModels).filter(StreakModels.user_id == user_id, StreakModels.lesson_id == lesson_id).first()
+    today = datetime.now(timezone.utc).date()
+    yesterday = today - timedelta(days=1)
+
+    if not streak:
+        streak = StreakModels(user_id=user_id, lesson_id=lesson_id, streak_count=1, last_update=datetime.now(timezone.utc))
+        db.add(streak)
+    else:
+        last_update_date = streak.last_update.date()
+        if last_update_date == today:
+            return {'message': "Bugün zaten bir ilerleme kaydettiğiniz için streak güncellendi.", 'streak_count': streak.streak_count}
+        elif last_update_date == yesterday:
+            streak.streak_count += 1
+        else:
+            streak.streak_count = 1
+            streak.last_update = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(streak)
+    return {'streak_count': streak.streak_count, 'last_update': streak.last_update}
+
+
+@router.put('/users/{user_id}/lessons/{lesson_id}/streak/admin', response_model=dict)
+async def admin_update_streak(db: db_dependency, user_id: int, lesson_id: int, streak_update: StreakUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler streak güncelleyebilir.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not user or not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı veya ders bulunamadı.")
+
+    streak = db.query(StreakModels).filter(StreakModels.user_id == user_id, StreakModels.lesson_id == lesson_id).first()
+    if not streak:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu kullanıcı için bu derse ait streak bulunamadı.")
+
+    if streak_update.streak_count is not None:
+        streak.streak_count = streak_update.streak_count
+
+    if streak_update.last_update:
+        streak.last_update = streak_update.last_update
+
+    db.commit()
+    db.refresh(streak)
+    return {'streak_count': streak.streak_count, 'last_update': streak.last_update}
