@@ -416,7 +416,7 @@ Yapay zekayı nasıl kullanacağımıza 2.sprintte karar verilecek.
       <b>Geri Bildirim Ekranı</b>
     </td>
     <td align="center">
-      <img src="photos/Geri Bildirim Teşekkür Sayfası.jpg" width="200"/><br/>
+      <img src="photos/thanks_sayfası.jpg" width="200"/><br/>
       <b>Geri Bildirim Teşekkür Sayfası</b>
     </td>
         <td align="center">
