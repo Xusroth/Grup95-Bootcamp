@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
-import 'package:android_studio/screens/profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileStatsScreen extends StatelessWidget {
   final String userName;
 
-  const ProfileScreen({super.key, required this.userName});
+  const ProfileStatsScreen({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Arka plan
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -22,7 +20,6 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
@@ -95,7 +92,7 @@ class ProfileScreen extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     children: [
-                       buildGorevCard(
+                      buildGorevCard(
                         imagePath: "assets/kart1.png",
                         gorevYazisi: "5 Python Sorusu Çöz",
                         tamamlanan: 2,
@@ -175,7 +172,7 @@ class ProfileScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProfileScreen(
+                              builder: (_) => ProfileStatsScreen(
                                 userName: userName,
                               ),
                             ),
@@ -188,90 +185,84 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-Widget buildGorevCard({
-  required String imagePath,
-  required String gorevYazisi,
-  required int tamamlanan,
-  required int toplam,
-}) {
-  double progress = tamamlanan / toplam;
+  Widget buildGorevCard({
+    required String imagePath,
+    required String gorevYazisi,
+    required int tamamlanan,
+    required int toplam,
+  }) {
+    double progress = tamamlanan / toplam;
 
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
-    child: Stack(
-      children: [
-        // Kart arka planı
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Image.asset(
-            imagePath,
-            width: double.infinity,
-            height: 130,
-            fit: BoxFit.cover,
-          ),
-        ),
-
-        Positioned(
-          right: 220,
-          top: 53,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.asset(
+              imagePath,
+              width: double.infinity,
+              height: 130,
+              fit: BoxFit.cover,
             ),
-            child: Text(
-              "$tamamlanan/$toplam Tamamlandı",
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.white,
-                fontFamily: 'Poppins-SemiBold',
+          ),
+          Positioned(
+            right: 220,
+            top: 53,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                "$tamamlanan/$toplam Tamamlandı",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontFamily: 'Poppins-SemiBold',
+                ),
               ),
             ),
           ),
-        ),
-
-        // Görev yazısı ve progress bar
-        Positioned.fill(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  gorevYazisi,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontFamily: 'Poppins-Bold',
-                  ),
-                ),
-                const Spacer(),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 20,
-                    backgroundColor: Colors.black26,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color.fromARGB(255, 28, 179, 28),
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    gorevYazisi,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: 'Poppins-Bold',
                     ),
                   ),
-                ),
-              ],
+                  const Spacer(),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 20,
+                      backgroundColor: Colors.black26,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color.fromARGB(255, 28, 179, 28),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-
+        ],
+      ),
+    );
+  }
 }

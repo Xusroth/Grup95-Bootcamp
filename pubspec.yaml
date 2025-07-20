@@ -107,6 +107,13 @@ flutter:
     - assets/kart2.png
     - assets/kart3.png
     - assets/graph.png
+    - assets/hedef_kart.png
+    - assets/leaderboard_kart.png
+    - assets/level1.png
+    - assets/level2.png
+    - assets/level3.png
+    - assets/level4.png
+    - assets/level2_reverse.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

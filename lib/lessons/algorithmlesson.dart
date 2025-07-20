@@ -3,6 +3,8 @@ import 'package:android_studio/lessons/question_page.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 import 'package:android_studio/screens/profile_screen.dart';
+import 'package:android_studio/screens/profile.dart';
+
 
 class AlgorithmLessonOverview extends StatefulWidget {
   final String userName;
@@ -269,7 +271,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProfileScreen(
+                              builder: (_) => ProfilePage(
                                 userName: widget.userName,
                               ),
                             ),

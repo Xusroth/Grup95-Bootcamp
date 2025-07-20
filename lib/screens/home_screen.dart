@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 import 'package:android_studio/screens/profile_screen.dart';
+import 'package:android_studio/screens/profile.dart';
 
 class HomeScreen extends StatelessWidget {
   final String userName;
@@ -47,7 +48,7 @@ class HomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => ProfileScreen(userName: userName), 
+                                builder: (_) => ProfilePage(userName: userName),
                               ),
                             );
                           },
@@ -197,7 +198,7 @@ class HomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProfileScreen(
+                              builder: (_) => ProfilePage(
                                 userName: userName,
                               ),
                             ),
