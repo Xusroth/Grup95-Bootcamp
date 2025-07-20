@@ -18,6 +18,38 @@ user_lessons = Table(
 
 
 
+
+class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=True diyerek index oluşturdum (böylece select işlemi hızlanır)
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String) # parolanın şifrelenmiş hali
+    role = Column(String, default='user') # admin ve kullanıcıyı ayırmak için role ekledim
+    level = Column(String, nullable=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
+    has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi onun kontrolü
+
+    lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
+    progress = relationship('Progress', back_populates='user')
+    error_reports = relationship('ErrorReport', back_populates='user')
+    streaks = relationship('Streak', back_populates='user')
+
+
+class Lesson(Base):
+    __tablename__ = 'lessons'
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, unique=True, index=True)
+    description = Column(String, nullable=True)
+    category = Column(String, nullable=True) # web geliştirme, ai vb.
+
+    users = relationship('User', secondary=user_lessons, back_populates='lessons')
+    progress = relationship('Progress', back_populates='lesson')
+    questions = relationship('Question', back_populates='lesson') # one to many ilişki
+    streaks = relationship('Streak', back_populates='lesson')
+
+
 class Progress(Base):
     __tablename__ = 'progress'
 
@@ -45,35 +77,6 @@ class Question(Base):
     lesson = relationship('Lesson', back_populates='questions')
 
 
-class Lesson(Base):
-    __tablename__ = 'lessons'
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, unique=True, index=True)
-    description = Column(String, nullable=True)
-    category = Column(String, nullable=True) # web geliştirme, ai vb.
-
-    users = relationship('User', secondary=user_lessons, back_populates='lessons')
-    progress = relationship('Progress', back_populates='lesson')
-    questions = relationship('Question', back_populates='lesson') # one to many ilişki
-
-
-class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=True diyerek index oluşturdum (böylece select işlemi hızlanır)
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String) # parolanın şifrelenmiş hali
-    role = Column(String, default='user') # admin ve kullanıcıyı ayırmak için role ekledim
-    level = Column(String, nullable=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
-    has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi onun kontrolü
-
-    lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
-    progress = relationship('Progress', back_populates='user')
-    error_reports = relationship('ErrorReport', back_populates='user') # yeni eklenen error report ilişkisi
-
-
 class ErrorReport(Base): # error report feedback kısmı için
     __tablename__ = 'error_reports'
 
@@ -82,5 +85,19 @@ class ErrorReport(Base): # error report feedback kısmı için
     error_message = Column(String, nullable=False)
     details = Column(String, nullable=True) # daha açıklayıcı olması için ek detaylar ekledim (duruma göre kaldırırız) !!
     timestamp = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    status = Column(String, default='pending', index=True) # pending, resolved, rejected vb. durumlar (şimdilik bu üçü var)
 
     user = relationship('User', back_populates='error_reports')
+
+
+class Streak(Base):
+    __tablename__ = 'streaks'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
+    streak_count = Column(Integer, default=0)
+    last_update = Column(DateTime, default=datetime.now(timezone.utc), index=True) # kullanıcıyı takip etmesi için günlük datetime eklendi
+
+    user = relationship('User', back_populates='streaks')
+    lesson = relationship('Lesson', back_populates='streaks')
