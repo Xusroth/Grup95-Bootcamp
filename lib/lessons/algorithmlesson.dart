@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:android_studio/lessons/question_page.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
-import 'package:android_studio/screens/profile_screen.dart';
+import 'package:android_studio/screens/quest_screen.dart';
 import 'package:android_studio/screens/profile.dart';
 
 

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 
-class ProfileStatsScreen extends StatelessWidget {
+class QuestScreen extends StatelessWidget {
   final String userName;
 
-  const ProfileStatsScreen({super.key, required this.userName});
+  const QuestScreen({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +72,10 @@ class ProfileStatsScreen extends StatelessWidget {
                         right: 12,
                         top: 60,
                         child: Text(
-                          "2/3\nTamamlandı",
+                          "1/3\nTamamlandı",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 13,
+                            fontSize: 15,
                             fontFamily: 'Poppins-Regular',
                           ),
                           textAlign: TextAlign.right,
@@ -112,6 +112,7 @@ class ProfileStatsScreen extends StatelessWidget {
                         tamamlanan: 1,
                         toplam: 3,
                       ),
+                      
                     ],
                   ),
                 ),
@@ -172,7 +173,7 @@ class ProfileStatsScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProfileStatsScreen(
+                              builder: (_) => QuestScreen(
                                 userName: userName,
                               ),
                             ),
