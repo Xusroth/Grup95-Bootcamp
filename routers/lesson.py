@@ -196,14 +196,9 @@ async def get_all_users_progress(db: db_dependency, current_user: User = Depends
     result = []
     for user in users:
         user_progress = [
-            {
-                'id': progress.id,
-                'lesson_id': progress.lesson_id,
-                'completed_questions': progress.completed_questions,
-                'total_questions': progress.total_questions,
-                'progress_percentage': (progress.completed_questions / progress.total_questions * 100) if progress.total_questions > 0 else 0
-            }
+            Progress.model_validate(progress).dict()
             for progress in user.progress
+            if progress.lesson_id is not None
         ]
         result.append({
             'user_id': user.id,
