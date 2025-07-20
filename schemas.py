@@ -45,6 +45,32 @@ class UserLogin(BaseModel): # kullanıcının login olabilmesi için kullanıcı
     password: str
 
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, max_length=60)
+    email: Optional[EmailStr] = None
+    level: Optional[str] = None
+
+    @field_validator('username', mode='before')
+    def username_kontrol(username):
+        if username and not re.match(r'^[a-zA-Z0-9_]+$', username):
+            raise ValueError('Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.')
+        return username
+
+    @field_validator('email', mode='before')
+    def eposta_kontrol(value):
+        if value:
+            mail_types = ['@gmail.com', '@outlook.com', '@hotmail.com', '@yahoo.com', '@icloud.com']
+            if not any(value.endswith(i) for i in mail_types):
+                raise ValueError('Geçersiz e-posta adresi. Lütfen tekrar deneyiniz.')
+        return value
+
+    @field_validator('level', mode='before')
+    def level_kontrol(value):
+        if value and value not in ['beginner', 'intermediate', 'advanced']:
+            raise ValueError('Seviye beginner, intermediate veya advanced olmalı.')
+        return value
+
+
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -86,6 +112,12 @@ class Lesson(LessonBase):
         from_attributes = True
 
 
+class LessonUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+
+
 
 # progress
 class ProgressCreate(BaseModel):
@@ -114,6 +146,32 @@ class QuestionCreate(BaseModel):
     lesson_id: int
 
 
+class QuestionUpdate(BaseModel):
+    content: Optional[str] = None
+    options: Optional[list[str]] = None
+    correct_answer: Optional[str] = None
+    level: Optional[str] = None
+
+    @field_validator('options', mode='before')
+    def options_kontrol(options):
+        if options and len(options) != 4:
+            raise ValueError('Seçenekler tam olarak 4 tane olmalı.')
+        return options
+
+    @field_validator('correct_answer', mode='before')
+    def correct_answer_kontrol(correct_answer):
+        if correct_answer and correct_answer not in ['A', 'B', 'C', 'D']:
+            raise ValueError('Doğru cevap A, B, C veya D olmalı.')
+        return correct_answer
+
+    @field_validator('level', mode='before')
+    def level_kontrol(value):
+        if value and value not in ['beginner', 'intermediate', 'advanced']:
+            raise ValueError('Seviye beginner, intermediate veya advanced olmalı.')
+        return value
+
+
+
 class QuestionResponse(BaseModel):
     id: int
     content: str
@@ -129,9 +187,20 @@ class QuestionResponse(BaseModel):
 
 # error
 class ErrorReportCreate(BaseModel):
-    user_id: Optional[int] = None
     error_message: str = Field(min_length=1)
     details: Optional[str] = None
+
+
+class ErrorReportUpdate(BaseModel):
+    error_message: Optional[str] = None
+    details: Optional[str] = None
+    status: Optional[str] = None
+
+    @field_validator('status', mode='before')
+    def status_kontrol(value):
+        if value and value not in ['pending', 'resolved', 'rejected']:
+            raise ValueError('Durum pending, resolved veya rejected olmalı.')
+        return value
 
 
 class ErrorReportResponse(BaseModel):
@@ -142,3 +211,10 @@ class ErrorReportResponse(BaseModel):
     timestamp: datetime
     class Config:
         from_attributes = True
+
+
+
+# streak
+class StreakUpdate(BaseModel):
+    streak_count: Optional[int] = None
+    last_update: Optional[datetime] = None
