@@ -18,7 +18,7 @@ from schemas import QuestionCreate, QuestionResponse, QuestionUpdate # pydantic 
 from schemas import UserPublicResponse # pydantic modeli
 from schemas import StreakUpdate # pydantic model
 from routers.auth import get_current_user # routers package'daki auth.py dosyasından import ettim   # gerekli endpointlere ekledim..! # authorize için kullanıyorum gerekli olanlara koyuyorum..!
-from config import GEMINI_API_KEY
+from utils.config import GEMINI_API_KEY
 import google.generativeai as genai
 import json
 import logging
