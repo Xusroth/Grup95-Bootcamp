@@ -6,13 +6,14 @@ from pydantic import BaseModel
 from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
-from models import User
-from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate
+from models import User, PasswordResetToken
+from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
-from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.email import send_reset_email
+from utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 
@@ -35,9 +36,13 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 
 # JWT token kısmı
-def create_access_token(data: dict):
+def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
     to_encode.update({'exp': expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM) # hepsinin birleştiği kısım
     return encoded_jwt
@@ -199,3 +204,55 @@ async def delete_user(db: db_dependency, user_id: int, current_user: User = Depe
     db.delete(user)
     db.commit()
     return {"message": f"{user.username} adlı kullanıcı silindi."}
+
+
+@router.post('/password_reset_request')
+async def request_password_reset(db: db_dependency, request: PasswordResetRequest):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu e-posta adresine kayıtlı kullanıcı bulunamadı.")
+
+    token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token create kısmı
+
+    reset_token = PasswordResetToken(user_id=user.id, token=token, expires_time=datetime.now(timezone.utc) + timedelta(hours=1)) # token sıfırlama ve db'ye kaydetme kısmı
+
+    db.add(reset_token)
+    db.commit()
+
+    send_reset_email(user.email, token) # e posta gönderme kısmı
+    return {'message': "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi."}
+
+
+@router.post('/password_reset')
+async def reset_password(db: db_dependency, reset: PasswordReset):
+    try:
+        payload = jwt.decode(reset.token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get('purpose') != 'password_reset':
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token amacı geçersiz.")
+
+        email = payload.get('sub')
+        if not email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz token.")
+
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
+
+    reset_token = db.query(PasswordResetToken).filter(PasswordResetToken.token == reset.token).first()
+    if not reset_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
+
+    expires_time = reset_token.expires_time # burada token süresi kontrolü için normalize ettim öyle kontrol ettim ancak böyle db'ye kaydını adam akıllı yapabildim
+    if expires_time.tzinfo is None: # !!!!!!! zor bela sqlite timezone bilgisini saklıyor !!!!!!
+        expires_time = expires_time.replace(tzinfo=timezone.utc)
+    if expires_time < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    user.hashed_password = bcrypt.hashpw(reset.new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8') # şifrenin güncellenmesi
+
+    db.delete(reset_token)
+    db.commit()
+    return {'message': "Şifreniz başarıyla güncellendi."}
