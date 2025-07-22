@@ -3,7 +3,7 @@
 from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, Table, DateTime
 from database import Base
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 # bu kısımda ilişki many to many olucak çünkü birden fazla kullanıcı birden fazla ders alabilir. Ayrıca bu tür many to many ilişkilerde direkt ForeignKey ile bağlamak mümkün olmaz. Bu yüzden ara tablo yaptım.   # many-to-many ilişkili ara tablolarda her iki sütun da primary key olarak tanımlanır.
@@ -34,6 +34,7 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     progress = relationship('Progress', back_populates='user')
     error_reports = relationship('ErrorReport', back_populates='user')
     streaks = relationship('Streak', back_populates='user')
+    reset_tokens = relationship('PasswordResetToken', back_populates='user')
 
 
 class Lesson(Base):
@@ -84,7 +85,7 @@ class ErrorReport(Base): # error report feedback kısmı için
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
     error_message = Column(String, nullable=False)
     details = Column(String, nullable=True) # daha açıklayıcı olması için ek detaylar ekledim (duruma göre kaldırırız) !!
-    timestamp = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    timestamp = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True)
     status = Column(String, default='pending', index=True) # pending, resolved, rejected vb. durumlar (şimdilik bu üçü var)
 
     user = relationship('User', back_populates='error_reports')
@@ -97,7 +98,19 @@ class Streak(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
     streak_count = Column(Integer, default=0)
-    last_update = Column(DateTime, default=datetime.now(timezone.utc), index=True) # kullanıcıyı takip etmesi için günlük datetime eklendi
+    last_update = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True) # kullanıcıyı takip etmesi için günlük datetime eklendi
 
     user = relationship('User', back_populates='streaks')
     lesson = relationship('Lesson', back_populates='streaks')
+
+
+class PasswordResetToken(Base):
+    __tablename__ = 'password_reset_tokens'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    token = Column(String, nullable=False, index=True)
+    created_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True)
+    expires_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc) + timedelta(hours=1), index=True) # lambda kullandım çünkü özel fonksiyon kullanılmazsa sabit zaman üretiyor
+
+    user = relationship('User', back_populates='reset_tokens')
