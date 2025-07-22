@@ -218,3 +218,24 @@ class ErrorReportResponse(BaseModel):
 class StreakUpdate(BaseModel):
     streak_count: Optional[int] = None
     last_update: Optional[datetime] = None
+
+
+
+# password resetleme
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
+    @field_validator('new_password', mode='before')
+    def password_kontrol(password):
+        if not re.search(r'[A-Z]', password):
+            raise ValueError('Şifre en az bir büyük harf içermeli.')
+        if not re.search(r'[a-z]', password):
+            raise ValueError('Şifre en az bir küçük harf içermeli.')
+        if not re.search(r'\d', password):
+            raise ValueError('Şifre en az bir rakam içermeli.')
+        return password
