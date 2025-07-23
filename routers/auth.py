@@ -14,7 +14,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 from utils.email import send_reset_email
 from utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-
+import random
 
 
 
@@ -126,8 +126,41 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@router.post('/guest', response_model=Token, tags=['Authentication'])
+async def guest_login(db: db_dependency):
+    guest_username = f'guest_{random.randint(1000, 9999)}'
+    guest_email = f'guest_{random.randint(1000, 9999)}@codebite.com'
+
+    existing_user = db.query(User).filter((User.username == guest_username) | (User.email == guest_email)).first()
+    if existing_user:
+        guest_username = f'guest_{random.randint(1000, 9999)}'
+        guest_email = f'guest_{random.randint(1000, 9999)}@codebite.com'
+
+    guest_user = User(
+        username=guest_username,
+        email=guest_email,
+        hashed_password=None,
+        role='guest',
+        level='beginner',
+        has_taken_level_test=False
+    )
+
+    db.add(guest_user)
+    db.commit()
+    db.refresh(guest_user)
+
+    access_token = create_access_token(
+        data={'sub': guest_user.email},
+        expires_delta=timedelta(hours=1)
+    )
+    return {'access_token': access_token, 'token_type': 'bearer'}
+
+
 @router.put('/users/{user_id}', response_model=UserPublicResponse)
 async def update_user(db: db_dependency, user_id: int, user_update: UserUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar profil güncelleyemez.")
+
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
 
@@ -173,11 +206,18 @@ async def get_current_user_info(db: db_dependency, token: str = Depends(oauth2))
 
 @router.post('/make_admin/{user_id}', status_code=status.HTTP_200_OK)
 async def make_admin(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler bu işlemi yapabilir.")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    if user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Misafir kullanıcılar admin olamaz.")
+
     user.role = 'admin'
     user.level = None
     db.commit()
@@ -186,14 +226,21 @@ async def make_admin(db: db_dependency, user_id: int, current_user: User = Depen
 
 @router.get('/admin/users')
 async def list_users(db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcıları listeleyebilir.")
+
     user = db.query(User).all()
     return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role, "level": i.level, "has_taken_level_test": i.has_taken_level_test} for i in user]
 
 
 @router.delete('/admin/users/{user_id}', status_code=status.HTTP_200_OK)
 async def delete_user(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcı silebilir.")
     user = db.query(User).filter(User.id == user_id).first()
@@ -211,6 +258,9 @@ async def request_password_reset(db: db_dependency, request: PasswordResetReques
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu e-posta adresine kayıtlı kullanıcı bulunamadı.")
+
+    if user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Misafir kullanıcılar şifre sıfırlayamaz.")
 
     token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token create kısmı
 
@@ -256,3 +306,17 @@ async def reset_password(db: db_dependency, reset: PasswordReset):
     db.delete(reset_token)
     db.commit()
     return {'message': "Şifreniz başarıyla güncellendi."}
+
+
+@router.delete('/admin/cleanup_guests', status_code=status.HTTP_200_OK) # misafir kullanıcı 7 gün boyunca inaktif olursa db'den otomatik olarak hesabı silinir
+async def cleanup_guests(db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler bu işlemi yapabilir.")
+
+    cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)
+    deleted_count = db.query(User).filter(
+        User.role == 'guest',
+        User.health_count_update_time < cutoff_time
+    ).delete()
+    db.commit()
+    return {"message": f"{deleted_count} inaktif misafir hesabı silindi."}
