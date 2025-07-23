@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:android_studio/screens/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:android_studio/lessons/algorithmlesson.dart';
 import 'package:android_studio/lessons/pythonlesson.dart';
@@ -6,7 +7,8 @@ import 'package:android_studio/lessons/javalesson.dart';
 import 'package:android_studio/lessons/csharplesson.dart';
 import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
 import 'package:android_studio/screens/home_screen.dart';
-import 'package:android_studio/screens/profile_screen.dart';
+import 'package:android_studio/screens/quest_screen.dart';
+import 'package:android_studio/screens/profile.dart';
 
 class DersSec extends StatefulWidget {
   final String userName;
@@ -102,7 +104,7 @@ class _DersSecState extends State<DersSec> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => HomeScreen(userMail: widget.userMail, userName: widget.userName,)),
+                              MaterialPageRoute(builder: (_) => ProfilePage(userName: widget.userName,)),
                             );
                           },
                           child: Container(
@@ -119,6 +121,7 @@ class _DersSecState extends State<DersSec> {
                           ),
                         ),
                           Text(
+                            
                             "Merhaba ${widget.userName}",
                             style: const TextStyle(
                               fontSize: 16,

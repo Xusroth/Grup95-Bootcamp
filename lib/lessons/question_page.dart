@@ -41,10 +41,13 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
   },
 );
 
+
+
+
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       setState(() {
-        questions = data.cast<Map<String, dynamic>>();
+        questions = data.cast<Map<String, dynamic>>().take(10).toList();
       });
     } else {
       throw Exception('Soru çekme başarısız: ${response.body}');

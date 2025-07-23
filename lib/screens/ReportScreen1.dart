@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/FeedbackThanksScreen.dart';
-import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
+import 'package:android_studio/auth_service.dart'; 
+import 'package:android_studio/constants.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 
 class ReportScreen1 extends StatefulWidget {
   const ReportScreen1({super.key});
@@ -19,21 +23,51 @@ class _ReportScreen1State extends State<ReportScreen1> {
     'Performans Sorunu',
   ];
 
-  void _submitFeedback() {
-    if (selectedOption != null || _feedbackController.text.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => FeedbackThanksScreen()),
+void _submitFeedback() async {
+
+  final auth = AuthService();
+  final token = await auth.getString('token');
+
+  if ((selectedOption != null && selectedOption!.isNotEmpty) ||
+      _feedbackController.text.isNotEmpty) {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseURL/error/report'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'error_message': selectedOption ?? 'Serbest Geri Bildirim',
+          'details': _feedbackController.text,
+        }),
       );
-    } else {
+
+      if (response.statusCode == 201) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => FeedbackThanksScreen()),
+        );
+      } else {
+        final detail = jsonDecode(response.body)['detail'] ?? 'Gönderim başarısız';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(detail), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lütfen geri bildirim türü seçin veya mesaj yazın'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Hata oluştu: $e'), backgroundColor: Colors.red),
       );
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Lütfen geri bildirim türü seçin veya mesaj yazın'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 
   @override
   void dispose() {

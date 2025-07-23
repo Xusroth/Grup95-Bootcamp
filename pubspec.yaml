@@ -98,6 +98,7 @@ flutter:
     - assets/kilitli_dosya.png
     - assets/app_logo.png
     - assets/corner_gradient_rectangle_long.png
+    - assets/genis_card.png
     - assets/card.png
     - assets/home.png
     - assets/ders.png
@@ -107,6 +108,13 @@ flutter:
     - assets/kart2.png
     - assets/kart3.png
     - assets/graph.png
+    - assets/level1.png
+    - assets/level2.png
+    - assets/level2_reverse.png
+    - assets/level3.png
+    - assets/level4.png
+    - assets/hedef_kart.png
+    - assets/leaderboard_kart.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
