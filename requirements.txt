@@ -16,3 +16,4 @@ markdown # markdownları html'e dönüştürücez (özellikle Gemini'den gelen r
 bs4 # html ve xml'den veri çekmek
 starlette
 python-multipart # access tokenlardaki form data request için gerekli
+authlib # google ile giriş yap seçeneği ve fastapi OAuth2 ile entegre olduğu için bu kütüphane gerekli
