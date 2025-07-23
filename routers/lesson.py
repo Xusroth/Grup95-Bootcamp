@@ -12,11 +12,13 @@ from models import Progress as ProgressModels # sqlalchemy modeli
 from models import Lesson as LessonModels # sqlalchemy modeli
 from models import Question as QuestionModels # sqlalchemy modeli
 from models import Streak as StreakModels # sqlalchemy modeli
+from models import Section as SectionModels # sqlalchemy modeli
 from schemas import Lesson, LessonCreate, LessonUpdate # pydantic modeli
 from schemas import Progress, ProgressCreate # pydantic modeli
 from schemas import QuestionCreate, QuestionResponse, QuestionUpdate # pydantic modeli
 from schemas import UserPublicResponse # pydantic modeli
 from schemas import StreakUpdate # pydantic model
+from schemas import Section, SectionCreate # pydantic model,
 from routers.auth import get_current_user # routers package'daki auth.py dosyasından import ettim   # gerekli endpointlere ekledim..! # authorize için kullanıyorum gerekli olanlara koyuyorum..!
 from utils.config import GEMINI_API_KEY
 import google.generativeai as genai
@@ -59,6 +61,9 @@ async def list_lessons(db: db_dependency):
 
 @router.post('/users/{user_id}/lessons/{lesson_id}') # kullanıcının ders seçmesi
 async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar ders seçemez.")
+
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
 
@@ -99,12 +104,17 @@ async def get_user_lessons(user_id: int, db:db_dependency, current_user: User = 
 
 @router.delete('/users/{user_id}/lessons/{lesson_id}') # ders takibi bırakma (ilerleme kayıtlı kalıcak)
 async def unfollow_lesson(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
+
     user = db.query(User).filter(User.id == user_id).first()
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
     if not user or not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı veya ders bulunamadı..!")
+
     if lesson not in user.lessons:
         return {"message": "Dersi zaten seçilmemiş."}
     user.lessons.remove(lesson)
@@ -204,6 +214,9 @@ async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progr
 
 @router.put('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress) # progress bar güncelleme
 async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
 
@@ -230,6 +243,9 @@ async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progr
 
 @router.get('/users/{user_id}/progress', response_model=list[Progress]) # progress bar görüntüleme  # admin yetkisine sahip kullanıcılar tüm userların progress bar ilerlemesini görebiliyor!
 async def get_user_progress(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
     user = db.query(User).filter(User.id == user_id).first()
@@ -437,6 +453,9 @@ async def generate_questions(db: db_dependency, lesson_id: int, current_user: Us
 
 @router.post('/users/{user_id}/level-test/{lesson_id}', response_model=dict) # seviye tespiti için 10 soruluk test (sonuçlara göre -> beginner/intermediate/advanced) # !!! GÜNCELLENDİ !!!
 async def level_test(user_id: int, lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar seviye belirleme testini yapamaz.")
+
     if current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
 
@@ -563,6 +582,9 @@ async def level_test(user_id: int, lesson_id: int, db: db_dependency, current_us
 
 @router.post('/users/{user_id}/level_test/submit', response_model=UserPublicResponse)
 async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTestSubmit, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar seviye belirleme testi gönderemez.")
+
     if current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
     user = db.query(User).filter(User.id == user_id).first()
@@ -645,6 +667,9 @@ async def get_questions_by_lesson(lesson_id: int, db: db_dependency):
 
 @router.put('/users/{user_id}/lessons/{lesson_id}/streak', response_model=dict)
 async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
 
@@ -677,6 +702,9 @@ async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current
 
 @router.put('/users/{user_id}/lessons/{lesson_id}/streak/admin', response_model=dict)
 async def admin_update_streak(db: db_dependency, user_id: int, lesson_id: int, streak_update: StreakUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler streak güncelleyebilir.")
 
@@ -698,3 +726,57 @@ async def admin_update_streak(db: db_dependency, user_id: int, lesson_id: int, s
     db.commit()
     db.refresh(streak)
     return {'streak_count': streak.streak_count, 'last_update': streak.last_update}
+
+
+@router.post('/lessons/{lesson_id}/sections', status_code=status.HTTP_201_CREATED, response_model=Section)
+async def create_section(db: db_dependency, lesson_id: int, section: SectionCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler section oluşturabilir.")
+
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
+
+    new_section = SectionModels(
+        title=section.title,
+        description=section.description,
+        lesson_id=lesson_id,
+        order=section.order
+    )
+
+    db.add(new_section)
+    db.commit()
+    db.refresh(new_section)
+    return new_section
+
+
+@router.get('/lessons/{lesson_id}/sections', response_model=list[Section])
+async def get_sections(db: db_dependency, lesson_id: int):
+    lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
+
+    sections = db.query(SectionModels).filter(SectionModels.lesson_id == lesson_id).order_by(SectionModels.order).all()
+    return [Section.model_validate(i) for i in sections]
+
+
+@router.get('/sections/{section_id}/questions', response_model=list[QuestionResponse])
+async def get_questions_by_section(db: db_dependency, section_id: int, current_user: User = Depends(get_current_user)):
+    section = db.query(SectionModels).filter(SectionModels.id == section_id).first()
+    if not section:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
+
+    questions = db.query(QuestionModels).filter(QuestionModels.section_id == section_id, QuestionModels.level == current_user.level).all()
+
+    if not questions:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu bölümde seviyenize uygun soru bulunamadı.")
+
+    return [QuestionResponse(
+        id=q.id,
+        content=q.content,
+        options=json.loads(q.options),
+        correct_answer=q.correct_answer,
+        lesson_id=q.lesson_id,
+        section_id=q.section_id,
+        level=q.level
+    ) for q in questions]
