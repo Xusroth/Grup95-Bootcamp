@@ -29,12 +29,15 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     role = Column(String, default='user') # admin ve kullanıcıyı ayırmak için role ekledim
     level = Column(String, nullable=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
     has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi onun kontrolü
+    health_count = Column(Integer, default=6) # can hakkı
+    health_count_update_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc)) # can hakkının güncellenme zamanı
 
     lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
     progress = relationship('Progress', back_populates='user')
     error_reports = relationship('ErrorReport', back_populates='user')
     streaks = relationship('Streak', back_populates='user')
     reset_tokens = relationship('PasswordResetToken', back_populates='user')
+    daily_tasks = relationship('DailyTask', back_populates='user')
 
 
 class Lesson(Base):
@@ -49,6 +52,8 @@ class Lesson(Base):
     progress = relationship('Progress', back_populates='lesson')
     questions = relationship('Question', back_populates='lesson') # one to many ilişki
     streaks = relationship('Streak', back_populates='lesson')
+    daily_tasks = relationship('DailyTask', back_populates='lesson')
+    sections = relationship('Section', back_populates='lesson', cascade='all, delete-orphan') # yeni ekledim ilişkiyi inş olmuştur !!!
 
 
 class Progress(Base):
@@ -74,8 +79,10 @@ class Question(Base):
     correct_answer = Column(String, nullable=False) # doğru şık
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
     level = Column(String, nullable=True, index=True) # soruların seviyesini saklamak (beginner, intermediate, advanced)
+    section_id = Column(Integer, ForeignKey('sections.id'), nullable=False, index=True)
 
     lesson = relationship('Lesson', back_populates='questions')
+    section = relationship('Section', back_populates='questions')
 
 
 class ErrorReport(Base): # error report feedback kısmı için
@@ -114,3 +121,37 @@ class PasswordResetToken(Base):
     expires_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc) + timedelta(hours=1), index=True) # lambda kullandım çünkü özel fonksiyon kullanılmazsa sabit zaman üretiyor
 
     user = relationship('User', back_populates='reset_tokens')
+
+
+class Section(Base):
+    __tablename__ = 'sections'
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
+    order = Column(Integer, nullable=False)
+
+    lesson = relationship('Lesson', back_populates='sections')
+    questions = relationship('Question', back_populates='section')
+    daily_tasks = relationship('DailyTask', back_populates='section')
+
+
+class DailyTask(Base):
+    __tablename__ = 'daily_tasks'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=True, index=True)
+    section_id = Column(Integer, ForeignKey('sections.id'), nullable=True, index=True)
+    task_type = Column(String, nullable=False) # görev tipi
+    target = Column(Integer, nullable=False) # hedef mesela 5 soru çöz, 1 section tamamla vb.
+    current_progress = Column(Integer, default=0) # mevcut ilerleme
+    is_completed = Column(Boolean, default=False)
+    create_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True)
+    expires_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc) + timedelta(days=1), index=True)
+    level = Column(String, nullable=True, index=True) # görevlerin seviyesi gibi
+
+    user = relationship('User', back_populates='daily_tasks')
+    lesson = relationship('Lesson', back_populates='daily_tasks')
+    section = relationship('Section', back_populates='daily_tasks')
