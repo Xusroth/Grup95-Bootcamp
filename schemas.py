@@ -144,12 +144,15 @@ class QuestionCreate(BaseModel):
     options: list[str]
     correct_answer: str
     lesson_id: int
+    section_id: int
+    level: str
 
 
 class QuestionUpdate(BaseModel):
     content: Optional[str] = None
     options: Optional[list[str]] = None
     correct_answer: Optional[str] = None
+    section_id: Optional[int] = None
     level: Optional[str] = None
 
     @field_validator('options', mode='before')
@@ -171,14 +174,14 @@ class QuestionUpdate(BaseModel):
         return value
 
 
-
 class QuestionResponse(BaseModel):
     id: int
     content: str
     options: list[str]
     correct_answer: str
     lesson_id: int
-    level: Optional[str]
+    section_id: int
+    level: str
 
     class Config:
         from_attributes = True
@@ -239,3 +242,60 @@ class PasswordReset(BaseModel):
         if not re.search(r'\d', password):
             raise ValueError('Şifre en az bir rakam içermeli.')
         return password
+
+
+
+# section kısmı
+class SectionBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    lesson_id : int
+    order: int  # bölüm sırası
+
+
+class SectionCreate(SectionBase):
+    pass
+
+
+class Section(SectionBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+
+# daily task
+class DailyTaskCreate(BaseModel):
+    task_type: str
+    target: int
+    lesson_id: Optional[int] = None
+    section_id: Optional[int] = None
+    level: Optional[str] = None
+
+
+class DailyTaskUpdate(BaseModel):
+    current_progress: Optional[int] = None
+    is_completed: Optional[bool] = None
+
+
+class DailyTaskResponse(BaseModel):
+    id: int
+    user_id: int
+    lesson_id: Optional[int]
+    section_id: Optional[int]
+    task_type: str
+    target: int
+    current_progress: int
+    is_completed: bool
+    create_time: datetime
+    expires_time: datetime
+    level: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class AnswerQuestionRequest(BaseModel):
+    question_id: int
+    user_answer: str
