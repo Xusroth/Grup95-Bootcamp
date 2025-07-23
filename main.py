@@ -12,8 +12,9 @@ from schemas import UserRegister, UserLogin
 from models import Base
 from typing import Annotated
 from routers.auth import router as auth_router # routers package'ında oluşturduğum auth.py dosyasının içindeki router'ı auth_router olarak import ettim
-from routers.lesson import router as lesson_router # routers package'ında oluşturduğum auth.py dosyasının içindeki lesson'ı lesson_router olarak import ettim
-from routers.error import router as error_router # routers package'ında oluşturduğum error.py dosyasının içindeki error'ı error_router olarak import ettim
+from routers.lesson import router as lesson_router # routers package'ında oluşturduğum auth.py dosyasının içindeki router'ı lesson_router olarak import ettim
+from routers.error import router as error_router # routers package'ında oluşturduğum error.py dosyasının içindeki router'ı error_router olarak import ettim
+from routers.tasks import router as tasks_router # routers package'ında oluşturduğum tasks.py dosyasının içindeki router'ı tasks_router olarak import ettim
 
 
 
@@ -24,6 +25,7 @@ app = FastAPI()
 app.include_router(auth_router) # auth_router'ı main'e ekledim.
 app.include_router(lesson_router) # lesson_router'ı main'e ekledim.
 app.include_router(error_router) # error_router'ı maine'e ekledim.
+app.include_router(tasks_router) # tasks_router'ı main'e ekledim.
 
 
 app.add_middleware( # mobil uygulamanın (flutter) backende erişebilmesi için ayar yaptım.
