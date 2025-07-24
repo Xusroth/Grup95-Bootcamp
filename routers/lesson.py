@@ -230,8 +230,7 @@ async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progr
         section_id=first_section.id,
         completed_questions=progress.completed_questions,
         total_questions=progress.total_questions,
-        completion_percentage=0.0 if progress.total_questions == 0 else (
-                    progress.completed_questions / progress.total_questions * 100),
+        completion_percentage=0.0 if progress.total_questions == 0 else (progress.completed_questions / progress.total_questions * 100),
         current_subsection='beginner',
         subsection_completion=0
     )
@@ -435,8 +434,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
                 current_question["correct_answer"] = line.replace("- Correct Answer:", "").strip()
             elif line.startswith("- Level:"):
                 current_question["level"] = line.replace("- Level:", "").strip()
-    if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and \
-            current_question["level"]:
+    if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
         questions.append(current_question)
 
     if len(questions) < 5:
@@ -535,7 +533,7 @@ async def level_test(user_id: int, lesson_id: int, db: db_dependency, current_us
 
     db.commit()
 
-    # yanıt için soruları format işlemi
+
     response_questions = [
         {
             "id": q.id,
