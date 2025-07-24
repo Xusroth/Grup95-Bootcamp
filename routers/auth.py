@@ -106,7 +106,9 @@ async def register(db: db_dependency, user: UserRegister):
         hashed_password=hashed_password,
         role='user',   # role kısmını user olarak sabitledim
         level='beginner',  # kullanıcıların leveli default olarak beginner belirledim
-        has_taken_level_test=False # en başta kullanıcılar seviye testine girmediği için False yaptım. sınava girmesine göre boolean değiştirecek
+        has_taken_level_test=False, # en başta kullanıcılar seviye testine girmediği için False yaptım. sınava girmesine göre boolean değiştirecek
+        health_count=6,
+        health_count_update_time=datetime.now(timezone.utc)
     )
 
     db.add(db_user)
@@ -120,8 +122,10 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
     db_user = db.query(User).filter(User.email == form_data.username).first() # user.email kısmı değişti..!
     if not db_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
+
     if not bcrypt.checkpw(form_data.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Şifre yanlış.")
+
     access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncelledim
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -233,7 +237,7 @@ async def list_users(db: db_dependency, current_user: User = Depends(get_current
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcıları listeleyebilir.")
 
     user = db.query(User).all()
-    return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role, "level": i.level, "has_taken_level_test": i.has_taken_level_test} for i in user]
+    return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role, "level": i.level, "has_taken_level_test": i.has_taken_level_test, 'health_count': i.health_count, 'health_count_update_time': i.health_count_update_time} for i in user]
 
 
 @router.delete('/admin/users/{user_id}', status_code=status.HTTP_200_OK)
@@ -320,3 +324,17 @@ async def cleanup_guests(db: db_dependency, current_user: User = Depends(get_cur
     ).delete()
     db.commit()
     return {"message": f"{deleted_count} inaktif misafir hesabı silindi."}
+
+
+@router.get('/health_count')
+async def get_health_count(db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar can bilgisi göremez.")
+    if current_user.health_count <= 0 and (datetime.now(timezone.utc) - current_user.health_count_update_time) >= timedelta(hours=2):
+        current_user.health_count = 6
+        current_user.health_count_update_time = datetime.now(timezone.utc)
+        db.commit()
+    return {
+        'health_count': current_user.health_count,
+        'health_count_update_time': current_user.health_count_update_time
+    }
