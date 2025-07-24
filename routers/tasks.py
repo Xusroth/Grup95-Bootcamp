@@ -6,13 +6,12 @@ from starlette import status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import SessionLocal
-from models import User, DailyTask, Question, Lesson, Section, Progress, user_lessons
-from schemas import DailyTaskResponse, DailyTaskCreate, DailyTaskUpdate, AnswerQuestionRequest
+from models import User, DailyTask, Question as QuestionModels, Lesson, Section, Progress as ProgressModels, user_lessons
+from schemas import DailyTaskResponse, DailyTaskCreate, DailyTaskUpdate, AnswerQuestionRequest, ProgressResponse
 from routers.auth import get_current_user
 from datetime import datetime, timezone, timedelta
 import random
 import logging
-
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -34,7 +33,6 @@ user_dependency = Annotated[User, Depends(get_current_user)]
 TASK_TYPES = [
     {'type': 'solve_questions', 'target': 5, 'description': 'Belirli bir derste 5 soru çöz.'},
     {'type': 'complete_section', 'target': 1, 'description': 'Bir dersin bir bölümünü tamamla.'},
-    {'type': 'take_level_test', 'target': 1, 'description': 'Seviye tespit sınavına gir.'},
     {'type': 'maintain_streak', 'target': 1, 'description': 'Bir derste streak\'i koru.'},
     {'type': 'review_mistakes', 'target': 3, 'description': 'Yanlış cevaplanmış 3 soruyu gözden geçir.'}
 ]
@@ -44,9 +42,7 @@ def generate_daily_tasks(db: db_dependency, user: User):
     if user.role == 'guest':
         logger.debug(f"Kullanıcı {user.id} misafir, görev oluşturulmadı.")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Misafir kullanıcılar günlük görev alamaz."
-        )
+            status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar günlük görev alamaz.")
 
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     logger.debug(f"Bugün: {today}")
@@ -57,73 +53,121 @@ def generate_daily_tasks(db: db_dependency, user: User):
     ).all()
     logger.debug(f"Kullanıcı {user.id} için mevcut görevler: {len(existing_tasks)}")
 
-    if not existing_tasks:
-        lessons = db.query(Lesson).join(user_lessons).filter(user_lessons.c.user_id == user.id).all()
-        if not lessons:
-            logger.warning(f"Kullanıcı {user.id} için ders bulunamadı. Görev oluşturulmadı.")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Görev oluşturmak için önce bir ders seçmelisiniz."
-            )
+    if len(existing_tasks) >= 3:
+        logger.debug(f"Kullanıcı {user.id} için zaten 3 görev var, yeni görev oluşturulmadı.")
+        return existing_tasks
 
-        if len(TASK_TYPES) < 3:
-            logger.error("Yeterli görev türü yok. En az 3 görev türü gerekli.")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Yeterli görev türü tanımlı değil."
-            )
+    tasks_to_create = 3 - len(existing_tasks)
+    lessons = db.query(Lesson).join(user_lessons).filter(user_lessons.c.user_id == user.id).all()
+    if not lessons:
+        logger.warning(f"Kullanıcı {user.id} için ders bulunamadı. Görev oluşturulmadı.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Görev oluşturmak için önce bir ders seçmelisiniz.")
 
-        selected_tasks = random.sample(TASK_TYPES, k=3)
-        logger.debug(f"Seçilen görev türleri: {[task['type'] for task in selected_tasks]}")
+    created_tasks = []
 
-        selected_lessons = random.choices(lessons, k=3)
-        logger.debug(f"Seçilen dersler: {[lesson.title for lesson in selected_lessons]}")
-
-        for task, lesson in zip(selected_tasks, selected_lessons):
-            section = None
-            if task['type'] in ['solve_questions', 'complete_section']:
-                sections = db.query(Section).filter(Section.lesson_id == lesson.id).all()
-                if sections:
-                    section = random.choice(sections)
-                    logger.debug(f"Ders {lesson.id} için seçilen bölüm: {section.id}")
-                else:
-                    logger.debug(f"Ders {lesson.id} için bölüm bulunamadı, section_id=None.")
-
-            daily_task = DailyTask(
+    # take_level_test görevini öncelikli olarak ekle (eğer kullanıcı seviye testini almadıysa)
+    if not user.has_taken_level_test and tasks_to_create > 0:
+        lesson = random.choice(lessons)
+        existing_level_task = db.query(DailyTask).filter(
+            DailyTask.user_id == user.id,
+            DailyTask.lesson_id == lesson.id,
+            DailyTask.task_type == 'take_level_test',
+            DailyTask.expires_time > datetime.now(timezone.utc)
+        ).first()
+        if not existing_level_task:
+            level_task = DailyTask(
                 user_id=user.id,
                 lesson_id=lesson.id,
-                section_id=section.id if section else None,
-                task_type=task['type'],
-                target=task['target'],
+                section_id=None,
+                task_type='take_level_test',
+                target=1,
                 current_progress=0,
                 is_completed=False,
                 create_time=datetime.now(timezone.utc),
                 expires_time=datetime.now(timezone.utc) + timedelta(days=1),
-                level=user.level if user.level else 'beginner'
+                level=user.level or 'beginner'
             )
-            db.add(daily_task)
-            logger.debug(
-                f"Kullanıcı {user.id} için görev oluşturuldu: {task['type']}, lesson_id: {lesson.id}, section_id: {section.id if section else None}")
+            db.add(level_task)
+            created_tasks.append(level_task)
+            tasks_to_create -= 1
+            logger.debug(f"Kullanıcı {user.id} için take_level_test görevi oluşturuldu: lesson_id={lesson.id}")
 
-        try:
-            db.commit()
-            logger.info(f"Kullanıcı {user.id} için 3 günlük görev oluşturuldu.")
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Görev oluşturma sırasında hata: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Görev oluşturma sırasında bir hata oluştu."
-            )
+    # Kalan görevleri rastgele seç
+    available_task_types = [task for task in TASK_TYPES if task['type'] != 'take_level_test']
+    if len(available_task_types) < tasks_to_create:
+        logger.error("Yeterli görev türü yok. En az yeterli görev türü gerekli.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Yeterli görev türü tanımlı değil.")
+
+    selected_tasks = random.sample(available_task_types, k=tasks_to_create)
+    logger.debug(f"Seçilen görev türleri: {[task['type'] for task in selected_tasks]}")
+    selected_lessons = random.choices(lessons, k=tasks_to_create)
+    logger.debug(f"Seçilen dersler: {[lesson.title for lesson in selected_lessons]}")
+
+    for task, lesson in zip(selected_tasks, selected_lessons):
+        section = None
+        if task['type'] in ['solve_questions', 'complete_section']:
+            sections = db.query(Section).filter(Section.lesson_id == lesson.id).order_by(Section.order.asc()).all()
+            if not sections:
+                logger.warning(f"Ders {lesson.id} için bölüm bulunamadı. Görev oluşturulmadı.")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Ders ID {lesson.id} için bölüm bulunamadı.")
+
+            progress = db.query(Progress).filter(
+                Progress.user_id == user.id,
+                Progress.lesson_id == lesson.id,
+                Progress.subsection_completion < 3
+            ).order_by(Progress.section_id.asc()).first()
+
+            if progress and progress.section_id:
+                section = db.query(Section).filter(Section.id == progress.section_id).first()
+            else:
+                section = sections[0]
+                progress = Progress(
+                    user_id=user.id,
+                    lesson_id=lesson.id,
+                    section_id=section.id,
+                    completed_questions=0,
+                    total_questions=db.query(Question).filter(Question.section_id == section.id).count(),
+                    completion_percentage=0.0,
+                    current_subsection='beginner',
+                    subsection_completion=0
+                )
+                db.add(progress)
+                logger.debug(f"Kullanıcı {user.id} için yeni Progress kaydı oluşturuldu: section_id={section.id}")
+
+        daily_task = DailyTask(
+            user_id=user.id,
+            lesson_id=lesson.id,
+            section_id=section.id if section else None,
+            task_type=task['type'],
+            target=task['target'],
+            current_progress=0,
+            is_completed=False,
+            create_time=datetime.now(timezone.utc),
+            expires_time=datetime.now(timezone.utc) + timedelta(days=1),
+            level=user.level if user.level else 'beginner'
+        )
+        db.add(daily_task)
+        logger.debug(
+            f"Kullanıcı {user.id} için görev oluşturuldu: {task['type']}, lesson_id: {lesson.id}, section_id: {section.id if section else None}")
+        created_tasks.append(daily_task)
+
+    try:
+        db.commit()
+        logger.info(f"Kullanıcı {user.id} için {len(created_tasks)} günlük görev oluşturuldu.")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Görev oluşturma sırasında hata: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Görev oluşturma sırasında bir hata oluştu.")
+
+    return created_tasks
 
 
 @router.get('/daily', response_model=list[DailyTaskResponse])
-async def get_daily_tasks(
-        db: db_dependency,
-        user: user_dependency,
-        lesson_id: Optional[int] = None,
-        target_user_id: Optional[int] = None
-):
+async def get_daily_tasks(db: db_dependency, user: user_dependency, lesson_id: Optional[int] = None, target_user_id: Optional[int] = None):
     if user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Misafir kullanıcılar günlük görevleri göremez.")
@@ -131,14 +175,10 @@ async def get_daily_tasks(
     logger.debug(
         f"Kullanıcı {user.id} için günlük görevler sorgulanıyor, lesson_id: {lesson_id}, target_user_id: {target_user_id}")
 
-    # Normal kullanıcılar sadece kendi görevlerini görebilir
     if user.role != 'admin' and target_user_id and target_user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Normal kullanıcılar başka kullanıcıların görevlerini göremez."
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Normal kullanıcılar başka kullanıcıların görevlerini göremez.")
 
-    # Görevleri oluştur (sadece hedef kullanıcı için)
     target_id = target_user_id if user.role == 'admin' and target_user_id else user.id
     target_user = db.query(User).filter(User.id == target_id).first()
     if not target_user:
@@ -151,7 +191,6 @@ async def get_daily_tasks(
         logger.error(f"Hedef kullanıcı {target_id} için görev oluşturma hatası: {e.detail}")
         raise e
 
-    # Görevleri çek
     query = db.query(DailyTask).filter(
         DailyTask.user_id == target_id,
         DailyTask.expires_time > datetime.now(timezone.utc)
@@ -163,139 +202,46 @@ async def get_daily_tasks(
     return tasks
 
 
-@router.post('/answer_question')
-async def answer_question(db: db_dependency, user: user_dependency, request: AnswerQuestionRequest):
-    if user.role == 'guest':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar soru cevaplayamaz.")
+router.post('/answer_question', response_model=dict)
 
-    if user.health_count <= 0:
-        time_diff = datetime.now(timezone.utc) - user.health_count_update_time
-        if time_diff < timedelta(hours=2):
-            remaining_hours = 2 - (time_diff.total_seconds() / 3600)
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Can hakkınız bitti. {remaining_hours:.2f} saat sonra tekrar deneyin."
-            )
-        else:
-            user.health_count = 6
-            user.health_count_update_time = datetime.now(timezone.utc)
-            db.commit()
 
-    question = db.query(Question).filter(Question.id == request.question_id).first()
+async def answer_question(request: AnswerQuestionRequest, db: db_dependency, current_user: User = Depends(get_current_user)):
+    # Kullanıcıyı mevcut db oturumundan tekrar sorgula
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    question = db.query(QuestionModels).filter(QuestionModels.id == request.question_id).first()
     if not question:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soru bulunamadı.")
 
-    is_correct = request.user_answer == question.correct_answer
-    if not is_correct:
-        user.health_count -= 1
-        user.health_count_update_time = datetime.now(timezone.utc)
-        db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}"
-        )
-
-    tasks = db.query(DailyTask).filter(
-        DailyTask.user_id == user.id,
-        DailyTask.lesson_id == question.lesson_id,
-        DailyTask.section_id == question.section_id,
-        DailyTask.task_type == 'solve_questions',
-        DailyTask.is_completed == False,
-        DailyTask.expires_time > datetime.now(timezone.utc)
-    ).all()
-
-    for task in tasks:
-        task.current_progress += 1
-        if task.current_progress >= task.target:
-            task.is_completed = True
-            user.health_count = min(user.health_count + 2, 6)
-            user.health_count_update_time = datetime.now(timezone.utc)
-        db.commit()
-
-    section = db.query(Section).filter(Section.id == question.section_id).first()
-    if section:
-        questions_in_section = db.query(Question).filter(
-            Question.section_id == section.id,
-            Question.level == user.level
-        ).count()
-        correct_answers = db.query(Question).filter(
-            Question.section_id == section.id,
-            Question.level == user.level,
-            Question.correct_answer == request.user_answer
-        ).count()
-
-        if correct_answers >= questions_in_section:
-            section_tasks = db.query(DailyTask).filter(
-                DailyTask.user_id == user.id,
-                DailyTask.lesson_id == question.lesson_id,
-                DailyTask.section_id == section.id,
-                DailyTask.task_type == 'complete_section',
-                DailyTask.is_completed == False,
-                DailyTask.expires_time > datetime.now(timezone.utc)
-            ).all()
-            for task in section_tasks:
-                task.current_progress = 1
-                task.is_completed = True
-                user.health_count = min(user.health_count + 2, 6)
-                db.commit()
-
-    progress = db.query(Progress).filter(
-        Progress.user_id == user.id,
-        Progress.lesson_id == question.lesson_id
+    # Progress güncelle
+    progress = db.query(ProgressModels).filter(
+        ProgressModels.user_id == user.id,
+        ProgressModels.lesson_id == question.lesson_id,
+        ProgressModels.section_id == question.section_id
     ).first()
-    if progress:
+    if not progress:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İlerleme kaydı bulunamadı.")
+
+    # Doğru/yanlış kontrolü
+    is_correct = question.correct_answer == request.user_answer
+    if is_correct:
         progress.completed_questions += 1
-        progress.completion_percentage = (
-            progress.completed_questions / progress.total_questions * 100
-            if progress.total_questions > 0 else 0
-        )
-        db.commit()
+        progress.completion_percentage = (progress.completed_questions / progress.total_questions * 100) if progress.total_questions > 0 else 0
+    else:
+        user.health_count = max(user.health_count - 1, 0)
+        user.health_count_update_time = datetime.now(timezone.utc)
+        logger.debug(f"Kullanıcı {user.id} yanlış cevap verdi, health_count: {user.health_count}")
+
+    db.commit()
+    db.refresh(progress)
+    db.refresh(user)
 
     return {
-        'message': "Doğru cevap!",
-        'health_count': user.health_count,
-        'progress_updated': bool(progress)
-    }
-
-
-@router.post('/take_level_test')
-async def take_level_test(db: db_dependency, user: user_dependency, lesson_id: int):
-    if user.role == 'guest':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar seviye testi alamaz.")
-
-    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
-    if not lesson:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
-
-    tasks = db.query(DailyTask).filter(
-        DailyTask.user_id == user.id,
-        DailyTask.lesson_id == lesson_id,
-        DailyTask.task_type == 'take_level_test',
-        DailyTask.is_completed == False,
-        DailyTask.expires_time > datetime.now(timezone.utc)
-    ).all()
-
-    for task in tasks:
-        task.current_progress = 1
-        task.is_completed = True
-        user.health_count = min(user.health_count + 2, 6)
-        user.health_count_update_time = datetime.now(timezone.utc)
-        db.commit()
-
-    return {'message': "Seviye testi alındı!"}
-
-
-@router.get('/health_count')
-async def get_health_count(db: db_dependency, user: user_dependency):
-    if user.role == 'guest':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar can bilgisi göremez.")
-    if user.health_count <= 0 and (datetime.now(timezone.utc) - user.health_count_update_time) >= timedelta(hours=2):
-        user.health_count = 6
-        user.health_count_update_time = datetime.now(timezone.utc)
-        db.commit()
-    return {
-        'health_count': user.health_count,
-        'health_count_update_time': user.health_count_update_time
+        "is_correct": is_correct,
+        "health_count": user.health_count,
+        "progress": Progress.model_validate(progress).dict()
     }
 
 
