@@ -11,21 +11,24 @@ from models import User, Lesson
 from schemas import UserRegister, UserLogin
 from models import Base
 from typing import Annotated
-from routers.auth import router as auth_router # routers package'ında oluşturduğum auth.py dosyasının içindeki router'ı auth_router olarak import ettim
-from routers.lesson import router as lesson_router # routers package'ında oluşturduğum auth.py dosyasının içindeki router'ı lesson_router olarak import ettim
-from routers.error import router as error_router # routers package'ında oluşturduğum error.py dosyasının içindeki router'ı error_router olarak import ettim
-from routers.tasks import router as tasks_router # routers package'ında oluşturduğum tasks.py dosyasının içindeki router'ı tasks_router olarak import ettim
-
+from routers.auth import router as auth_router
+from routers.lesson import router as lesson_router
+from routers.error import router as error_router
+from routers.tasks import router as tasks_router
+from routers.progress import router as progress_router
+from routers.sections import router as sections_router
 
 
 Base.metadata.create_all(bind=engine) # bu kısım sqlalchemy'de tanımlanan veritabanı modellerine karşılık gelen tabloları gerçek veritabanında otomatik oluşturur
 
 
 app = FastAPI()
-app.include_router(auth_router) # auth_router'ı main'e ekledim.
-app.include_router(lesson_router) # lesson_router'ı main'e ekledim.
-app.include_router(error_router) # error_router'ı maine'e ekledim.
-app.include_router(tasks_router) # tasks_router'ı main'e ekledim.
+app.include_router(auth_router)
+app.include_router(lesson_router)
+app.include_router(error_router)
+app.include_router(tasks_router)
+app.include_router(progress_router)
+app.include_router(sections_router)
 
 
 app.add_middleware( # mobil uygulamanın (flutter) backende erişebilmesi için ayar yaptım.
