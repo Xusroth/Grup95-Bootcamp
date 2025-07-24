@@ -88,6 +88,7 @@ class UserPublicResponse(BaseModel): # bilerek bu sınıfı oluşturdum diğer t
     username: str
     email: str
     level: Optional[str] = None
+    role : str
     has_taken_level_test: bool  # kullanıcının seviye belirleme testine girip girmediği
     health_count: int
     health_count_update_time: datetime

@@ -157,7 +157,7 @@ async def guest_login(db: db_dependency):
         data={'sub': guest_user.email},
         expires_delta=timedelta(hours=1)
     )
-    return {'access_token': access_token, 'token_type': 'bearer'}
+    return {'access_token': access_token, 'token_type': 'bearer', 'username' : guest_username}
 
 
 @router.put('/users/{user_id}', response_model=UserPublicResponse)
