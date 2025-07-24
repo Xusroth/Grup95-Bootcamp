@@ -41,8 +41,7 @@ TASK_TYPES = [
 def generate_daily_tasks(db: db_dependency, user: User):
     if user.role == 'guest':
         logger.debug(f"Kullanıcı {user.id} misafir, görev oluşturulmadı.")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar günlük görev alamaz.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar günlük görev alamaz.")
 
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     logger.debug(f"Bugün: {today}")
@@ -66,7 +65,7 @@ def generate_daily_tasks(db: db_dependency, user: User):
 
     created_tasks = []
 
-    # take_level_test görevini öncelikli olarak ekle (eğer kullanıcı seviye testini almadıysa)
+    # kullanıcı seviye testini almadıysa take_level_test görevi öncelikli olarak ekleniyor!!
     if not user.has_taken_level_test and tasks_to_create > 0:
         lesson = random.choice(lessons)
         existing_level_task = db.query(DailyTask).filter(
@@ -169,15 +168,13 @@ def generate_daily_tasks(db: db_dependency, user: User):
 @router.get('/daily', response_model=list[DailyTaskResponse])
 async def get_daily_tasks(db: db_dependency, user: user_dependency, lesson_id: Optional[int] = None, target_user_id: Optional[int] = None):
     if user.role == 'guest':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Misafir kullanıcılar günlük görevleri göremez.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar günlük görevleri göremez.")
 
     logger.debug(
         f"Kullanıcı {user.id} için günlük görevler sorgulanıyor, lesson_id: {lesson_id}, target_user_id: {target_user_id}")
 
     if user.role != 'admin' and target_user_id and target_user_id != user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Normal kullanıcılar başka kullanıcıların görevlerini göremez.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Normal kullanıcılar başka kullanıcıların görevlerini göremez.")
 
     target_id = target_user_id if user.role == 'admin' and target_user_id else user.id
     target_user = db.query(User).filter(User.id == target_id).first()
@@ -202,11 +199,9 @@ async def get_daily_tasks(db: db_dependency, user: user_dependency, lesson_id: O
     return tasks
 
 
-router.post('/answer_question', response_model=dict)
-
-
+@router.post('/answer_question', response_model=dict)
 async def answer_question(request: AnswerQuestionRequest, db: db_dependency, current_user: User = Depends(get_current_user)):
-    # Kullanıcıyı mevcut db oturumundan tekrar sorgula
+    # user mevcut database oturumundan tekrar sorgula yoksa patlıyor kabul etmiyor
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
@@ -215,7 +210,7 @@ async def answer_question(request: AnswerQuestionRequest, db: db_dependency, cur
     if not question:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soru bulunamadı.")
 
-    # Progress güncelle
+    # progress güncelleme kısmı
     progress = db.query(ProgressModels).filter(
         ProgressModels.user_id == user.id,
         ProgressModels.lesson_id == question.lesson_id,
@@ -224,7 +219,7 @@ async def answer_question(request: AnswerQuestionRequest, db: db_dependency, cur
     if not progress:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İlerleme kaydı bulunamadı.")
 
-    # Doğru/yanlış kontrolü
+    # true false kontrolü
     is_correct = question.correct_answer == request.user_answer
     if is_correct:
         progress.completed_questions += 1
