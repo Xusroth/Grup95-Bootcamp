@@ -29,6 +29,9 @@ user_dependency = Annotated[User, Depends(get_current_user)]
 
 @router.get('/me', response_model=list[ProgressResponse])
 async def get_my_progress(db: db_dependency, user: user_dependency):
+    if user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar ilerleme kaydını görüntüleyemez.")
+
     progress = db.query(Progress).filter(Progress.user_id == user.id).all()
     logger.debug(f"Kullanıcı {user.id} için {len(progress)} ilerleme kaydı bulundu.")
     return progress
@@ -42,10 +45,7 @@ async def answer_question(db: db_dependency, user: user_dependency, request: Ans
         time_diff = datetime.now(timezone.utc) - user.health_count_update_time
         if time_diff < timedelta(hours=2):
             remaining_hours = 2 - (time_diff.total_seconds() / 3600)
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Can hakkınız bitti. {remaining_hours:.2f} saat sonra tekrar deneyin."
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Can hakkınız bitti. {remaining_hours:.2f} saat sonra tekrar deneyin.")
         else:
             user.health_count = 6
             user.health_count_update_time = datetime.now(timezone.utc)
@@ -61,9 +61,7 @@ async def answer_question(db: db_dependency, user: user_dependency, request: Ans
         user.health_count_update_time = datetime.now(timezone.utc)
         db.commit()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}"
-        )
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}")
 
     progress = db.query(Progress).filter(
         Progress.user_id == user.id,
