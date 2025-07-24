@@ -89,6 +89,8 @@ class UserPublicResponse(BaseModel): # bilerek bu sınıfı oluşturdum diğer t
     email: str
     level: Optional[str] = None
     has_taken_level_test: bool  # kullanıcının seviye belirleme testine girip girmediği
+    health_count: int
+    health_count_update_time: datetime
 
     class Config:
         from_attributes = True
@@ -132,6 +134,21 @@ class Progress(ProgressCreate):
     completed_questions: int
     total_questions: int
     completion_percentage: float
+
+    class Config:
+        from_attributes = True
+
+
+class ProgressResponse(BaseModel):
+    id: int
+    user_id: int
+    lesson_id: int
+    section_id: Optional[int]
+    completed_questions: int
+    total_questions: int
+    completion_percentage: float
+    current_subsection: str
+    subsection_completion: int
 
     class Config:
         from_attributes = True
@@ -262,6 +279,12 @@ class Section(SectionBase):
 
     class Config:
         from_attributes = True
+
+
+class SectionUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order: Optional[int] = None
 
 
 
