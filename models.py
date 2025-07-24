@@ -1,6 +1,6 @@
 
 
-from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, Table, DateTime
+from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, Table, DateTime, JSON
 from database import Base
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone, timedelta
@@ -62,12 +62,16 @@ class Progress(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False)
-    completed_questions = Column(Integer, nullable=True)
-    total_questions = Column(Integer, nullable=True)
+    section_id = Column(Integer, ForeignKey('sections.id'), nullable=False) # section_id'yi zorunlu tuttum bilerek yoksa %70 sıklıkla null dönüyor
+    completed_questions = Column(Integer, default=0)
+    total_questions = Column(Integer, default=0)
     completion_percentage = Column(Float, default=0.0) # tamamlama yüzdesi
+    current_subsection = Column(String(20), default='beginner') # geçerli section alt bölümü
+    subsection_completion = Column(Integer, default=0) # tamamlanan section alt bölümü
 
     user = relationship('User', back_populates='progress')
     lesson = relationship('Lesson', back_populates='progress')
+    section = relationship('Section', back_populates='progress') # section ile bağlandı
 
 
 class Question(Base):
@@ -83,6 +87,7 @@ class Question(Base):
 
     lesson = relationship('Lesson', back_populates='questions')
     section = relationship('Section', back_populates='questions')
+    used_by = relationship('UserQuestion', back_populates='question')
 
 
 class ErrorReport(Base): # error report feedback kısmı için
@@ -135,6 +140,7 @@ class Section(Base):
     lesson = relationship('Lesson', back_populates='sections')
     questions = relationship('Question', back_populates='section')
     daily_tasks = relationship('DailyTask', back_populates='section')
+    progress = relationship('Progress', back_populates='section')
 
 
 class DailyTask(Base):
@@ -155,3 +161,15 @@ class DailyTask(Base):
     user = relationship('User', back_populates='daily_tasks')
     lesson = relationship('Lesson', back_populates='daily_tasks')
     section = relationship('Section', back_populates='daily_tasks')
+
+
+class UserQuestion(Base):
+    __tablename__ = 'user_questions'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    question_id = Column(Integer, ForeignKey('questions.id'))
+    used_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship('User')
+    question = relationship('Question', back_populates='used_by')
