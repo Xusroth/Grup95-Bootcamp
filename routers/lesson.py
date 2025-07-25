@@ -1,6 +1,6 @@
 
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from fastapi.logger import logger
 from sqlalchemy import and_, not_, func
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ from schemas import StreakUpdate # pydantic model
 from schemas import Section, SectionCreate # pydantic model,
 from routers.auth import get_current_user # routers package'daki auth.py dosyasından import ettim   # gerekli endpointlere ekledim..! # authorize için kullanıyorum gerekli olanlara koyuyorum..!
 from utils.config import GEMINI_API_KEY
+from utils.streak import update_user_streak
 import google.generativeai as genai
 import json
 import logging
@@ -662,7 +663,7 @@ async def get_questions_by_lesson(lesson_id: int, db: db_dependency, current_use
 
 
 @router.put('/users/{user_id}/lessons/{lesson_id}/streak', response_model=dict)
-async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
+async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user), background_tasks: BackgroundTasks = None):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
 
@@ -677,28 +678,12 @@ async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current
     if lesson not in user.lessons:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu ders kullanıcı tarafından seçilmemiş. Lütfen önce dersi seçin.")
 
+    background_tasks.add_task(update_user_streak, db, user_id, lesson_id)
+
     streak = db.query(StreakModels).filter(StreakModels.user_id == user_id, StreakModels.lesson_id == lesson_id).first()
-    today = datetime.now(timezone.utc).date()
-    yesterday = today - timedelta(days=1)
-
     if not streak:
-        streak = StreakModels(user_id=user_id, lesson_id=lesson_id, streak_count=1, last_update=datetime.now(timezone.utc))
-        db.add(streak)
+        return {'streak_count': 0, 'last_update': None}
 
-    else:
-        last_update_date = streak.last_update.date()
-        if last_update_date == today:
-            return {'message': "Bugün zaten bir ilerleme kaydettiğiniz için streak güncellenmedi.", 'streak_count': streak.streak_count, 'last_update': streak.last_update}
-
-        elif last_update_date == yesterday:
-            streak.streak_count += 1
-
-        else:
-            streak.streak_count = 1
-            streak.last_update = datetime.now(timezone.utc)
-
-    db.commit()
-    db.refresh(streak)
     return {'streak_count': streak.streak_count, 'last_update': streak.last_update}
 
 
