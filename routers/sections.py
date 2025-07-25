@@ -5,7 +5,7 @@ from typing import Annotated, List
 from starlette import status
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from models import User, Lesson as LessonModels, Section as SectionModels, Question as QuestionModels
+from models import User, Lesson as LessonModels, Section as SectionModels, Question as QuestionModels, DailyTask, Progress as ProgressModels
 from schemas import SectionCreate, Section, SectionUpdate, QuestionResponse
 from routers.auth import get_current_user
 import logging
@@ -36,6 +36,13 @@ async def create_section(db: db_dependency, lesson_id: int, section: SectionCrea
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
     if not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
+
+    existing_section = db.query(SectionModels).filter( # bu kısımda aynı order olup olmadığı kontrolü yapılıyor
+        SectionModels.lesson_id == lesson_id,
+        SectionModels.order == section.order
+    ).first()
+    if existing_section:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu sıradaki bir bölüm zaten mevcut.")
 
     new_section = SectionModels(
         title=section.title,
@@ -77,10 +84,12 @@ async def delete_section(section_id: int, db: db_dependency, user: user_dependen
     if not db_section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
 
+    db.query(ProgressModels).filter(ProgressModels.section_id == section_id).delete()
+    db.query(QuestionModels).filter(QuestionModels.section_id == section_id).delete()
+    db.query(DailyTask).filter(DailyTask.section_id == section_id).delete()
+
     db.delete(db_section)
     db.commit()
-    logger.debug(f"Bölüm silindi: ID {section_id}")
-    return None
 
 
 @router.get('/lessons/{lesson_id}/sections', response_model=list[Section])
