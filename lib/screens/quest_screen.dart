@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
@@ -24,27 +25,15 @@ class QuestScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // Kullanıcı Barı
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12.0,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
                   child: Stack(
                     alignment: Alignment.centerLeft,
                     children: [
-                      Image.asset(
-                        'assets/user_bar.png',
-                        fit: BoxFit.contain,
-                        width: 400,
-                        height: 70,
-                      ),
+                      Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
                       Positioned(
                         left: 16,
-                        child: Image.asset(
-                          'assets/profile_pic.png',
-                          height: 36,
-                        ),
+                        child: Image.asset('assets/profile_pic.png', height: 36),
                       ),
                       Positioned(
                         left: 60,
@@ -67,9 +56,7 @@ class QuestScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => ReportScreen1(),
-                              ),
+                              MaterialPageRoute(builder: (context) => ReportScreen1()),
                             );
                           },
                           child: Image.asset('assets/report.png', height: 22),
@@ -78,10 +65,7 @@ class QuestScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
-                // Grafik ve ilerleme metni
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Stack(
@@ -115,45 +99,22 @@ class QuestScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
-                // Kartlar
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     children: [
-                      buildGorevCard(
-                        imagePath: "assets/kart1.png",
-                        gorevYazisi: "5 Python Sorusu Çöz",
-                        tamamlanan: 2,
-                        toplam: 5,
-                      ),
+                      buildGorevCard("assets/kart1.png", "5 Python Sorusu Çöz", 2, 5),
                       const SizedBox(height: 10),
-                      buildGorevCard(
-                        imagePath: "assets/kart2.png",
-                        gorevYazisi: "1 Yeni Konu Öğren",
-                        tamamlanan: 1,
-                        toplam: 1,
-                      ),
+                      buildGorevCard("assets/kart2.png", "1 Yeni Konu Öğren", 1, 1),
                       const SizedBox(height: 10),
-                      buildGorevCard(
-                        imagePath: "assets/kart3.png",
-                        gorevYazisi: "3 Dersi Hatasız Tamamla",
-                        tamamlanan: 1,
-                        toplam: 3,
-                      ),
+                      buildGorevCard("assets/kart3.png", "3 Dersi Hatasız Tamamla", 1, 3),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-
-          // Alt Bar
           Positioned(
             bottom: 20,
             left: 0,
@@ -166,10 +127,7 @@ class QuestScreen extends StatelessWidget {
                   child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 60.0,
-                    vertical: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -178,8 +136,7 @@ class QuestScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  HomeScreen(userMail: '', userName: userName),
+                              builder: (_) => HomeScreen(userMail: '', userName: userName),
                             ),
                           );
                         },
@@ -190,8 +147,7 @@ class QuestScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  DersSec(userMail: '', userName: userName),
+                              builder: (_) => DersSec(userMail: '', userName: userName),
                             ),
                           );
                         },
@@ -219,12 +175,7 @@ class QuestScreen extends StatelessWidget {
     );
   }
 
-  Widget buildGorevCard({
-    required String imagePath,
-    required String gorevYazisi,
-    required int tamamlanan,
-    required int toplam,
-  }) {
+  Widget buildGorevCard(String imagePath, String gorevYazisi, int tamamlanan, int toplam) {
     double progress = tamamlanan / toplam;
 
     return Padding(
@@ -233,12 +184,7 @@ class QuestScreen extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: Image.asset(
-              imagePath,
-              width: double.infinity,
-              height: 130,
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset(imagePath, width: double.infinity, height: 130, fit: BoxFit.cover),
           ),
           Positioned(
             right: 220,
@@ -280,9 +226,7 @@ class QuestScreen extends StatelessWidget {
                       value: progress,
                       minHeight: 20,
                       backgroundColor: Colors.black26,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color.fromARGB(255, 28, 179, 28),
-                      ),
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 28, 179, 28)),
                     ),
                   ),
                 ],

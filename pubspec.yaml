@@ -115,6 +115,35 @@ flutter:
     - assets/level4.png
     - assets/hedef_kart.png
     - assets/leaderboard_kart.png
+    - assets/envelope.png
+    - assets/globe-fill.png
+    - assets/keyhole.png
+    - assets/paper-plane-right.png
+    - assets/password.png
+    - assets/question.png
+    - assets/sign-out-fill.png
+    - assets/user-circle-minus-fill.png
+    - assets/tercih.png
+    - assets/dikdortgen1.png
+    - assets/dikdortgent2.png
+    - assets/avatars/avatar_alien.png
+    - assets/avatars/avatar_astrout.png
+    - assets/avatars/avatar_boom.png
+    - assets/avatars/avatar_cat.png
+    - assets/avatars/avatar_cleaner.png
+    - assets/avatars/avatar_coder.png
+    - assets/avatars/avatar_cool.png
+    - assets/avatars/avatar_cowbot.png
+    - assets/avatars/avatar_fairy.png
+    - assets/avatars/avatar_frog.png
+    - assets/avatars/avatar_robot.png
+    - assets/avatars/avatar_robot_2.png
+    - assets/avatars/avatar_rock.png
+    - assets/avatars/avatar_sleepy.png
+    - assets/avatars/avatar_supergirl.png
+    - assets/avatars/avatar_turtle.png
+    - assets/avatars/avatar_vampire.png
+    - assets/avatars/avatar_wizard.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

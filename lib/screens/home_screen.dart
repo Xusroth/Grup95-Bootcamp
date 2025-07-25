@@ -42,9 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (response.statusCode == 200) {
       final tasks = jsonDecode(response.body);
       setState(() {
-        completedTaskCount = tasks
-            .where((task) => task['is_completed'] == true)
-            .length;
+        completedTaskCount = tasks.where((task) => task['is_completed'] == true).length;
         isLoading = false;
       });
     } else {
@@ -70,26 +68,15 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12.0,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
                       child: Stack(
                         alignment: Alignment.centerLeft,
                         children: [
-                          Image.asset(
-                            'assets/user_bar.png',
-                            fit: BoxFit.contain,
-                            width: 400,
-                            height: 70,
-                          ),
+                          Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
                           Positioned(
                             left: 16,
                             child: GestureDetector(
@@ -97,15 +84,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        ProfilePage(userName: widget.userName),
+                                    builder: (_) => ProfilePage(userName: widget.userName),
                                   ),
                                 );
                               },
-                              child: Image.asset(
-                                'assets/profile_pic.png',
-                                height: 36,
-                              ),
+                              child: Image.asset('assets/profile_pic.png', height: 36),
                             ),
                           ),
                           Positioned(
@@ -121,10 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Positioned(
                             right: 48,
-                            child: Image.asset(
-                              'assets/health_bar.png',
-                              height: 24,
-                            ),
+                            child: Image.asset('assets/health_bar.png', height: 24),
                           ),
                           Positioned(
                             right: 20,
@@ -137,10 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 );
                               },
-                              child: Image.asset(
-                                'assets/report.png',
-                                height: 22,
-                              ),
+                              child: Image.asset('assets/report.png', height: 22),
                             ),
                           ),
                         ],
@@ -164,17 +141,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           value: isLoading ? 0 : progress,
                           minHeight: 20,
                           backgroundColor: Colors.green.shade900,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            const Color.fromARGB(255, 18, 167, 50),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color.fromARGB(255, 18, 167, 50),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      isLoading
-                          ? "Yükleniyor..."
-                          : "$completedTaskCount/3 Tamamlandı",
+                      isLoading ? "Yükleniyor..." : "$completedTaskCount/3 Tamamlandı",
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     const SizedBox(height: 32),
@@ -182,10 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3F3F80),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -202,9 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AlgorithmLessonOverview(
-                              userName: widget.userName,
-                            ),
+                            builder: (_) => AlgorithmLessonOverview(userName: widget.userName),
                           ),
                         );
                       },
@@ -215,7 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => QuestScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => QuestScreen(userName: widget.userName),
+                          ),
                         );
                       },
                     ),
@@ -237,10 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 60.0,
-                    vertical: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -277,8 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  ProfilePage(userName: widget.userName),
+                              builder: (_) => ProfilePage(userName: widget.userName),
                             ),
                           );
                         },
