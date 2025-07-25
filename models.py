@@ -79,7 +79,7 @@ class Question(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     content = Column(String, nullable=False) # soru içeriği
-    options = Column(String, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin
+    options = Column(JSON, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin //// JSON tipini denendim
     correct_answer = Column(String, nullable=False) # doğru şık
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
     level = Column(String, nullable=True, index=True) # soruların seviyesini saklamak (beginner, intermediate, advanced)
@@ -170,6 +170,6 @@ class UserQuestion(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     question_id = Column(Integer, ForeignKey('questions.id'))
     used_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
+    is_correct = Column(Boolean, default=False)  # Sorunun doğru cevaplanıp cevaplanmadığını belirtir
     user = relationship('User')
     question = relationship('Question', back_populates='used_by')
