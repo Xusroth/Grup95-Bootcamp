@@ -24,6 +24,9 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 @router.post('/report', status_code=status.HTTP_201_CREATED, response_model=ErrorReportResponse)
 async def report_error(db: db_dependency, report: ErrorReportCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar hata raporu oluşturamaz.")
+
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Hata raporu oluşturmak için oturum açmış olmalısınız.")
 
@@ -42,6 +45,12 @@ async def report_error(db: db_dependency, report: ErrorReportCreate, current_use
     except Exception as err:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Hata loglara kayıt edilemedi. {err}")
+
+
+@router.get('/my_reports', response_model=list[ErrorReportResponse]) # user kendi oluşturduğu reportları görebilir
+async def get_my_error_reports(db: db_dependency, current_user: User = Depends(get_current_user)):
+    reports = db.query(ErrorReport).filter(ErrorReport.user_id == current_user.id).all()
+    return reports
 
 
 @router.get('/reports', response_model=list[ErrorReportResponse])
