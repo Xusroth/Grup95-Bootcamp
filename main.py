@@ -67,7 +67,4 @@ async def startup_event():
 
 @app.get('/')
 async def root():
-    return {
-        "message": "Codebite'a hoşgeldin!",
-        "docs": "/docs"
-    }
+    return {'message': "Codebite'a hoşgeldin!", 'docs': "/docs"}
