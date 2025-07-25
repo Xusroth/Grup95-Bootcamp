@@ -6,8 +6,8 @@ from starlette import status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import SessionLocal
-from models import User, DailyTask, Question as QuestionModels, Lesson, Section, Progress as ProgressModels, user_lessons
-from schemas import DailyTaskResponse, DailyTaskCreate, DailyTaskUpdate, AnswerQuestionRequest, ProgressResponse
+from models import User, DailyTask, Question as QuestionModels, Lesson, Section, Progress as ProgressModels, user_lessons, UserQuestion
+from schemas import DailyTaskResponse, DailyTaskCreate, DailyTaskUpdate, AnswerQuestionRequest, ProgressResponse, Progress
 from routers.auth import get_current_user
 from datetime import datetime, timezone, timedelta
 import random
@@ -113,11 +113,11 @@ def generate_daily_tasks(db: db_dependency, user: User):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail=f"Ders ID {lesson.id} için bölüm bulunamadı.")
 
-            progress = db.query(Progress).filter(
-                Progress.user_id == user.id,
-                Progress.lesson_id == lesson.id,
-                Progress.subsection_completion < 3
-            ).order_by(Progress.section_id.asc()).first()
+            progress = db.query(ProgressModels).filter(
+                ProgressModels.user_id == user.id,
+                ProgressModels.lesson_id == lesson.id,
+                ProgressModels.subsection_completion < 3
+            ).order_by(ProgressModels.section_id.asc()).first()
 
             if progress and progress.section_id:
                 section = db.query(Section).filter(Section.id == progress.section_id).first()
@@ -201,17 +201,23 @@ async def get_daily_tasks(db: db_dependency, user: user_dependency, lesson_id: O
 
 @router.post('/answer_question', response_model=dict)
 async def answer_question(request: AnswerQuestionRequest, db: db_dependency, current_user: User = Depends(get_current_user)):
-    # user mevcut database oturumundan tekrar sorgula yoksa patlıyor kabul etmiyor
-    user = db.query(User).filter(User.id == current_user.id).first()
+    user = db.query(User).filter(User.id == current_user.id).first() # user mevcut database oturumundan tekrar sorgula yoksa patlıyor kabul etmiyor
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
 
-    question = db.query(QuestionModels).filter(QuestionModels.id == request.question_id).first()
+    question = db.query(QuestionModels).filter(QuestionModels.id == request.question_id).first() # soruların kontrolü
     if not question:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soru bulunamadı.")
 
-    # progress güncelleme kısmı
-    progress = db.query(ProgressModels).filter(
+    if user.health_count == 0: # health_count kontrolü
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Can sayınız 0. Lütfen canlarınızın dolmasını bekleyin.")
+
+    # sorunun daha önce cevaplanıp cevaplanmadığının kontrol edilmesi (buna göre userdan ilerleme ve health_count takibi yapılacak)
+    user_question = db.query(UserQuestion).filter(UserQuestion.user_id == user.id, UserQuestion.question_id == request.question_id).first()
+    if user_question:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu soruyu zaten cevapladınız.")
+
+    progress = db.query(ProgressModels).filter( # progress güncelleme kısmı
         ProgressModels.user_id == user.id,
         ProgressModels.lesson_id == question.lesson_id,
         ProgressModels.section_id == question.section_id
@@ -219,15 +225,18 @@ async def answer_question(request: AnswerQuestionRequest, db: db_dependency, cur
     if not progress:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="İlerleme kaydı bulunamadı.")
 
-    # true false kontrolü
-    is_correct = question.correct_answer == request.user_answer
+    is_correct = question.correct_answer == request.user_answer     # true false kontrolü
     if is_correct:
         progress.completed_questions += 1
         progress.completion_percentage = (progress.completed_questions / progress.total_questions * 100) if progress.total_questions > 0 else 0
+
     else:
         user.health_count = max(user.health_count - 1, 0)
         user.health_count_update_time = datetime.now(timezone.utc)
         logger.debug(f"Kullanıcı {user.id} yanlış cevap verdi, health_count: {user.health_count}")
+
+    user_question = UserQuestion(user_id=user.id, question_id=request.question_id, used_at=datetime.now(timezone.utc)) # UserQuestion tablosuna soru kaydediliyor
+    db.add(user_question)
 
     db.commit()
     db.refresh(progress)

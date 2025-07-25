@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
-from models import User, PasswordResetToken
+from models import User, PasswordResetToken, DailyTask, Progress as ProgressModels, Streak as StreakModels, UserQuestion, ErrorReport
 from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
@@ -240,18 +240,27 @@ async def list_users(db: db_dependency, current_user: User = Depends(get_current
     return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role, "level": i.level, "has_taken_level_test": i.has_taken_level_test, 'health_count': i.health_count, 'health_count_update_time': i.health_count_update_time} for i in user]
 
 
-@router.delete('/admin/users/{user_id}', status_code=status.HTTP_200_OK)
+@router.delete('/admin/users/{user_id}', status_code=status.HTTP_200_OK, response_model=dict)
 async def delete_user(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
 
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcı silebilir.")
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
     if user.id == current_user.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kendi hesabınızı silemezsiniz.")
+
+    db.query(DailyTask).filter(DailyTask.user_id == user_id).delete()
+    db.query(ProgressModels).filter(ProgressModels.user_id == user_id).delete()
+    db.query(StreakModels).filter(StreakModels.user_id == user_id).delete()
+    db.query(UserQuestion).filter(UserQuestion.user_id == user_id).delete()
+    db.query(ErrorReport).filter(ErrorReport.user_id == user_id).delete()
+
     db.delete(user)
     db.commit()
     return {"message": f"{user.username} adlı kullanıcı silindi."}
@@ -338,3 +347,21 @@ async def get_health_count(db: db_dependency, current_user: User = Depends(get_c
         'health_count': current_user.health_count,
         'health_count_update_time': current_user.health_count_update_time
     }
+
+
+@router.put('/admin/users/{user_id}/health_count', response_model=dict)
+async def admin_restore_health_count(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcıların can sayısını yenileyebilir.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    user.health_count = 6
+    user.health_count_update_time = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(user)
+
+    return {'user_id': user.id, 'health_count': user.health_count, 'health_count_update_time': user.health_count_update_time}

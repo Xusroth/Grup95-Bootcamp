@@ -655,6 +655,7 @@ async def get_questions_by_lesson(lesson_id: int, db: db_dependency, current_use
             options=json.loads(q.options),
             correct_answer=q.correct_answer,
             lesson_id=q.lesson_id,
+            section_id=q.section_id,
             level=q.level
         ) for q in questions
     ]
@@ -673,6 +674,9 @@ async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current
     if not user or not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı veya ders bulunamadı.")
 
+    if lesson not in user.lessons:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu ders kullanıcı tarafından seçilmemiş. Lütfen önce dersi seçin.")
+
     streak = db.query(StreakModels).filter(StreakModels.user_id == user_id, StreakModels.lesson_id == lesson_id).first()
     today = datetime.now(timezone.utc).date()
     yesterday = today - timedelta(days=1)
@@ -680,12 +684,15 @@ async def update_streak(db: db_dependency, user_id: int, lesson_id: int, current
     if not streak:
         streak = StreakModels(user_id=user_id, lesson_id=lesson_id, streak_count=1, last_update=datetime.now(timezone.utc))
         db.add(streak)
+
     else:
         last_update_date = streak.last_update.date()
         if last_update_date == today:
-            return {'message': "Bugün zaten bir ilerleme kaydettiğiniz için streak güncellendi.", 'streak_count': streak.streak_count}
+            return {'message': "Bugün zaten bir ilerleme kaydettiğiniz için streak güncellenmedi.", 'streak_count': streak.streak_count, 'last_update': streak.last_update}
+
         elif last_update_date == yesterday:
             streak.streak_count += 1
+
         else:
             streak.streak_count = 1
             streak.last_update = datetime.now(timezone.utc)
