@@ -1,6 +1,6 @@
 
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Annotated
 from pydantic import BaseModel
 from database import SessionLocal
@@ -14,6 +14,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 from utils.email import send_reset_email
 from utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.health import update_user_health_count, update_all_users_health
 import random
 
 
@@ -75,23 +76,27 @@ class Token(BaseModel):
 def create_admin(): # admin oluşturmak için fonksiyon. email -> admin@gmail.com  password -> Admin123!
     db = SessionLocal()
     try:
-        hashed_password = bcrypt.hashpw('Admin123!'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        admin_user = User(username='admin', email='admin@gmail.com', hashed_password=hashed_password, role='admin', level=None) # admin her seviyeden soru generate edebilsin diye -> None
-
-        db.add(admin_user)
-        db.commit()
+        existing_user = db.query(User).filter((User.email == "admin@gmail.com") | (User.username == "admin")).first()
+        if not existing_user:
+            hashed_password = bcrypt.hashpw('Admin123!'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            admin_user = User(
+                username='admin',
+                email='admin@gmail.com',
+                hashed_password=hashed_password,
+                role='admin',
+                level=None # admin her seviyeden soru generate edebilsin diye -> None
+            )
+            db.add(admin_user)
+            db.commit()
     finally:
         db.close()
-
-    if __name__ == "__main__":
-        create_admin()
 
 
 
 
 
 @router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserPublicResponse) # kullanıcı kayıt
-async def register(db: db_dependency, user: UserRegister):
+async def register(db: db_dependency, user: UserRegister, background_tasks: BackgroundTasks):
     mevcut_user = db.query(User).filter((User.email == user.email) | (User.username == user.username)).first()
     if mevcut_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu kullanıcı adı veya email zaten kayıtlı.")
@@ -114,13 +119,16 @@ async def register(db: db_dependency, user: UserRegister):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    background_tasks.add_task(update_user_health_count, db, db_user.id)  # health_count kontrolü
+
     return db_user
 
 
 @router.post('/login', response_model=Token) # kullanıcı login kısmı (token ekledim güncelledim)
 async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     db_user = db.query(User).filter(User.email == form_data.username).first() # user.email kısmı değişti..!
-    if not db_user:
+    if not db_user or db_user.hashed_password is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
 
     if not bcrypt.checkpw(form_data.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
@@ -266,6 +274,26 @@ async def delete_user(db: db_dependency, user_id: int, current_user: User = Depe
     return {"message": f"{user.username} adlı kullanıcı silindi."}
 
 
+@router.delete('/users/me/delete', status_code=status.HTTP_200_OK, response_model=dict)
+async def delete_own_account(db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar hesap silemez.")
+
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
+
+    db.query(DailyTask).filter(DailyTask.user_id == current_user.id).delete()
+    db.query(ProgressModels).filter(ProgressModels.user_id == current_user.id).delete()
+    db.query(StreakModels).filter(StreakModels.user_id == current_user.id).delete()
+    db.query(UserQuestion).filter(UserQuestion.user_id == current_user.id).delete()
+    db.query(ErrorReport).filter(ErrorReport.user_id == current_user.id).delete()
+
+    db.delete(user)
+    db.commit()
+    return {'message': f"{user.username} adlı hesap başarıyla silindi."}
+
+
 @router.post('/password_reset_request')
 async def request_password_reset(db: db_dependency, request: PasswordResetRequest):
     user = db.query(User).filter(User.email == request.email).first()
@@ -336,17 +364,13 @@ async def cleanup_guests(db: db_dependency, current_user: User = Depends(get_cur
 
 
 @router.get('/health_count')
-async def get_health_count(db: db_dependency, current_user: User = Depends(get_current_user)):
+async def get_health_count(db: db_dependency, current_user: User = Depends(get_current_user), background_tasks: BackgroundTasks = None):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar can bilgisi göremez.")
-    if current_user.health_count <= 0 and (datetime.now(timezone.utc) - current_user.health_count_update_time) >= timedelta(hours=2):
-        current_user.health_count = 6
-        current_user.health_count_update_time = datetime.now(timezone.utc)
-        db.commit()
-    return {
-        'health_count': current_user.health_count,
-        'health_count_update_time': current_user.health_count_update_time
-    }
+
+    background_tasks.add_task(update_user_health_count, db, current_user.id)
+
+    return {'health_count': current_user.health_count, 'health_count_update_time': current_user.health_count_update_time}
 
 
 @router.put('/admin/users/{user_id}/health_count', response_model=dict)
