@@ -11,12 +11,16 @@ from models import User, Lesson
 from schemas import UserRegister, UserLogin
 from models import Base
 from typing import Annotated
-from routers.auth import router as auth_router
+from routers.auth import router as auth_router, create_admin
 from routers.lesson import router as lesson_router
 from routers.error import router as error_router
 from routers.tasks import router as tasks_router
 from routers.progress import router as progress_router
 from routers.sections import router as sections_router
+from utils.streak import start_streak_scheduler
+from utils.health import start_health_scheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 
 
 Base.metadata.create_all(bind=engine) # bu kısım sqlalchemy'de tanımlanan veritabanı modellerine karşılık gelen tabloları gerçek veritabanında otomatik oluşturur
@@ -54,35 +58,16 @@ db_dependency = Annotated[Session, Depends(get_db)] # burada daha da kısaltarak
 
 
 
-@app.on_event("startup") # uygulama çalıştığında otomatik belirlenen isimlerden admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
+@app.on_event("startup")
 async def startup_event():
-    db = SessionLocal()
-    try:
-        # Mevcut admin kullanıcısını kontrol et
-        existing_user = db.query(User).filter((User.email == "admin@gmail.com") | (User.username == "admin")).first()
-        if not existing_user:
-            hashed_password = bcrypt.hashpw("Admin123!".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            admin_user = User(
-                username="admin",
-                email="admin@gmail.com",
-                hashed_password=hashed_password,
-                role="admin"
-            )
-            db.add(admin_user)
-            db.commit()
-            print("Admin kullanıcısı oluşturuldu: admin@gmail.com")
-        else:
-            print("Admin kullanıcısı zaten mevcut.")
-    except Exception as e:
-        print(f"Admin oluşturma hatası: {e}")
-        db.rollback()
-    finally:
-        db.close()
+    create_admin()  # # uygulama çalıştığında otomatik belirlenen isimlerden admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
+    start_streak_scheduler()
+    start_health_scheduler()
 
 
-
-
-
-@app.get('/') # welcome fonksiyonu gibi düşün
-async def root(request: Request): # request kullanmamın sebebi uygulamaya giren cihazdan gelen bilgileri görebilmek
-    return {"message": "Codebite'a hoşgeldin!"}
+@app.get('/')
+async def root():
+    return {
+        "message": "Codebite'a hoşgeldin!",
+        "docs": "/docs"
+    }
