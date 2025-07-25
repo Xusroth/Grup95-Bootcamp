@@ -9,16 +9,13 @@ import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/quest_screen.dart';
 import 'package:android_studio/screens/profile.dart';
+import 'package:android_studio/screens/ReportScreen1.dart';
 
 class DersSec extends StatefulWidget {
   final String userName;
   final String userMail;
 
-  const DersSec({
-    super.key,
-    required this.userName,
-    required this.userMail,
-  });
+  const DersSec({super.key, required this.userName, required this.userMail});
 
   @override
   State<DersSec> createState() => _DersSecState();
@@ -47,28 +44,40 @@ class _DersSecState extends State<DersSec> {
         'icon': 'assets/algoritma_icon.png',
         'description': 'Algoritmik düşünme temelleri.',
         'locked': algoritmaKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
+        'page': SeviyeSecSayfasi(
+          userMail: widget.userMail,
+          userName: widget.userName,
+        ),
       },
       {
         'title': 'Python',
         'icon': 'assets/python_icon.png',
         'description': 'Python programlamaya giriş.',
         'locked': pythonKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
+        'page': SeviyeSecSayfasi(
+          userMail: widget.userMail,
+          userName: widget.userName,
+        ),
       },
       {
         'title': 'Java',
         'icon': 'assets/java_icon.png',
         'description': 'Java ile nesne yönelimli programlama.',
         'locked': javaKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
+        'page': SeviyeSecSayfasi(
+          userMail: widget.userMail,
+          userName: widget.userName,
+        ),
       },
       {
         'title': 'C#',
         'icon': 'assets/python_icon.png',
         'description': 'C# ile Windows uygulamaları.',
         'locked': csharpKilit,
-        'page': SeviyeSecSayfasi(userMail: widget.userMail, userName: widget.userName,),
+        'page': SeviyeSecSayfasi(
+          userMail: widget.userMail,
+          userName: widget.userName,
+        ),
       },
     ];
 
@@ -77,10 +86,7 @@ class _DersSecState extends State<DersSec> {
         children: [
           // Arkaplan
           SizedBox.expand(
-            child: Image.asset(
-              'assets/arkaplan.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/arkaplan.png', fit: BoxFit.cover),
           ),
           SafeArea(
             child: Column(
@@ -101,27 +107,32 @@ class _DersSecState extends State<DersSec> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => ProfilePage(userName: widget.userName,)),
-                            );
-                          },
-                          child: Container(
-                            width: 55,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              image: const DecorationImage(
-                                image: AssetImage('assets/profile_pic.png'),
-                                fit: BoxFit.cover,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      ProfilePage(userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 55,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: const DecorationImage(
+                                  image: AssetImage('assets/profile_pic.png'),
+                                  fit: BoxFit.cover,
+                                ),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1,
+                                ),
                               ),
-                              border: Border.all(color: Colors.white, width: 1),
                             ),
                           ),
-                        ),
                           Text(
-                            
                             "Merhaba ${widget.userName}",
                             style: const TextStyle(
                               fontSize: 16,
@@ -133,8 +144,21 @@ class _DersSecState extends State<DersSec> {
                             children: [
                               Image.asset('assets/health_bar.png', height: 28),
                               const SizedBox(width: 3),
-                              Image.asset('assets/report.png', height: 24),
-                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ReportScreen1(),
+                                    ),
+                                  );
+                                },
+                                icon: Image.asset(
+                                  'assets/report.png',
+                                  width: 36,
+                                  height: 36,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -161,124 +185,157 @@ class _DersSecState extends State<DersSec> {
                         Expanded(
                           child: GridView.builder(
                             padding: const EdgeInsets.only(bottom: 200),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 24,
-                              crossAxisSpacing: 24,
-                              childAspectRatio: 0.9,
-                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 24,
+                                  crossAxisSpacing: 24,
+                                  childAspectRatio: 0.9,
+                                ),
                             itemCount: courses.length,
                             itemBuilder: (context, index) {
                               final course = courses[index];
                               final isFlipped = flippedIndex == index;
 
                               return GestureDetector(
-                                onTap: () => handleFlip(index, course['locked']),
+                                onTap: () =>
+                                    handleFlip(index, course['locked']),
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 500),
                                   transitionBuilder: (child, animation) {
-                                    final rotate = Tween(begin: pi, end: 0.0).animate(animation);
+                                    final rotate = Tween(
+                                      begin: pi,
+                                      end: 0.0,
+                                    ).animate(animation);
                                     return AnimatedBuilder(
                                       animation: rotate,
                                       child: child,
                                       builder: (context, child) {
-                                        final isUnder = (ValueKey(isFlipped) != child!.key);
+                                        final isUnder =
+                                            (ValueKey(isFlipped) != child!.key);
                                         final rotationY = isUnder ? pi : 0.0;
                                         return Transform(
-                                          transform: Matrix4.rotationY(rotationY + rotate.value),
+                                          transform: Matrix4.rotationY(
+                                            rotationY + rotate.value,
+                                          ),
                                           alignment: Alignment.center,
                                           child: child,
                                         );
                                       },
                                     );
                                   },
-                                  layoutBuilder: (currentChild, _) => currentChild!,
+                                  layoutBuilder: (currentChild, _) =>
+                                      currentChild!,
                                   child: isFlipped
                                       ? Container(
-                                    key: const ValueKey(true),
-                                    decoration: BoxDecoration(
-                                      image: const DecorationImage(
-                                        image: AssetImage('assets/ders_card.png'),
-                                        fit: BoxFit.cover,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            course['description'],
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white,
-                                              fontFamily: 'Poppins-Regular',
+                                          key: const ValueKey(true),
+                                          decoration: BoxDecoration(
+                                            image: const DecorationImage(
+                                              image: AssetImage(
+                                                'assets/ders_card.png',
+                                              ),
+                                              fit: BoxFit.cover,
                                             ),
-                                            textAlign: TextAlign.center,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
-                                          const SizedBox(height: 12),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) => course['page'],
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(12.0),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  course['description'],
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    color: Colors.white,
+                                                    fontFamily:
+                                                        'Poppins-Regular',
+                                                  ),
+                                                  textAlign: TextAlign.center,
                                                 ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.yellow,
-                                              foregroundColor: Colors.black,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(16),
-                                              ),
-                                            ),
-                                            child: const Text(
-                                              "Seç",
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontFamily: 'Poppins-Regular',
-                                              ),
+                                                const SizedBox(height: 12),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (_) =>
+                                                            course['page'],
+                                                      ),
+                                                    );
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.yellow,
+                                                    foregroundColor:
+                                                        Colors.black,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    "Seç",
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontFamily:
+                                                          'Poppins-Regular',
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
+                                        )
                                       : Container(
-                                    key: const ValueKey(false),
-                                    decoration: BoxDecoration(
-                                      image: const DecorationImage(
-                                        image: AssetImage('assets/ders_card.png'),
-                                        fit: BoxFit.cover,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            course['title'],
-                                            style: const TextStyle(
-                                              fontSize: 22,
-                                              color: Colors.white,
-                                              fontFamily: 'Poppins-Regular',
+                                          key: const ValueKey(false),
+                                          decoration: BoxDecoration(
+                                            image: const DecorationImage(
+                                              image: AssetImage(
+                                                'assets/ders_card.png',
+                                              ),
+                                              fit: BoxFit.cover,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
                                             ),
                                           ),
-                                          const SizedBox(height: 12),
-                                          Image.asset(course['icon'], height: 50),
-                                          const SizedBox(height: 20),
-                                          Icon(
-                                            course['locked'] ? Icons.lock : Icons.lock_open,
-                                            color: Colors.black,
-                                            size: 35,
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  course['title'],
+                                                  style: const TextStyle(
+                                                    fontSize: 22,
+                                                    color: Colors.white,
+                                                    fontFamily:
+                                                        'Poppins-Regular',
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Image.asset(
+                                                  course['icon'],
+                                                  height: 50,
+                                                ),
+                                                const SizedBox(height: 20),
+                                                Icon(
+                                                  course['locked']
+                                                      ? Icons.lock
+                                                      : Icons.lock_open,
+                                                  color: Colors.black,
+                                                  size: 35,
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                                        ),
                                 ),
                               );
                             },

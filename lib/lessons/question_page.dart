@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
+import 'package:android_studio/screens/ReportScreen1.dart'; // ReportScreen1 import edildi
 
 class QuestionPage extends StatefulWidget {
   final int sectionIndex;
@@ -21,7 +22,8 @@ class QuestionPage extends StatefulWidget {
   State<QuestionPage> createState() => _QuestionPageState();
 }
 
-class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderStateMixin {
+class _QuestionPageState extends State<QuestionPage>
+    with SingleTickerProviderStateMixin {
   String selectedAnswer = '';
   bool answered = false;
   bool isCorrect = false;
@@ -35,14 +37,9 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
 
   Future<void> fetchQuestions() async {
     final response = await http.get(
-    Uri.parse('$baseURL/lesson/questions/1'),
-    headers: {
-      'Content-Type': 'application/json',
-  },
-);
-
-
-
+      Uri.parse('$baseURL/lesson/questions/1'),
+      headers: {'Content-Type': 'application/json'},
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -90,7 +87,8 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
 
   Color getButtonColor(String key) {
     if (!answered) return Colors.white.withOpacity(0.1);
-    if (key == questions[currentQuestionIndex]['correct_answer']) return Colors.green;
+    if (key == questions[currentQuestionIndex]['correct_answer'])
+      return Colors.green;
     if (key == selectedAnswer) return Colors.red;
     return Colors.white.withOpacity(0.1);
   }
@@ -120,9 +118,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     if (questions.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final question = questions[currentQuestionIndex];
@@ -153,6 +149,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
+                    // Profil resmi
                     Container(
                       width: 55,
                       height: 55,
@@ -166,6 +163,7 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                       ),
                     ),
                     const SizedBox(width: 10),
+                    // Progress bar
                     Expanded(
                       child: Stack(
                         alignment: Alignment.centerLeft,
@@ -183,7 +181,10 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                               height: 40,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Colors.purpleAccent, Colors.deepPurple],
+                                  colors: [
+                                    Colors.purpleAccent,
+                                    Colors.deepPurple,
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -203,10 +204,22 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                         ],
                       ),
                     ),
+                    // Sağdaki ikonlar
                     Row(
                       children: [
                         Image.asset('assets/health_bar.png', height: 24),
-                        Image.asset('assets/report.png', height: 24),
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ReportScreen1(),
+                              ),
+                            );
+                          },
+                          child: Image.asset('assets/report.png', height: 24),
+                        ),
                       ],
                     ),
                   ],
@@ -214,7 +227,6 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
               ),
             ),
           ),
-
           // Soru kısmı
           Center(
             child: Stack(
@@ -231,14 +243,21 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical: 30),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 80,
+                          vertical: 30,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white12,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           question['content'],
-                          style: const TextStyle(fontSize: 16, color: Colors.white, fontFamily: 'Poppins-Regular'),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'Poppins-Regular',
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -247,9 +266,13 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: List.generate(4, (index) {
-                            String key = String.fromCharCode(65 + index); // A, B, C, D
+                            String key = String.fromCharCode(
+                              65 + index,
+                            ); // A, B, C, D
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10.0,
+                              ),
                               child: Container(
                                 width: double.infinity,
                                 height: 75,
@@ -259,8 +282,10 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                                 ),
                                 child: TextButton(
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    alignment: Alignment.centerLeft, 
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    alignment: Alignment.centerLeft,
                                   ),
                                   onPressed: () => handleAnswer(key),
                                   child: Text(
@@ -294,7 +319,9 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
               child: Container(
                 height: 160,
                 decoration: BoxDecoration(
-                  color: isCorrect ? Colors.green.withOpacity(0.9) : Colors.red.withOpacity(0.9),
+                  color: isCorrect
+                      ? Colors.green.withOpacity(0.9)
+                      : Colors.red.withOpacity(0.9),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(30),
                     topRight: Radius.circular(30),
@@ -304,7 +331,9 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      isCorrect ? "Tebrikler!" : "Tekrar etmeye gelişmeye devam et",
+                      isCorrect
+                          ? "Tebrikler!"
+                          : "Tekrar etmeye gelişmeye devam et",
                       style: const TextStyle(
                         fontSize: 20,
                         color: Colors.white,
@@ -328,7 +357,10 @@ class _QuestionPageState extends State<QuestionPage> with SingleTickerProviderSt
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),

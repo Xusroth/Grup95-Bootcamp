@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:android_studio/screens/ReportScreen1.dart'; // ReportScreen1 import edildi
 
 class CsharpLessonOverview extends StatefulWidget {
   final String userNickname;
@@ -9,11 +10,9 @@ class CsharpLessonOverview extends StatefulWidget {
   State<CsharpLessonOverview> createState() => _CsharpLessonOverviewState();
 }
 
-
-
 class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
   List<Map<String, dynamic>> lessonSections = [
-   {
+    {
       'title': "Beginner",
       'unlocked': true,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
@@ -37,14 +36,9 @@ class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
         level['completedContent']++;
       }
 
-      // Kart tamamlandıysa sıradaki açılıyor
-      if (level['completedContent'] == 3 && levelIndex < 5) {
-        // Bir sonraki kartı açmak için hiçbir işlem gerekmiyor çünkü zaten build içinde kontrol var
-      }
-
-      // Eğer tüm kartlar tamamlandıysa, bir sonraki section açılır
-      final allCompleted = lessonSections[sectionIndex]['levels']
-          .every((lvl) => lvl['completedContent'] == 3);
+      final allCompleted = lessonSections[sectionIndex]['levels'].every(
+        (lvl) => lvl['completedContent'] == 3,
+      );
 
       if (allCompleted && sectionIndex + 1 < lessonSections.length) {
         lessonSections[sectionIndex + 1]['unlocked'] = true;
@@ -67,21 +61,52 @@ class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
             children: [
               // Kullanıcı Barı
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8,
+                ),
                 child: Stack(
                   alignment: Alignment.centerLeft,
                   children: [
-                    Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
-                    Positioned(left: 16, child: Image.asset('assets/profile_pic.png', height: 36)),
+                    Image.asset(
+                      'assets/user_bar.png',
+                      fit: BoxFit.contain,
+                      width: 400,
+                      height: 70,
+                    ),
+                    Positioned(
+                      left: 16,
+                      child: Image.asset('assets/profile_pic.png', height: 36),
+                    ),
                     Positioned(
                       left: 60,
                       child: Text(
                         'Merhaba ${widget.userNickname}',
-                        style: const TextStyle(fontFamily: 'Poppins-Regular', color: Colors.white, fontSize: 14),
+                        style: const TextStyle(
+                          fontFamily: 'Poppins-Regular',
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                    Positioned(right: 48, child: Image.asset('assets/health_bar.png', height: 24)),
-                    Positioned(right: 20, child: Image.asset('assets/report.png', height: 22)),
+                    Positioned(
+                      right: 48,
+                      child: Image.asset('assets/health_bar.png', height: 24),
+                    ),
+                    Positioned(
+                      right: 20,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ReportScreen1(),
+                            ),
+                          );
+                        },
+                        child: Image.asset('assets/report.png', height: 22),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -97,41 +122,51 @@ class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
                     final levels = section['levels'];
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12.0,
+                        horizontal: 16,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
                             section['title'],
-                            style: const TextStyle(fontFamily: 'Poppins-SemiBold', fontSize: 18, color: Colors.white),
+                            style: const TextStyle(
+                              fontFamily: 'Poppins-SemiBold',
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: levels.length,
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 20,
-                              crossAxisSpacing: 20,
-                              childAspectRatio: 1,
-                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 20,
+                                  crossAxisSpacing: 20,
+                                  childAspectRatio: 1,
+                                ),
                             itemBuilder: (context, levelIndex) {
                               final level = levels[levelIndex];
-                              final completedContent = level['completedContent'];
-
-                              // ilk kart açık, diğerleri bir önceki 3/3 ise açık
-                              final isUnlocked = section['unlocked'] &&
+                              final completedContent =
+                                  level['completedContent'];
+                              final isUnlocked =
+                                  section['unlocked'] &&
                                   (levelIndex == 0 ||
-                                      levels[levelIndex - 1]['completedContent'] == 3);
+                                      levels[levelIndex -
+                                              1]['completedContent'] ==
+                                          3);
 
                               String imageAsset;
                               if (completedContent == 3) {
                                 imageAsset = 'assets/3-3_ders.png';
-                              } else if (completedContent ==1) {
-                                imageAsset = 'assets/1-3_ders.png';
-                              }  else if (completedContent ==2) {
+                              } else if (completedContent == 2) {
                                 imageAsset = 'assets/2-3_ders.png';
+                              } else if (completedContent == 1) {
+                                imageAsset = 'assets/1-3_ders.png';
                               } else {
                                 imageAsset = 'assets/bos_ders.png';
                               }
@@ -141,8 +176,11 @@ class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
                                 children: [
                                   GestureDetector(
                                     onTap: () {
-                                      if (isUnlocked) {
-                                        onContentCompleted(sectionIndex, levelIndex);
+                                      if (isUnlocked && completedContent < 3) {
+                                        onContentCompleted(
+                                          sectionIndex,
+                                          levelIndex,
+                                        );
                                       }
                                     },
                                     child: SizedBox(
@@ -157,7 +195,10 @@ class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
                                             height: 140,
                                           ),
                                           if (!isUnlocked)
-                                            Image.asset('assets/kilitli_dosya.png', height: 60)
+                                            Image.asset(
+                                              'assets/kilitli_dosya.png',
+                                              height: 60,
+                                            )
                                           else
                                             Positioned(
                                               bottom: 54,
@@ -175,24 +216,19 @@ class _CsharpLessonOverviewState extends State<CsharpLessonOverview> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  if (!isUnlocked)
-                                    const Text(
-                                      "Kilitli Aşama",
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Poppins-Regular', color: Colors.white70),
-                                      textAlign: TextAlign.center,
-                                    )
-                                  else if (completedContent < 3)
-                                    const Text(
-                                      "Devam Ediyor",
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Poppins-Regular', color: Colors.white70),
-                                      textAlign: TextAlign.center,
-                                    )
-                                  else
-                                    const Text(
-                                      "Tamamlandı",
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Poppins-Regular', color: Colors.white70),
-                                      textAlign: TextAlign.center,
+                                  Text(
+                                    !isUnlocked
+                                        ? "Kilitli Aşama"
+                                        : completedContent == 3
+                                        ? "Tamamlandı"
+                                        : "Devam Ediyor",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontFamily: 'Poppins-Regular',
+                                      color: Colors.white70,
                                     ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ],
                               );
                             },

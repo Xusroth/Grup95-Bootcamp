@@ -4,9 +4,7 @@ import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 import 'package:android_studio/screens/quest_screen.dart';
 import 'package:android_studio/screens/profile.dart';
-
-
-
+import 'package:android_studio/screens/ReportScreen1.dart';
 
 class AlgorithmLessonOverview extends StatefulWidget {
   final String userName;
@@ -14,12 +12,13 @@ class AlgorithmLessonOverview extends StatefulWidget {
   const AlgorithmLessonOverview({super.key, required this.userName});
 
   @override
-  State<AlgorithmLessonOverview> createState() => _AlgorithmLessonOverviewState();
+  State<AlgorithmLessonOverview> createState() =>
+      _AlgorithmLessonOverviewState();
 }
 
 class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   List<Map<String, dynamic>> lessonSections = [
-    {   
+    {
       'title': "Beginner",
       'unlocked': true,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
@@ -43,8 +42,9 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         level['completedContent']++;
       }
 
-      final allCompleted = lessonSections[sectionIndex]['levels']
-          .every((lvl) => lvl['completedContent'] == 3);
+      final allCompleted = lessonSections[sectionIndex]['levels'].every(
+        (lvl) => lvl['completedContent'] == 3,
+      );
 
       if (allCompleted && sectionIndex + 1 < lessonSections.length) {
         lessonSections[sectionIndex + 1]['unlocked'] = true;
@@ -69,12 +69,26 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
               Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 8,
+                    ),
                     child: Stack(
                       alignment: Alignment.centerLeft,
                       children: [
-                        Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
-                        Positioned(left: 16, child: Image.asset('assets/profile_pic.png', height: 36)),
+                        Image.asset(
+                          'assets/user_bar.png',
+                          fit: BoxFit.contain,
+                          width: 400,
+                          height: 70,
+                        ),
+                        Positioned(
+                          left: 16,
+                          child: Image.asset(
+                            'assets/profile_pic.png',
+                            height: 36,
+                          ),
+                        ),
                         Positioned(
                           left: 60,
                           child: Text(
@@ -86,8 +100,28 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                             ),
                           ),
                         ),
-                        Positioned(right: 48, child: Image.asset('assets/health_bar.png', height: 24)),
-                        Positioned(right: 20, child: Image.asset('assets/report.png', height: 22)),
+                        Positioned(
+                          right: 48,
+                          child: Image.asset(
+                            'assets/health_bar.png',
+                            height: 24,
+                          ),
+                        ),
+                        // Updated Report Button
+                        Positioned(
+                          right: 20,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReportScreen1(),
+                                ),
+                              );
+                            },
+                            child: Image.asset('assets/report.png', height: 22),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -103,7 +137,10 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                         final levels = section['levels'];
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12.0,
+                            horizontal: 16,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -120,19 +157,24 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: levels.length,
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 20,
-                                  crossAxisSpacing: 20,
-                                  childAspectRatio: 1,
-                                ),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      mainAxisSpacing: 20,
+                                      crossAxisSpacing: 20,
+                                      childAspectRatio: 1,
+                                    ),
                                 itemBuilder: (context, levelIndex) {
                                   final level = levels[levelIndex];
-                                  final completedContent = level['completedContent'];
+                                  final completedContent =
+                                      level['completedContent'];
 
-                                  final isUnlocked = section['unlocked'] &&
+                                  final isUnlocked =
+                                      section['unlocked'] &&
                                       (levelIndex == 0 ||
-                                          levels[levelIndex - 1]['completedContent'] == 3);
+                                          levels[levelIndex -
+                                                  1]['completedContent'] ==
+                                              3);
 
                                   final isCompleted = completedContent == 3;
 
@@ -161,7 +203,10 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                                   levelIndex: levelIndex,
                                                   isLevelCompleted: isCompleted,
                                                   onCompleted: () {
-                                                    onContentCompleted(sectionIndex, levelIndex);
+                                                    onContentCompleted(
+                                                      sectionIndex,
+                                                      levelIndex,
+                                                    );
                                                   },
                                                 ),
                                               ),
@@ -174,9 +219,16 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                           child: Stack(
                                             alignment: Alignment.center,
                                             children: [
-                                              Image.asset(imageAsset, width: 140, height: 140),
+                                              Image.asset(
+                                                imageAsset,
+                                                width: 140,
+                                                height: 140,
+                                              ),
                                               if (!isUnlocked)
-                                                Image.asset('assets/kilitli_dosya.png', height: 60)
+                                                Image.asset(
+                                                  'assets/kilitli_dosya.png',
+                                                  height: 60,
+                                                )
                                               else
                                                 Positioned(
                                                   bottom: 54,
@@ -185,7 +237,8 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                                     style: const TextStyle(
                                                       fontSize: 20,
                                                       color: Colors.white,
-                                                      fontFamily: 'Poppins-Bold',
+                                                      fontFamily:
+                                                          'Poppins-Bold',
                                                     ),
                                                   ),
                                                 ),
@@ -198,8 +251,8 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                         !isUnlocked
                                             ? "Kilitli Aşama"
                                             : isCompleted
-                                                ? "Tamamlandı"
-                                                : "Devam Ediyor",
+                                            ? "Tamamlandı"
+                                            : "Devam Ediyor",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontFamily: 'Poppins-Regular',
@@ -222,71 +275,76 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
 
               // Alt Bar (Stack içinde ve Positioned ile)
               Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 350,
-                  child: Image.asset(
-                    "assets/alt_bar.png",
-                    fit: BoxFit.fill,
-                  ),
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 350,
+                      child: Image.asset(
+                        "assets/alt_bar.png",
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 60.0,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HomeScreen(
+                                    userMail: '',
+                                    userName: widget.userName,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/home.png", height: 28),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DersSec(
+                                    userMail: '',
+                                    userName: widget.userName,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/ders.png", height: 28),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      ProfilePage(userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset(
+                              "assets/profile.png",
+                              height: 28,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => HomeScreen(
-                                userMail: '',
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset("assets/home.png", height: 28),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DersSec(
-                                userMail: '',
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset("assets/ders.png", height: 28),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProfilePage(
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset("assets/profile.png", height: 28),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )
+              ),
             ],
           ),
         ),

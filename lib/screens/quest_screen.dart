@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
+import 'package:android_studio/screens/ReportScreen1.dart';
 
 class QuestScreen extends StatelessWidget {
   final String userName;
@@ -25,12 +26,26 @@ class QuestScreen extends StatelessWidget {
               children: [
                 // Kullanıcı Barı
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 8,
+                  ),
                   child: Stack(
                     alignment: Alignment.centerLeft,
                     children: [
-                      Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
-                      Positioned(left: 16, child: Image.asset('assets/profile_pic.png', height: 36)),
+                      Image.asset(
+                        'assets/user_bar.png',
+                        fit: BoxFit.contain,
+                        width: 400,
+                        height: 70,
+                      ),
+                      Positioned(
+                        left: 16,
+                        child: Image.asset(
+                          'assets/profile_pic.png',
+                          height: 36,
+                        ),
+                      ),
                       Positioned(
                         left: 60,
                         child: Text(
@@ -42,8 +57,24 @@ class QuestScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Positioned(right: 48, child: Image.asset('assets/health_bar.png', height: 24)),
-                      Positioned(right: 20, child: Image.asset('assets/report.png', height: 22)),
+                      Positioned(
+                        right: 48,
+                        child: Image.asset('assets/health_bar.png', height: 24),
+                      ),
+                      Positioned(
+                        right: 20,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ReportScreen1(),
+                              ),
+                            );
+                          },
+                          child: Image.asset('assets/report.png', height: 22),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -90,7 +121,10 @@ class QuestScreen extends StatelessWidget {
                 // Kartlar
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     children: [
                       buildGorevCard(
                         imagePath: "assets/kart1.png",
@@ -112,7 +146,6 @@ class QuestScreen extends StatelessWidget {
                         tamamlanan: 1,
                         toplam: 3,
                       ),
-                      
                     ],
                   ),
                 ),
@@ -130,13 +163,13 @@ class QuestScreen extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 350,
-                  child: Image.asset(
-                    "assets/alt_bar.png",
-                    fit: BoxFit.fill,
-                  ),
+                  child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 60.0,
+                    vertical: 12,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -145,10 +178,8 @@ class QuestScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => HomeScreen(
-                                userMail: '',
-                                userName: userName,
-                              ),
+                              builder: (_) =>
+                                  HomeScreen(userMail: '', userName: userName),
                             ),
                           );
                         },
@@ -159,10 +190,8 @@ class QuestScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => DersSec(
-                                userMail: '',
-                                userName: userName,
-                              ),
+                              builder: (_) =>
+                                  DersSec(userMail: '', userName: userName),
                             ),
                           );
                         },
@@ -173,9 +202,7 @@ class QuestScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => QuestScreen(
-                                userName: userName,
-                              ),
+                              builder: (_) => QuestScreen(userName: userName),
                             ),
                           );
                         },
