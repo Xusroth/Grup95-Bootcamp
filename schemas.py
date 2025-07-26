@@ -1,6 +1,6 @@
 
 
-from typing import Optional
+from typing import Optional, Dict
 from datetime import datetime
 import re # metinlerde regex ile desen arama ve tanımlama için re kütüphanesini kullandım
 from pydantic import BaseModel, Field, field_validator, EmailStr # EmailStr -> input olan string'in' geçerli bir e-posta adresi olup olmadığını kontrol eder
@@ -45,10 +45,24 @@ class UserLogin(BaseModel): # kullanıcının login olabilmesi için kullanıcı
     password: str
 
 
+class NotificationPreferences(BaseModel):
+    email: bool
+    push: bool
+
+    @field_validator('email', 'push')
+    def check_boolean(value):
+        if not isinstance(value, bool):
+            raise ValueError("Bildirim tercihi boolean olmalı.")
+        return value
+
+
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, max_length=60)
     email: Optional[EmailStr] = None
     level: Optional[str] = None
+    notification_preferences: Optional[NotificationPreferences] = None
+    theme: Optional[str] = None
+    language: Optional[str] = None
 
     @field_validator('username', mode='before')
     def username_kontrol(username):
@@ -78,6 +92,9 @@ class UserResponse(BaseModel):
     role: str
     level: Optional[str] = None
     has_taken_level_test: bool # kullanıcının seviye belirleme testine girip girmediği
+    notification_preferences: NotificationPreferences
+    theme: str
+    language: str
 
     class Config:
         from_attributes = True
@@ -92,9 +109,13 @@ class UserPublicResponse(BaseModel): # bilerek bu sınıfı oluşturdum diğer t
     has_taken_level_test: bool  # kullanıcının seviye belirleme testine girip girmediği
     health_count: int
     health_count_update_time: datetime
+    notification_preferences: NotificationPreferences
+    theme: str
+    language: str
 
     class Config:
         from_attributes = True
+
 
 
 # lesson
@@ -260,6 +281,11 @@ class PasswordReset(BaseModel):
         if not re.search(r'\d', password):
             raise ValueError('Şifre en az bir rakam içermeli.')
         return password
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 
