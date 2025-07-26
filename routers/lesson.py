@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from fastapi.logger import logger
+from typing import Optional
 from sqlalchemy import and_, not_, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import delete
@@ -640,15 +641,35 @@ async def update_question(db: db_dependency, question_update: QuestionUpdate, qu
     )
 
 
-@router.get('/questions/{lesson_id}', response_model=list[QuestionResponse])
-async def get_questions_by_lesson(lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
+@router.get('/questions', response_model=list[QuestionResponse]) # belirtilen ders veya bölüme göre soruları getirir. Her ikisi de belirtilirse, hem derse hem bölüme uygun sorular döner
+async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, section_id: Optional[int] = None, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar soruları göremez.")
 
-    questions = db.query(QuestionModels).filter(QuestionModels.lesson_id == lesson_id).all()
+    if not lesson_id and not section_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="En az bir parametre (lesson_id veya section_id) belirtilmeli.")
+
+    query = db.query(QuestionModels)
+
+    if lesson_id:
+        query = query.filter(QuestionModels.lesson_id == lesson_id)
+
+    if section_id:
+        section = db.query(SectionModels).filter(SectionModels.id == section_id).first()
+
+        if not section:
+            logger.error(f"Bölüm ID {section_id} bulunamadı.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
+
+        query = query.filter(QuestionModels.section_id == section_id)
+        query = query.filter(QuestionModels.level == current_user.level)
+
+    questions = query.all()
+
     if not questions:
-        raise HTTPException(status_code=404, detail="Bu derse ait soru bulunamadı.")
-    
+        logger.info(f"Lesson ID {lesson_id}, Section ID {section_id} için soru bulunamadı.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Belirtilen ders veya bölüm için uygun soru bulunamadı.")
+
     return [
         QuestionResponse(
             id=q.id,
