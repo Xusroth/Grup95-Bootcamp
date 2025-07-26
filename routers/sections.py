@@ -100,25 +100,3 @@ async def get_sections(db: db_dependency, lesson_id: int):
 
     sections = db.query(SectionModels).filter(SectionModels.lesson_id == lesson_id).order_by(SectionModels.order).all()
     return [Section.model_validate(i) for i in sections]
-
-
-@router.get('/sections/{section_id}/questions', response_model=list[QuestionResponse])
-async def get_questions_by_section(db: db_dependency, section_id: int, current_user: User = Depends(get_current_user)):
-    section = db.query(SectionModels).filter(SectionModels.id == section_id).first()
-    if not section:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
-
-    questions = db.query(QuestionModels).filter(QuestionModels.section_id == section_id, QuestionModels.level == current_user.level).all()
-
-    if not questions:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bu bölümde seviyenize uygun soru bulunamadı.")
-
-    return [QuestionResponse(
-        id=q.id,
-        content=q.content,
-        options=json.loads(q.options),
-        correct_answer=q.correct_answer,
-        lesson_id=q.lesson_id,
-        section_id=q.section_id,
-        level=q.level
-    ) for q in questions]
