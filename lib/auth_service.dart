@@ -43,4 +43,26 @@ class  AuthService {
   }
 }
 
+
+  Future<int?> getUserIdFromToken() async {
+    final token = await getString('token');
+    if (token == null) return null;
+
+    final response = await http.get(
+      Uri.parse('$baseURL/auth/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final userData = json.decode(response.body);
+      return userData['id'];
+    } else {
+      print("auth/me hatası: ${response.body}");
+      return null;
+    }
+  }
+
 }

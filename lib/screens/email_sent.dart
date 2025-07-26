@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:android_studio/screens/setting_screen.dart';
+import 'package:android_studio/screens/welcome_screen1.dart';
 
 class EmailSentScreen extends StatelessWidget {
   const EmailSentScreen({super.key});
@@ -38,11 +38,11 @@ class EmailSentScreen extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushAndRemoveUntil(
+                  Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const SettingsPage()),
-                        (route) => false,
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen1()),
                   );
+
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,

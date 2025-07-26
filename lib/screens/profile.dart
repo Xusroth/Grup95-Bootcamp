@@ -88,7 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildGradientButton("Profili Düzenle", () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => UpdateProfilePage()),
+                      MaterialPageRoute(builder: (_) => ProfileUpdate()),
                     );
                   }),
                   const SizedBox(height: 15),

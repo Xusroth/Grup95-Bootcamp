@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:android_studio/screens/dersec_screen.dart'; 
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
+import 'package:android_studio/screens/change_password.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -146,7 +148,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             validator: (value) =>
                                 value == null || value.isEmpty ? "Şifre boş bırakılamaz" : null,
                           ),
-                          const SizedBox(height: 36),
+                          
+
+                          Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const PasswordChangeScreen()),
+                                  );
+                                },
+                                child: const Text(
+                                  "Şifremi unuttum",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontFamily: 'Poppins-Regular',
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
                           SizedBox(
                             width: 200,
                             child: ElevatedButton(

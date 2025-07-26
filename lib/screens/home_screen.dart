@@ -186,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => QuestScreen(userName: widget.userName),
+                            builder: (_) => QuestScreen(),
                           ),
                         );
                       },

@@ -36,12 +36,10 @@ class _DersSecState extends State<DersSec> {
   final bool pythonKilit = false;
   final bool javaKilit = true;
   final bool csharpKilit = true;
-
-  Future<void> dersiSec(int lessonId) async {
+  
+Future<void> dersiSec(int lessonId) async {
   final authService = AuthService();
   final token = await authService.getString('token');
-  String? userIdStr = await authService.getString('user_id');
-  int? userId;
 
   if (token == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -50,31 +48,26 @@ class _DersSecState extends State<DersSec> {
     return;
   }
 
- 
-  if (userIdStr == null) {
-    final response = await http.get(
-      Uri.parse('$baseURL/auth/me'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+  // Her zaman auth/me üzerinden user_id'yi al
+  final response = await http.get(
+    Uri.parse('$baseURL/auth/me'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
 
-    if (response.statusCode == 200) {
-      final userData = json.decode(response.body);
-      userIdStr = userData['id'].toString();
-      await authService.setString('user_id', userIdStr); 
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
-      );
-      return;
-    }
+  if (response.statusCode != 200) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
+    );
+    return;
   }
 
-  userId = int.tryParse(userIdStr!);
+  final userData = json.decode(response.body);
+  final userId = userData['id'];
 
-  final response = await http.post(
+  final dersKayitResponse = await http.post(
     Uri.parse('$baseURL/lesson/users/$userId/lessons/$lessonId'),
     headers: {
       'Authorization': 'Bearer $token',
@@ -82,7 +75,7 @@ class _DersSecState extends State<DersSec> {
     },
   );
 
-  if (response.statusCode == 200) {
+  if (dersKayitResponse.statusCode == 200) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -93,12 +86,13 @@ class _DersSecState extends State<DersSec> {
       ),
     );
   } else {
-    final errorMessage = json.decode(response.body)['detail'] ?? "Bir hata oluştu";
+    final errorMessage = json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Ders seçilemedi: $errorMessage")),
     );
   }
 }
+
 
   void handleFlip(int index, bool locked) {
     if (locked) return;

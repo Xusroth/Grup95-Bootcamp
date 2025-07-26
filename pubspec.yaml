@@ -31,12 +31,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  app_links: ^3.4.1
   shared_preferences: ^2.5.3
   http: ^1.4.0
   cupertino_icons: ^1.0.8
   gradient_slide_to_act: ^0.0.2
   flutter_launcher_icons: ^0.14.4
-
 
 dev_dependencies:
   flutter_test:

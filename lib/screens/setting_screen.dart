@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/email_sent.dart';
-import 'package:android_studio/screens/change_email.dart';
 import 'package:android_studio/screens/change_password.dart';
 import 'package:android_studio/screens/sss.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:android_studio/screens/ReportScreen1.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -22,7 +22,6 @@ class _SettingsPageState extends State<SettingsPage> {
     {"icon": "assets/user-circle-minus-fill.png", "text": "Hesabı Sil"},
     {"icon": "assets/globe-fill.png", "text": "Dil Tercihi"},
     {"icon": "assets/password.png", "text": "Şifreyi Değiştir"},
-    {"icon": "assets/envelope.png", "text": "E-Posta Değiştir"},
     {"icon": "assets/paper-plane-right.png", "text": "Öneri ve İstek"},
     {"icon": "assets/question.png", "text": "S.S.S\n(Sıkça Sorulan Sorular)"},
     {"icon": "assets/keyhole.png", "text": "Gizlilik"},
@@ -111,7 +110,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
                 const SizedBox(height: 32),
-
                 Expanded(
                   child: ListView.separated(
                     itemCount: settingsItems.length,
@@ -176,9 +174,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                                   onPressed: reason.trim().isEmpty
                                                       ? null
                                                       : () {
-                                                    Navigator.pop(context);
-                                                    deleteAccount();
-                                                  },
+                                                          Navigator.pop(context);
+                                                          deleteAccount();
+                                                        },
                                                   child: const Text("Onayla"),
                                                 ),
                                               ],
@@ -190,11 +188,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                   },
                                 );
                               },
-                            );
-                          } else if (itemText == "E-Posta Değiştir") {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const EmailChangeScreen()),
                             );
                           } else if (itemText == "Şifreyi Değiştir") {
                             Navigator.push(
@@ -209,6 +202,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           } else if (itemText == "Dil Tercihi") {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Sonraki güncellemelerle gelecek")),
+                            );
+                          } else if (itemText == "Öneri ve İstek") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => ReportScreen1()),
                             );
                           }
                         },

@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/email_sent.dart';
 
 class PasswordChangeScreen extends StatefulWidget {
@@ -11,6 +14,7 @@ class PasswordChangeScreen extends StatefulWidget {
 class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool isEmailFilled = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -20,6 +24,30 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
         isEmailFilled = _emailController.text.trim().isNotEmpty;
       });
     });
+  }
+
+  Future<void> sendResetRequest() async {
+    setState(() => isLoading = true);
+
+    final response = await http.post(
+      Uri.parse('$baseURL/auth/password_reset_request'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': _emailController.text.trim()}),
+    );
+
+    setState(() => isLoading = false);
+
+    if (response.statusCode == 200) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const EmailSentScreen()),
+      );
+    } else {
+      final message = jsonDecode(response.body)['detail'] ?? 'Bir hata oluştu.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -78,23 +106,12 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isEmailFilled
-                        ? () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const EmailSentScreen()),
-                            );
-                          }
-                        : null,
+                    onPressed: isEmailFilled && !isLoading ? sendResetRequest : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isEmailFilled
                           ? const Color(0xFF4CAF50)
                           : Colors.white.withOpacity(0.2),
-                      foregroundColor:
-                          isEmailFilled ? Colors.white : Colors.white70,
-                      disabledForegroundColor:
-                          Colors.white70.withOpacity(0.5),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: 4,
                       shadowColor: Colors.black.withOpacity(0.3),
@@ -102,13 +119,15 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      "Gönder",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "Gönder",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ],

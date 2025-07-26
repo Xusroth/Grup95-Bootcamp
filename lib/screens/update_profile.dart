@@ -1,30 +1,18 @@
 import 'package:flutter/material.dart';
-import 'change_avatar.dart'; // Avatar seçim ekranı
+import 'change_avatar.dart';
 
-
-
-class UpdateProfilePage extends StatefulWidget {
-  const UpdateProfilePage({super.key});
+class ProfileUpdate extends StatefulWidget {
+  const ProfileUpdate({super.key});
 
   @override
-  State<UpdateProfilePage> createState() => _UpdateProfilePageState();
+  State<ProfileUpdate> createState() => _ProfileUpdateState();
 }
 
-class _UpdateProfilePageState extends State<UpdateProfilePage> {
-  bool notificationsEnabled = true;
-  String selectedLanguage = "Python";
-  int selectedTask = 15;
-  double difficulty = 0.5;
-
-  // Başlangıç avatarı (varsayılan)
-  String selectedAvatar = "avatars/avatar_cool.png";
-
-  final List<String> languages = [
-    "Python",
-    "Algoritmalar",
-    "C#",
-    "Java",
-  ];
+class _ProfileUpdateState extends State<ProfileUpdate> {
+  int selectedTime = 5;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _nicknameController = TextEditingController();
+  String selectedAvatar = "assets/profile_pic.png";
 
   void _selectAvatar() async {
     final result = await Navigator.push(
@@ -40,199 +28,148 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/arkaplan.png"),
-            fit: BoxFit.cover,
+      body: Stack(
+        children: [
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/arkaplan.png',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Image.asset("assets/upper_bar.png"),
-                    Positioned(
-                      top: 60,
-                      child: CircleAvatar(
-                        radius: 40,
-                        backgroundImage: AssetImage("assets/$selectedAvatar"),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Image.asset('assets/upper_bar.png'),
+                      Positioned(
+                        top: 60,
+                        child: CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.white, 
+                          backgroundImage: AssetImage(selectedAvatar),
+                        )
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Avatarı Değiştir Butonu
-                GestureDetector(
-                  onTap: _selectAvatar,
-                  child: Container(
-                    width: 200,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFBC52FC), Color(0xFF857BFB)],
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _selectAvatar,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
                       ),
+                      backgroundColor: const Color(0xFFBF8BFA),
                     ),
-                    child: const Center(
-                      child: Text(
-                        "Avatarı Değiştir",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    child: const Text(
+                      'Fotoğrafı Değiştir',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Poppins-Regular',
+                        fontSize: 16,
                       ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Bildirimler
-                const Text("Bildirimler", style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ChoiceChip(
-                      label: const Text("on", style: TextStyle(color: Colors.white)),
-                      selected: notificationsEnabled,
-                      onSelected: (_) {
-                        setState(() => notificationsEnabled = true);
-                      },
-                      selectedColor: Colors.green,
-                      backgroundColor: Colors.grey[800],
+                  const SizedBox(height: 30),
+                  const Text(
+                    'Kullanıcı Bilgileri',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins-Regular',
                     ),
-                    const SizedBox(width: 12),
-                    ChoiceChip(
-                      label: const Text("off", style: TextStyle(color: Colors.white)),
-                      selected: !notificationsEnabled,
-                      onSelected: (_) {
-                        setState(() => notificationsEnabled = false);
-                      },
-                      selectedColor: Colors.redAccent,
-                      backgroundColor: Colors.grey[800],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTextField('Ad Soyad', _nameController),
+                  _buildTextField('Kullanıcı Adı', _nicknameController),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Günlük Görev',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Poppins-Regular',
                     ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-                const Text("Bilgileri Düzenle", style: TextStyle(color: Colors.white, fontSize: 16)),
-                const SizedBox(height: 16),
-
-                buildInputField("Ad Soyad"),
-                const SizedBox(height: 12),
-                buildInputField("Kullanıcı Adı"),
-                const SizedBox(height: 12),
-                buildInputField("E-Posta"),
-
-                const SizedBox(height: 32),
-                const Text("Hedef Dil", style: TextStyle(color: Colors.white, fontSize: 14)),
-                const SizedBox(height: 10),
-                buildDropdown(),
-
-                const SizedBox(height: 24),
-                const Text("Günlük Görev", style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 12),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [5, 10, 15].map((val) {
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedTask = val),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: selectedTask == val ? Colors.deepPurple : const Color(0xFF2A2544),
-                          borderRadius: BorderRadius.circular(20),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [5, 10, 15].map((minute) {
+                      final isSelected = selectedTime == minute;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: ChoiceChip(
+                          label: Text(
+                            '$minute dk',
+                            style: TextStyle(
+                              color: isSelected ? Colors.black : Colors.blueGrey,
+                              fontFamily: 'Poppins-Regular',
+                            ),
+                          ),
+                          selected: isSelected,
+                          onSelected: (_) {
+                            setState(() {
+                              selectedTime = minute;
+                            });
+                          },
+                          selectedColor: Colors.white,
+                          backgroundColor: Colors.white24,
+                          elevation: isSelected ? 3 : 0,
                         ),
-                        child: Text(
-                          "$val dk",
-                          style: TextStyle(color: selectedTask == val ? Colors.white : Colors.grey),
-                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Güncelleme işlemi yapılacak alan
+                      print("Ad: \${_nameController.text}, Kullanıcı Adı: \${_nicknameController.text}, Süre: \${selectedTime} dk");
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.greenAccent.shade700,
+                      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 32),
-                const Text("Zorluk Seviyesi", style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 8),
-
-                Slider(
-                  value: difficulty,
-                  min: 0,
-                  max: 1,
-                  divisions: 2,
-                  label: difficultyLabel(difficulty),
-                  onChanged: (val) {
-                    setState(() => difficulty = val);
-                  },
-                  activeColor: Colors.greenAccent,
-                  inactiveColor: Colors.white.withOpacity(0.3),
-                ),
-              ],
+                    ),
+                    child: const Text(
+                      'Düzenle',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontFamily: 'Poppins-Regular',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 6),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white, fontFamily: 'Poppins-Regular'),
+        decoration: InputDecoration(
+          hintText: label,
+          hintStyle: const TextStyle(color: Colors.white38, fontFamily: 'Poppins-Regular'),
+          filled: true,
+          fillColor: Colors.white10,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide.none,
           ),
         ),
       ),
     );
-  }
-
-  Widget buildInputField(String hint) {
-    return TextFormField(
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: Color(0xFF6C4AB6), width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: Colors.white, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      ),
-    );
-  }
-
-  Widget buildDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFF6C4AB6), width: 1.5),
-        color: Colors.white.withOpacity(0.05),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedLanguage,
-          dropdownColor: const Color(0xFF2A2544),
-          iconEnabledColor: Colors.white,
-          style: const TextStyle(color: Colors.white),
-          items: languages.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() => selectedLanguage = value!);
-          },
-        ),
-      ),
-    );
-  }
-
-  String difficultyLabel(double val) {
-    if (val == 0.0) return "Kolay";
-    if (val == 0.5) return "Orta";
-    return "Zor";
   }
 }

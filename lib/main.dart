@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'package:android_studio/constants.dart';
-import 'package:android_studio/screens/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:android_studio/screens/dersec_screen.dart';
-import 'package:android_studio/screens/welcome_screen1.dart';
-import 'package:android_studio/auth_service.dart';
-import 'package:android_studio/screens/login_screen.dart';
 import 'package:http/http.dart' as http;
+import 'package:app_links/app_links.dart';
 
+import 'package:android_studio/constants.dart';
+import 'package:android_studio/auth_service.dart';
+
+import 'package:android_studio/screens/welcome_screen1.dart';
+import 'package:android_studio/screens/home_screen.dart';
+import 'package:android_studio/screens/password_reset_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,14 +37,16 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   String? token;
   bool isLoading = true;
+  final AppLinks _appLinks = AppLinks();
 
   @override
   void initState() {
     super.initState();
-    checkToken();
+    _handleIncomingLinks();
+    _checkToken();
   }
 
-  Future<void> checkToken() async {
+  Future<void> _checkToken() async {
     final prefs = AuthService();
     String? storedToken = await prefs.getString('token');
 
@@ -52,33 +55,70 @@ class _AuthGateState extends State<AuthGate> {
       isLoading = false;
     });
 
-    if (token != null && token != ''){
-    final userInfo = await fetchUserInfo(token!);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(
-            userName: userInfo['username'] ?? "Kullanıcı",
-            userMail: userInfo['email'] ?? "bilinmiyor@mail.com",
+    if (token != null && token!.isNotEmpty) {
+      try {
+        final userInfo = await _fetchUserInfo(token!);
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(
+              userName: userInfo['username'] ?? "Kullanıcı",
+              userMail: userInfo['email'] ?? "bilinmiyor@mail.com",
+            ),
           ),
-        ),
-      );
+        );
+      } catch (e) {
+        debugPrint("Kullanıcı bilgisi alınamadı: $e");
+      }
     }
   }
 
-  Future<Map<String, dynamic>> fetchUserInfo(String token) async {
+  Future<Map<String, dynamic>> _fetchUserInfo(String token) async {
     final response = await http.get(
-      Uri.parse('$baseURL/auth/me'), // kendi backend IP'n
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      Uri.parse('$baseURL/auth/me'),
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      final msg = jsonDecode(response.body)['detail'] ?? 'Kullanıcı bilgisi alınamadı';
-      throw Exception(msg);
+      throw Exception('Kullanıcı bilgisi alınamadı');
+    }
+  }
+
+  void _handleIncomingLinks() async {
+    // Uygulama açıkken gelen bağlantılar
+    _appLinks.uriLinkStream.listen((Uri? uri) {
+      if (uri != null && uri.path == '/reset-password') {
+        final token = uri.queryParameters['token'];
+        if (token != null && token.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PasswordResetScreen(token: token),
+            ),
+          );
+        }
+      }
+    }, onError: (err) {
+      debugPrint('App link error: $err');
+    });
+
+    // Uygulama kapalıyken ilk açılış bağlantısı
+    final Uri? initialUri = await _appLinks.getInitialAppLink();
+    if (initialUri != null && initialUri.path == '/reset-password') {
+      final token = initialUri.queryParameters['token'];
+      if (token != null && token.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PasswordResetScreen(token: token),
+            ),
+          );
+        });
+      }
     }
   }
 
