@@ -1,27 +1,77 @@
-import 'package:android_studio/screens/sss.dart';
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:android_studio/auth_service.dart';
+import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/email_sent.dart';
 import 'package:android_studio/screens/change_email.dart';
 import 'package:android_studio/screens/change_password.dart';
 import 'package:android_studio/screens/sss.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> settingsItems = [
-      {"icon": "assets/sign-out-fill.png", "text": "Oturumu Kapat"},
-      {"icon": "assets/user-circle-minus-fill.png", "text": "Hesabı Sil"},
-      {"icon": "assets/globe-fill.png", "text": "Dil Tercihi"},
-      {"icon": "assets/password.png", "text": "Şifreyi Değiştir"},
-      {"icon": "assets/envelope.png", "text": "E-Posta Değiştir"},
-      {"icon": "assets/paper-plane-right.png", "text": "Öneri ve İstek"},
-      {"icon": "assets/question.png", "text": "S.S.S\n(Sıkça Sorulan Sorular)"},
-      {"icon": "assets/keyhole.png", "text": "Gizlilik"},
-    ];
+  State<SettingsPage> createState() => _SettingsPageState();
+}
 
+class _SettingsPageState extends State<SettingsPage> {
+  String userName = "Yükleniyor...";
+
+  final List<Map<String, dynamic>> settingsItems = [
+    {"icon": "assets/user-circle-minus-fill.png", "text": "Hesabı Sil"},
+    {"icon": "assets/globe-fill.png", "text": "Dil Tercihi"},
+    {"icon": "assets/password.png", "text": "Şifreyi Değiştir"},
+    {"icon": "assets/envelope.png", "text": "E-Posta Değiştir"},
+    {"icon": "assets/paper-plane-right.png", "text": "Öneri ve İstek"},
+    {"icon": "assets/question.png", "text": "S.S.S\n(Sıkça Sorulan Sorular)"},
+    {"icon": "assets/keyhole.png", "text": "Gizlilik"},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserName();
+  }
+
+  Future<void> fetchUserName() async {
+    final token = await AuthService().getString('token');
+
+    final response = await http.get(
+      Uri.parse('$baseURL/auth/me'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final userData = jsonDecode(response.body);
+      setState(() {
+        userName = userData['username'] ?? "Kullanıcı";
+      });
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    final token = await AuthService().getString('token');
+    final response = await http.delete(
+      Uri.parse('$baseURL/auth/users/me/delete'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const EmailSentScreen()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Hesap silinemedi: ${response.statusCode}")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -43,9 +93,9 @@ class SettingsPage extends StatelessWidget {
                       backgroundImage: AssetImage("assets/profile_pic.png"),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      "User",
-                      style: TextStyle(
+                    Text(
+                      userName,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -75,7 +125,7 @@ class SettingsPage extends StatelessWidget {
                             showDialog(
                               context: context,
                               barrierDismissible: false,
-                              builder: (BuildContext context) {
+                              builder: (context) {
                                 String reason = "";
                                 return StatefulBuilder(
                                   builder: (context, setState) {
@@ -114,9 +164,7 @@ class SettingsPage extends StatelessWidget {
                                                   style: ElevatedButton.styleFrom(
                                                     backgroundColor: Colors.grey.shade800,
                                                   ),
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
+                                                  onPressed: () => Navigator.pop(context),
                                                   child: const Text("Vazgeç"),
                                                 ),
                                                 ElevatedButton(
@@ -128,13 +176,8 @@ class SettingsPage extends StatelessWidget {
                                                   onPressed: reason.trim().isEmpty
                                                       ? null
                                                       : () {
-                                                    Navigator.pushAndRemoveUntil(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (_) => const EmailSentScreen(),
-                                                      ),
-                                                          (route) => false,
-                                                    );
+                                                    Navigator.pop(context);
+                                                    deleteAccount();
                                                   },
                                                   child: const Text("Onayla"),
                                                 ),
@@ -163,57 +206,9 @@ class SettingsPage extends StatelessWidget {
                               context,
                               MaterialPageRoute(builder: (_) => const FaqScreen()),
                             );
-
                           } else if (itemText == "Dil Tercihi") {
-                            String selectedLang = "Türkçe";
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) {
-                                return StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Dialog(
-                                      backgroundColor: Colors.deepPurple.shade900.withOpacity(0.95),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Text(
-                                              "Dil seçimi yapınız",
-                                              style: TextStyle(color: Colors.white, fontSize: 16),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            DropdownButton<String>(
-                                              value: selectedLang,
-                                              dropdownColor: Colors.deepPurple.shade800,
-                                              style: const TextStyle(color: Colors.white),
-                                              items: ["Türkçe", "İngilizce"].map((lang) {
-                                                return DropdownMenuItem(
-                                                  value: lang,
-                                                  child: Text(lang),
-                                                );
-                                              }).toList(),
-                                              onChanged: (val) => setState(() => selectedLang = val!),
-                                            ),
-                                            const SizedBox(height: 24),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.deepPurple.shade700,
-                                              ),
-                                              child: const Text("Tamam"),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Sonraki güncellemelerle gelecek")),
                             );
                           }
                         },

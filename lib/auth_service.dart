@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'package:android_studio/constants.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class  AuthService {
   
@@ -17,6 +21,26 @@ class  AuthService {
     prefs.remove(key); 
   }
 
+  Future<void> setTokenAndUserData(String token) async {
+  final authService = AuthService();
+  await authService.setString('token', token);
 
+  final response = await http.get(
+    Uri.parse('$baseURL/auth/me'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final userData = json.decode(response.body);
+    await authService.setString('user_id', userData['id'].toString());
+    await authService.setString('user_name', userData['username']);
+    await authService.setString('user_mail', userData['email']);
+  } else {
+    print("auth/me çağrısı başarısız: ${response.statusCode}");
+  }
+}
 
 }

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:android_studio/lessons/algorithmlesson.dart';
@@ -10,12 +11,19 @@ import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/quest_screen.dart';
 import 'package:android_studio/screens/profile.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:android_studio/auth_service.dart';
 
 class DersSec extends StatefulWidget {
   final String userName;
   final String userMail;
 
-  const DersSec({super.key, required this.userName, required this.userMail});
+  const DersSec({
+    super.key,
+    required this.userName,
+    required this.userMail,
+  });
 
   @override
   State<DersSec> createState() => _DersSecState();
@@ -26,8 +34,71 @@ class _DersSecState extends State<DersSec> {
 
   final bool algoritmaKilit = false;
   final bool pythonKilit = false;
-  final bool javaKilit = false;
-  final bool csharpKilit = false;
+  final bool javaKilit = true;
+  final bool csharpKilit = true;
+
+  Future<void> dersiSec(int lessonId) async {
+  final authService = AuthService();
+  final token = await authService.getString('token');
+  String? userIdStr = await authService.getString('user_id');
+  int? userId;
+
+  if (token == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Giriş yapılmamış.")),
+    );
+    return;
+  }
+
+ 
+  if (userIdStr == null) {
+    final response = await http.get(
+      Uri.parse('$baseURL/auth/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final userData = json.decode(response.body);
+      userIdStr = userData['id'].toString();
+      await authService.setString('user_id', userIdStr); 
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
+      );
+      return;
+    }
+  }
+
+  userId = int.tryParse(userIdStr!);
+
+  final response = await http.post(
+    Uri.parse('$baseURL/lesson/users/$userId/lessons/$lessonId'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SeviyeSecSayfasi(
+          userName: widget.userName,
+          userMail: widget.userMail,
+        ),
+      ),
+    );
+  } else {
+    final errorMessage = json.decode(response.body)['detail'] ?? "Bir hata oluştu";
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Ders seçilemedi: $errorMessage")),
+    );
+  }
+}
 
   void handleFlip(int index, bool locked) {
     if (locked) return;
@@ -44,54 +115,43 @@ class _DersSecState extends State<DersSec> {
         'icon': 'assets/algoritma_icon.png',
         'description': 'Algoritmik düşünme temelleri.',
         'locked': algoritmaKilit,
-        'page': SeviyeSecSayfasi(
-          userMail: widget.userMail,
-          userName: widget.userName,
-        ),
+        'lessonId': 1,
       },
       {
         'title': 'Python',
         'icon': 'assets/python_icon.png',
         'description': 'Python programlamaya giriş.',
         'locked': pythonKilit,
-        'page': SeviyeSecSayfasi(
-          userMail: widget.userMail,
-          userName: widget.userName,
-        ),
+        'lessonId': 2,
       },
       {
         'title': 'Java',
         'icon': 'assets/java_icon.png',
         'description': 'Java ile nesne yönelimli programlama.',
         'locked': javaKilit,
-        'page': SeviyeSecSayfasi(
-          userMail: widget.userMail,
-          userName: widget.userName,
-        ),
+        'lessonId': 3,
       },
       {
         'title': 'C#',
         'icon': 'assets/python_icon.png',
         'description': 'C# ile Windows uygulamaları.',
         'locked': csharpKilit,
-        'page': SeviyeSecSayfasi(
-          userMail: widget.userMail,
-          userName: widget.userName,
-        ),
+        'lessonId': 4,
       },
     ];
 
     return Scaffold(
       body: Stack(
         children: [
-          // Arkaplan
           SizedBox.expand(
-            child: Image.asset('assets/arkaplan.png', fit: BoxFit.cover),
+            child: Image.asset(
+              'assets/arkaplan.png',
+              fit: BoxFit.cover,
+            ),
           ),
           SafeArea(
             child: Column(
               children: [
-                // Kullanıcı Barı
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Stack(
@@ -168,15 +228,9 @@ class _DersSecState extends State<DersSec> {
                 ),
                 const Text(
                   "Ders Seçin",
-                  style: TextStyle(
-                    fontSize: 36,
-                    color: Colors.white,
-                    fontFamily: 'Poppins-Regular',
-                  ),
+                  style: TextStyle(fontSize: 36, color: Colors.white, fontFamily: 'Poppins-Regular'),
                 ),
                 const SizedBox(height: 15),
-
-                // Kartlar ve maskot dahil tüm içeriği tek alana topluyoruz
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -185,190 +239,47 @@ class _DersSecState extends State<DersSec> {
                         Expanded(
                           child: GridView.builder(
                             padding: const EdgeInsets.only(bottom: 200),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 24,
-                                  crossAxisSpacing: 24,
-                                  childAspectRatio: 0.9,
-                                ),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 24,
+                              crossAxisSpacing: 24,
+                              childAspectRatio: 0.9,
+                            ),
                             itemCount: courses.length,
                             itemBuilder: (context, index) {
                               final course = courses[index];
                               final isFlipped = flippedIndex == index;
 
                               return GestureDetector(
-                                onTap: () =>
-                                    handleFlip(index, course['locked']),
+                                onTap: () => handleFlip(index, course['locked']),
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 500),
                                   transitionBuilder: (child, animation) {
-                                    final rotate = Tween(
-                                      begin: pi,
-                                      end: 0.0,
-                                    ).animate(animation);
+                                    final rotate = Tween(begin: pi, end: 0.0).animate(animation);
                                     return AnimatedBuilder(
                                       animation: rotate,
                                       child: child,
                                       builder: (context, child) {
-                                        final isUnder =
-                                            (ValueKey(isFlipped) != child!.key);
+                                        final isUnder = (ValueKey(isFlipped) != child!.key);
                                         final rotationY = isUnder ? pi : 0.0;
                                         return Transform(
-                                          transform: Matrix4.rotationY(
-                                            rotationY + rotate.value,
-                                          ),
+                                          transform: Matrix4.rotationY(rotationY + rotate.value),
                                           alignment: Alignment.center,
                                           child: child,
                                         );
                                       },
                                     );
                                   },
-                                  layoutBuilder: (currentChild, _) =>
-                                      currentChild!,
+                                  layoutBuilder: (currentChild, _) => currentChild!,
                                   child: isFlipped
-                                      ? Container(
-                                          key: const ValueKey(true),
-                                          decoration: BoxDecoration(
-                                            image: const DecorationImage(
-                                              image: AssetImage(
-                                                'assets/ders_card.png',
-                                              ),
-                                              fit: BoxFit.cover,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(12.0),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  course['description'],
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    color: Colors.white,
-                                                    fontFamily:
-                                                        'Poppins-Regular',
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                                const SizedBox(height: 12),
-                                                ElevatedButton(
-                                                  onPressed: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (_) =>
-                                                            course['page'],
-                                                      ),
-                                                    );
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Colors.yellow,
-                                                    foregroundColor:
-                                                        Colors.black,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            16,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                  child: const Text(
-                                                    "Seç",
-                                                    style: TextStyle(
-                                                      fontSize: 20,
-                                                      fontFamily:
-                                                          'Poppins-Regular',
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        )
-                                      : Container(
-                                          key: const ValueKey(false),
-                                          decoration: BoxDecoration(
-                                            image: const DecorationImage(
-                                              image: AssetImage(
-                                                'assets/ders_card.png',
-                                              ),
-                                              fit: BoxFit.cover,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  course['title'],
-                                                  style: const TextStyle(
-                                                    fontSize: 22,
-                                                    color: Colors.white,
-                                                    fontFamily:
-                                                        'Poppins-Regular',
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 12),
-                                                Image.asset(
-                                                  course['icon'],
-                                                  height: 50,
-                                                ),
-                                                const SizedBox(height: 20),
-                                                Icon(
-                                                  course['locked']
-                                                      ? Icons.lock
-                                                      : Icons.lock_open,
-                                                  color: Colors.black,
-                                                  size: 35,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
+                                      ? dersCardFlipped(course)
+                                      : dersCardFront(course),
                                 ),
                               );
                             },
                           ),
                         ),
-
-                        // Aşağıdaki maskot ve baloncuk
-                        Stack(
-                          children: [
-                            SizedBox(
-                              height: 220,
-                              width: double.infinity,
-                              child: Image.asset(
-                                'assets/yan_konusmabaloncuklu_maskot.png',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            const Positioned(
-                              left: 30,
-                              top: 0,
-                              child: Text(
-                                "İpucu!\nTemel seviye için \nalgoritmalar dersini\nöneriyoruz.",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontFamily: 'Poppins-Regular',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
+                        ipucuMaskot(),
                       ],
                     ),
                   ),
@@ -378,6 +289,86 @@ class _DersSecState extends State<DersSec> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget dersCardFront(Map<String, dynamic> course) {
+    return Container(
+      key: const ValueKey(false),
+      decoration: BoxDecoration(
+        image: const DecorationImage(
+          image: AssetImage('assets/ders_card.png'),
+          fit: BoxFit.cover,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(course['title'], style: const TextStyle(fontSize: 22, color: Colors.white, fontFamily: 'Poppins-Regular')),
+            const SizedBox(height: 12),
+            Image.asset(course['icon'], height: 50),
+            const SizedBox(height: 20),
+            Icon(course['locked'] ? Icons.lock : Icons.lock_open, color: Colors.black, size: 35),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget dersCardFlipped(Map<String, dynamic> course) {
+    return Container(
+      key: const ValueKey(true),
+      decoration: BoxDecoration(
+        image: const DecorationImage(
+          image: AssetImage('assets/ders_card.png'),
+          fit: BoxFit.cover,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(course['description'], style: const TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Poppins-Regular'), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                dersiSec(course['lessonId']);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.yellow,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text("Seç", style: TextStyle(fontSize: 20, fontFamily: 'Poppins-Regular')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget ipucuMaskot() {
+    return Stack(
+      children: [
+        SizedBox(
+          height: 220,
+          width: double.infinity,
+          child: Image.asset('assets/yan_konusmabaloncuklu_maskot.png', fit: BoxFit.contain),
+        ),
+        const Positioned(
+          left: 30,
+          top: 0,
+          child: Text(
+            "İpucu!\nTemel seviye için \nalgoritmalar dersini\nöneriyoruz.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontSize: 17, fontFamily: 'Poppins-Regular'),
+          ),
+        ),
+      ],
     );
   }
 }

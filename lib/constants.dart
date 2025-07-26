@@ -1,6 +1,6 @@
 //buradaki IP'yi cmd'ye "ipconfig" yazdıktan sonra IPv4 adresindeki IP ile değiştirmeniz lazım
 
-const String baseURL = "http://192.168.255.225:8080";
+const String baseURL = "http://192.168.1.36:8080";
 
 
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/email_sent.dart';
 
-
 class PasswordChangeScreen extends StatefulWidget {
   const PasswordChangeScreen({super.key});
 
@@ -27,6 +26,7 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/arkaplan.png"),
@@ -35,9 +35,10 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
         ),
         child: Center(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            margin: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withOpacity(0.08),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white54),
             ),
@@ -46,39 +47,69 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
               children: [
                 const Text(
                   "Şifre değiştirmek için\ne-posta adresinizi girin",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 TextField(
                   controller: _emailController,
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: "E-posta giriniz",
-                    hintStyle: const TextStyle(color: Colors.white54),
+                    hintText: "E-posta adresiniz",
+                    hintStyle: const TextStyle(color: Colors.white60),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
-                    border: OutlineInputBorder(
+                    fillColor: Colors.white.withOpacity(0.1),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white54),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: isEmailFilled
-                      ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EmailSentScreen()),
-                    );
-                  }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isEmailFilled ? Colors.green : Colors.grey,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isEmailFilled
+                        ? () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const EmailSentScreen()),
+                            );
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isEmailFilled
+                          ? const Color(0xFF4CAF50)
+                          : Colors.white.withOpacity(0.2),
+                      foregroundColor:
+                          isEmailFilled ? Colors.white : Colors.white70,
+                      disabledForegroundColor:
+                          Colors.white70.withOpacity(0.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 4,
+                      shadowColor: Colors.black.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Gönder",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  child: const Text("Gönder"),
                 ),
               ],
             ),
