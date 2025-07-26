@@ -47,6 +47,7 @@ def update_user_health_count(db: Session, user_id: int):
         db.rollback()
         logger.error(f"Can hakkı güncelleme hatası, kullanıcı ID {user_id}: {str(err)}")
 
+
 def update_all_users_health():
     db = SessionLocal()
     try:
@@ -54,24 +55,33 @@ def update_all_users_health():
         current_time = datetime.now(timezone.utc)
 
         for user in users:
-            if user.health_count_update_time:
-                time_diff = (current_time - user.health_count_update_time).total_seconds() / 3600
-                if time_diff >= 1:
-                    user.health_count = min(user.health_count + 1, 6)
-                    user.health_count_update_time = current_time
-                    logger.debug(f"Kullanıcı {user.id} için can hakkı güncellendi: {user.health_count}")
-            else:
+            last_update = user.health_count_update_time
+            if last_update is None:
                 user.health_count = min(user.health_count + 1, 6)
                 user.health_count_update_time = current_time
                 logger.debug(f"Kullanıcı {user.id} için ilk can hakkı güncellendi: {user.health_count}")
 
-        db.commit()
+            else:
+                if last_update.tzinfo is None:
+                    last_update = last_update.replace(tzinfo=timezone.utc)
+                time_diff = (current_time - last_update).total_seconds() / 3600
 
-    except Exception as e:
+                if time_diff >= 1:
+                    user.health_count = min(user.health_count + 1, 6)
+                    user.health_count_update_time = current_time
+                    logger.debug(f"Kullanıcı {user.id} için can hakkı güncellendi: {user.health_count}")
+
+        db.commit()
+        logger.info("Tüm kullanıcıların can hakları güncellendi.")
+
+    except Exception as err:
         db.rollback()
-        logger.error(f"Can hakkı toplu güncelleme hatası: {str(e)}")
+        logger.error(f"Can hakkı toplu güncelleme hatası: {str(err)}")
+        raise
+
     finally:
         db.close()
+
 
 def start_health_scheduler():
     scheduler = AsyncIOScheduler()
