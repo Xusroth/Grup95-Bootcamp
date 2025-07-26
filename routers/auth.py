@@ -77,7 +77,9 @@ def create_admin(): # admin oluşturmak için fonksiyon. email -> admin@gmail.co
     db = SessionLocal()
     try:
         existing_user = db.query(User).filter((User.email == "admin@gmail.com") | (User.username == "admin")).first()
-        if not existing_user:
+        if existing_user:
+            print('Admin zaten mevcut: admin@gmail.com')
+        else:
             hashed_password = bcrypt.hashpw('Admin123!'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             admin_user = User(
                 username='admin',
@@ -88,6 +90,7 @@ def create_admin(): # admin oluşturmak için fonksiyon. email -> admin@gmail.co
             )
             db.add(admin_user)
             db.commit()
+            print('Admin başarıyla oluşturuldu: admin@gmail.com / Admin123!')
     finally:
         db.close()
 
