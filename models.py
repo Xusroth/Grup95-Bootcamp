@@ -30,7 +30,10 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     level = Column(String, nullable=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
     has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi onun kontrolü
     health_count = Column(Integer, default=6) # can hakkı
-    health_count_update_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc)) # can hakkının güncellenme zamanı
+    health_count_update_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)) # can hakkının güncellenme zamanı
+    notification_preferences = Column(JSON, default={'email': True, 'push': True}) # bildirim tercihleri
+    theme = Column(String, default='dark') # dark, light tema tercihi
+    language = Column(String, default='tr') # dil tercihleri (tr, en)
 
     lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
     progress = relationship('Progress', back_populates='user')
