@@ -73,14 +73,14 @@ def update_all_users_streaks(): # tüm userların streak durumunu kontrol eder
         for streak in streaks:
             last_update_date = streak.last_update.date()
             if last_update_date < yesterday:
-                streak.streak_count = 0  # Streak sıfırlanır
+                streak.streak_count = 0  # streak sıfırlanır
                 streak.last_update = datetime.now(timezone.utc)
                 logger.debug(f"Kullanıcı {streak.user_id} için streak sıfırlandı: ders {streak.lesson_id}")
         db.commit()
 
-    except Exception as e:
+    except Exception as err:
         db.rollback()
-        logger.error(f"Streak toplu güncelleme hatası: {str(e)}")
+        logger.error(f"Streak toplu güncelleme hatası: {str(err)}")
     finally:
         db.close()
 
