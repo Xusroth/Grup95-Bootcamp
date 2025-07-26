@@ -219,7 +219,7 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
         background_tasks.add_task(update_user_health_count, db, user.id)
 
         if not is_correct:
-            raise HTTPException(status_code=400, detail=f"Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}")
 
         return {
             'message': "Doğru cevap!",
@@ -229,7 +229,10 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
             'subsection_completion': progress.subsection_completion if progress_updated else None
         }
 
-    except Exception as e:
+
+    except HTTPException as err:
+        raise err
+    except Exception as err:
         db.rollback()
-        logger.error(f"Soru cevaplama hatası, kullanıcı ID {user.id}, soru ID {request.question_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Bir hata oluştu: {str(e)}")
+        logger.error(f"Soru cevaplama hatası, kullanıcı ID {user.id}, soru ID {request.question_id}: {str(err)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Bir hata oluştu: {str(err)}")
