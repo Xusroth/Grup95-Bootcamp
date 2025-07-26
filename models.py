@@ -34,6 +34,7 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     notification_preferences = Column(JSON, default={'email': True, 'push': True}) # bildirim tercihleri
     theme = Column(String, default='dark') # dark, light tema tercihi
     language = Column(String, default='tr') # dil tercihleri (tr, en)
+    avatar = Column(String, default='profile_pic.png') # kullanıcının profil resmi
 
     lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
     progress = relationship('Progress', back_populates='user')

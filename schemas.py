@@ -63,6 +63,7 @@ class UserUpdate(BaseModel):
     notification_preferences: Optional[NotificationPreferences] = None
     theme: Optional[str] = None
     language: Optional[str] = None
+    avatar: Optional[str] = None # kullanıcının avatar'ını güncellemek için
 
     @field_validator('username', mode='before')
     def username_kontrol(username):
@@ -84,6 +85,43 @@ class UserUpdate(BaseModel):
             raise ValueError('Seviye beginner, intermediate veya advanced olmalı.')
         return value
 
+    @field_validator('avatar', mode='before')
+    def avatar_kontrol(value):
+        if value:
+            # Avatar dosya adı kontrolü
+            valid_avatars = [
+                'profile_pic.png', 'avatar_boom.png', 'avatar_cat.png', 'avatar_cleaner.png',
+                'avatar_coder.png', 'avatar_cool.png', 'avatar_cowbot.png', 'avatar_fairy.png',
+                'avatar_frog.png', 'avatar_alien.png', 'avatar_astrout.png', 'avatar_robot.png',
+                'avatar_robot_2.png', 'avatar_rock.png', 'avatar_sleepy.png', 'avatar_supergirl.png',
+                'avatar_turtle.png', 'avatar_vampire.png', 'avatar_wizard.png'
+            ]
+            if value not in valid_avatars:
+                raise ValueError('Geçersiz avatar seçimi.')
+        return value
+
+
+class AvatarUpdate(BaseModel):
+    avatar: str = Field(..., description="Seçilen avatar dosya adı")
+
+    @field_validator('avatar')
+    def avatar_kontrol(value):
+        valid_avatars = [
+            'profile_pic.png', 'avatar_boom.png', 'avatar_cat.png', 'avatar_cleaner.png',
+            'avatar_coder.png', 'avatar_cool.png', 'avatar_cowbot.png', 'avatar_fairy.png',
+            'avatar_frog.png', 'avatar_alien.png', 'avatar_astrout.png', 'avatar_robot.png',
+            'avatar_robot_2.png', 'avatar_rock.png', 'avatar_sleepy.png', 'avatar_supergirl.png',
+            'avatar_turtle.png', 'avatar_vampire.png', 'avatar_wizard.png'
+        ]
+        
+        # Eğer uzantı yoksa .png ekle
+        if not value.endswith(('.png', '.jpg', '.jpeg')):
+            value = f"{value}.png"
+            
+        if value not in valid_avatars:
+            raise ValueError('Geçersiz avatar seçimi.')
+        return value
+
 
 class UserResponse(BaseModel):
     id: int
@@ -95,6 +133,7 @@ class UserResponse(BaseModel):
     notification_preferences: NotificationPreferences
     theme: str
     language: str
+    avatar: str # kullanıcının avatar bilgisi
 
     class Config:
         from_attributes = True
@@ -112,6 +151,7 @@ class UserPublicResponse(BaseModel): # bilerek bu sınıfı oluşturdum diğer t
     notification_preferences: NotificationPreferences
     theme: str
     language: str
+    avatar: str = "profile_pic.png"  # avatar alanı
 
     class Config:
         from_attributes = True
