@@ -17,6 +17,7 @@ from routers.error import router as error_router
 from routers.tasks import router as tasks_router
 from routers.progress import router as progress_router
 from routers.sections import router as sections_router
+from routers.settings import router as settings_router
 from utils.streak import start_streak_scheduler
 from utils.health import start_health_scheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -33,6 +34,7 @@ app.include_router(error_router)
 app.include_router(tasks_router)
 app.include_router(progress_router)
 app.include_router(sections_router)
+app.include_router(settings_router)
 
 
 app.add_middleware( # mobil uygulamanın (flutter) backende erişebilmesi için ayar yaptım.
