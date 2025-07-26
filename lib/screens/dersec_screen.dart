@@ -1,19 +1,20 @@
 import 'dart:math';
-import 'package:android_studio/constants.dart';
-import 'package:android_studio/screens/profile.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:android_studio/constants.dart';
+import 'package:android_studio/auth_service.dart';
+import 'package:android_studio/screens/profile.dart';
+import 'package:android_studio/screens/home_screen.dart';
+import 'package:android_studio/screens/quest_screen.dart';
+import 'package:android_studio/screens/ReportScreen1.dart';
+import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
+
 import 'package:android_studio/lessons/algorithmlesson.dart';
 import 'package:android_studio/lessons/pythonlesson.dart';
 import 'package:android_studio/lessons/javalesson.dart';
 import 'package:android_studio/lessons/csharplesson.dart';
-import 'package:android_studio/screens/SifirdanBaslaSayfasi.dart';
-import 'package:android_studio/screens/home_screen.dart';
-import 'package:android_studio/screens/quest_screen.dart';
-import 'package:android_studio/screens/profile.dart';
-import 'package:android_studio/screens/ReportScreen1.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:android_studio/auth_service.dart';
 
 class DersSec extends StatefulWidget {
   final String userName;
@@ -31,68 +32,81 @@ class DersSec extends StatefulWidget {
 
 class _DersSecState extends State<DersSec> {
   int? flippedIndex;
-
   final bool algoritmaKilit = false;
   final bool pythonKilit = false;
   final bool javaKilit = true;
   final bool csharpKilit = true;
-  
-Future<void> dersiSec(int lessonId) async {
-  final authService = AuthService();
-  final token = await authService.getString('token');
 
-  if (token == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Giriş yapılmamış.")),
-    );
-    return;
+  String avatarPath = 'profile_pic.png';
+
+  @override
+  void initState() {
+    super.initState();
+    loadAvatar();
   }
 
-  // Her zaman auth/me üzerinden user_id'yi al
-  final response = await http.get(
-    Uri.parse('$baseURL/auth/me'),
-    headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    },
-  );
-
-  if (response.statusCode != 200) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
-    );
-    return;
+  Future<void> loadAvatar() async {
+    final auth = AuthService();
+    final avatar = await auth.getString('user_avatar'); 
+    setState(() {
+      avatarPath = avatar ?? 'profile_pic.png';
+    });
   }
 
-  final userData = json.decode(response.body);
-  final userId = userData['id'];
+  Future<void> dersiSec(int lessonId) async {
+    final authService = AuthService();
+    final token = await authService.getString('token');
 
-  final dersKayitResponse = await http.post(
-    Uri.parse('$baseURL/lesson/users/$userId/lessons/$lessonId'),
-    headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    },
-  );
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Giriş yapılmamış.")),
+      );
+      return;
+    }
 
-  if (dersKayitResponse.statusCode == 200) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SeviyeSecSayfasi(
-          userName: widget.userName,
-          userMail: widget.userMail,
+    final response = await http.get(
+      Uri.parse('$baseURL/auth/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
+      );
+      return;
+    }
+
+    final userData = json.decode(response.body);
+    final userId = userData['id'];
+
+    final dersKayitResponse = await http.post(
+      Uri.parse('$baseURL/lesson/users/$userId/lessons/$lessonId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (dersKayitResponse.statusCode == 200) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SeviyeSecSayfasi(
+            userName: widget.userName,
+            userMail: widget.userMail,
+          ),
         ),
-      ),
-    );
-  } else {
-    final errorMessage = json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Ders seçilemedi: $errorMessage")),
-    );
+      );
+    } else {
+      final errorMessage = json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Ders seçilemedi: $errorMessage")),
+      );
+    }
   }
-}
-
 
   void handleFlip(int index, bool locked) {
     if (locked) return;
@@ -151,12 +165,7 @@ Future<void> dersiSec(int lessonId) async {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Image.asset(
-                        'assets/user_bar.png',
-                        fit: BoxFit.contain,
-                        width: 400,
-                        height: 70,
-                      ),
+                      Image.asset('assets/user_bar.png', width: 400, height: 70, fit: BoxFit.contain),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -165,8 +174,7 @@ Future<void> dersiSec(int lessonId) async {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      ProfilePage(userName: widget.userName),
+                                  builder: (_) => ProfilePage(userName: widget.userName),
                                 ),
                               );
                             },
@@ -175,14 +183,15 @@ Future<void> dersiSec(int lessonId) async {
                               height: 55,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                image: const DecorationImage(
-                                  image: AssetImage('assets/profile_pic.png'),
+                                image: DecorationImage(
+                                  image: AssetImage(
+                                    avatarPath.startsWith('avatar_')
+                                        ? 'assets/avatars/$avatarPath'
+                                        : 'assets/$avatarPath',
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1,
-                                ),
+                                border: Border.all(color: const Color.fromARGB(255, 59, 59, 59), width: 1),
                               ),
                             ),
                           ),
@@ -202,16 +211,10 @@ Future<void> dersiSec(int lessonId) async {
                                 onPressed: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ReportScreen1(),
-                                    ),
+                                    MaterialPageRoute(builder: (_) => ReportScreen1()),
                                   );
                                 },
-                                icon: Image.asset(
-                                  'assets/report.png',
-                                  width: 36,
-                                  height: 36,
-                                ),
+                                icon: Image.asset('assets/report.png', width: 36, height: 36),
                               ),
                             ],
                           ),
@@ -243,7 +246,6 @@ Future<void> dersiSec(int lessonId) async {
                             itemBuilder: (context, index) {
                               final course = courses[index];
                               final isFlipped = flippedIndex == index;
-
                               return GestureDetector(
                                 onTap: () => handleFlip(index, course['locked']),
                                 child: AnimatedSwitcher(
@@ -300,7 +302,7 @@ Future<void> dersiSec(int lessonId) async {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(course['title'], style: const TextStyle(fontSize: 22, color: Colors.white, fontFamily: 'Poppins-Regular')),
+            Text(course['title'], style: const TextStyle(fontSize: 22, color: Colors.white)),
             const SizedBox(height: 12),
             Image.asset(course['icon'], height: 50),
             const SizedBox(height: 20),
@@ -326,18 +328,18 @@ Future<void> dersiSec(int lessonId) async {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(course['description'], style: const TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Poppins-Regular'), textAlign: TextAlign.center),
+            Text(course['description'],
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+                textAlign: TextAlign.center),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () {
-                dersiSec(course['lessonId']);
-              },
+              onPressed: () => dersiSec(course['lessonId']),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.yellow,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text("Seç", style: TextStyle(fontSize: 20, fontFamily: 'Poppins-Regular')),
+              child: const Text("Seç", style: TextStyle(fontSize: 20)),
             ),
           ],
         ),
@@ -354,12 +356,12 @@ Future<void> dersiSec(int lessonId) async {
           child: Image.asset('assets/yan_konusmabaloncuklu_maskot.png', fit: BoxFit.contain),
         ),
         const Positioned(
-          left: 30,
-          top: 0,
+          left: 47,
+          top: 5,
           child: Text(
             "İpucu!\nTemel seviye için \nalgoritmalar dersini\nöneriyoruz.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontSize: 17, fontFamily: 'Poppins-Regular'),
+            style: TextStyle(color: Colors.white, fontSize: 15),
           ),
         ),
       ],

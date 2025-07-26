@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:android_studio/constants.dart';
+import 'package:android_studio/auth_service.dart';
 
 class AvatarSelectionScreen extends StatefulWidget {
   const AvatarSelectionScreen({super.key});
@@ -30,6 +34,56 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   ];
 
   String? selectedAvatar;
+  bool isLoading = false;
+
+  Future<void> _submitAvatar() async {
+  if (selectedAvatar == null) return;
+
+  setState(() {
+    isLoading = true;
+  });
+
+  final authService = AuthService();
+  final token = await authService.getString('token');
+
+  final response = await http.put(
+    Uri.parse('$baseURL/avatar/update'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({'avatar': selectedAvatar}),
+  );
+
+  setState(() {
+    isLoading = false;
+  });
+
+  if (!context.mounted) return;
+
+  if (response.statusCode == 200) {
+    //  Avatarı yerel belleğe de kaydet
+    await authService.setString('user_avatar', selectedAvatar!);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Avatar başarıyla güncellendi")),
+    );
+
+    Navigator.pop(context, selectedAvatar); 
+  } else if (response.statusCode == 403) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Misafir kullanıcılar avatar güncelleyemez")),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Hata: ${jsonDecode(response.body)['detail'] ?? 'Bilinmeyen hata'}"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -106,13 +160,17 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.pop(context, selectedAvatar);
-                      },
-                      child: const Text(
-                        "Kaydet",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      onPressed: isLoading ? null : _submitAvatar,
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              "Kaydet",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ),

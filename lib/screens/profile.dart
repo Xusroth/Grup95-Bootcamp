@@ -130,7 +130,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   const SizedBox(height: 24),
 
-                  // Görev Tamamlama Kartı
+                  // Günlük Görevler Kartı
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 30),
@@ -147,7 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Görev Tamamlama",
+                          "Günlük Görevler",
                           style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),

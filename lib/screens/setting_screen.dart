@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/constants.dart';
+import 'package:android_studio/screens/change_password_inapp.dart';
 import 'package:android_studio/screens/email_sent.dart';
 import 'package:android_studio/screens/change_password.dart';
 import 'package:android_studio/screens/sss.dart';
@@ -192,7 +193,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           } else if (itemText == "Şifreyi Değiştir") {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const PasswordChangeScreen()),
+                              MaterialPageRoute(builder: (_) => const ChangePasswordInAppScreen()),
                             );
                           } else if (itemText == "S.S.S\n(Sıkça Sorulan Sorular)") {
                             Navigator.push(

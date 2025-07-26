@@ -65,7 +65,7 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                       backgroundColor: const Color(0xFFBF8BFA),
                     ),
                     child: const Text(
-                      'Fotoğrafı Değiştir',
+                      'Avatarı Değiştir',
                       style: TextStyle(
                         color: Colors.white,
                         fontFamily: 'Poppins-Regular',

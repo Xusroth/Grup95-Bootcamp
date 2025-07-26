@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
+import 'package:android_studio/screens/change_avatar.dart';
+
 
 class ProfileCreation extends StatefulWidget {
   const ProfileCreation({super.key});
@@ -111,7 +113,12 @@ Future<void> registerUser() async {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AvatarSelectionScreen()),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -120,7 +127,7 @@ Future<void> registerUser() async {
                       backgroundColor: const Color(0xFFBF8BFA),
                     ),
                     child: const Text(
-                      'Fotoğrafı Değiştir',
+                      'Avatarı Değiştir',
                       style: TextStyle(
                         color: Colors.white,
                         fontFamily: 'Poppins-Regular',
@@ -128,6 +135,7 @@ Future<void> registerUser() async {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
                   const Text(
                     'Bildirimler',

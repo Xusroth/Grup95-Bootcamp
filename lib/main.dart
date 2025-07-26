@@ -43,10 +43,10 @@ class _AuthGateState extends State<AuthGate> {
   void initState() {
     super.initState();
     _handleIncomingLinks();
-    _checkToken();
+    _checkTokenAndLoadUserData();
   }
 
-  Future<void> _checkToken() async {
+  Future<void> _checkTokenAndLoadUserData() async {
     final prefs = AuthService();
     String? storedToken = await prefs.getString('token');
 
@@ -58,13 +58,22 @@ class _AuthGateState extends State<AuthGate> {
     if (token != null && token!.isNotEmpty) {
       try {
         final userInfo = await _fetchUserInfo(token!);
+
+        await prefs.setString('user_id', userInfo['id'].toString());
+        await prefs.setString('user_name', userInfo['username']);
+        await prefs.setString('user_mail', userInfo['email']);
+
+        final avatar = await _fetchUserAvatar(token!);
+        await prefs.setString('user_avatar', avatar ?? 'profile_pic.png');
+
         if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => HomeScreen(
-              userName: userInfo['username'] ?? "Kullanıcı",
-              userMail: userInfo['email'] ?? "bilinmiyor@mail.com",
+              userName: userInfo['username'],
+              userMail: userInfo['email'],
             ),
           ),
         );
@@ -87,8 +96,25 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
+  Future<String?> _fetchUserAvatar(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseURL/avatar/current'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['avatar'];
+    } else {
+      debugPrint("Avatar bilgisi alınamadı: ${response.statusCode}");
+      return null;
+    }
+  }
+
   void _handleIncomingLinks() async {
-    // Uygulama açıkken gelen bağlantılar
     _appLinks.uriLinkStream.listen((Uri? uri) {
       if (uri != null && uri.path == '/reset-password') {
         final token = uri.queryParameters['token'];
@@ -105,7 +131,6 @@ class _AuthGateState extends State<AuthGate> {
       debugPrint('App link error: $err');
     });
 
-    // Uygulama kapalıyken ilk açılış bağlantısı
     final Uri? initialUri = await _appLinks.getInitialAppLink();
     if (initialUri != null && initialUri.path == '/reset-password') {
       final token = initialUri.queryParameters['token'];
