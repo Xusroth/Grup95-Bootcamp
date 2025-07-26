@@ -9,9 +9,14 @@ from database import SessionLocal
 from models import User, DailyTask, Question as QuestionModels, Lesson, Section, Progress as ProgressModels, user_lessons, UserQuestion
 from schemas import DailyTaskResponse, DailyTaskCreate, DailyTaskUpdate, AnswerQuestionRequest, ProgressResponse, Progress, QuestionResponse
 from routers.auth import get_current_user
+from utils.health import update_user_health_count, update_all_users_health
+from utils.streak import update_user_streak, update_all_users_streaks
 from datetime import datetime, timezone, timedelta
 import random
+import json
 import logging
+
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
