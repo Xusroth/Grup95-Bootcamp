@@ -5,35 +5,73 @@ import 'package:android_studio/screens/dersec_screen.dart';
 import 'package:android_studio/screens/quest_screen.dart';
 import 'package:android_studio/screens/profile.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
+import 'package:http/http.dart' as http;
+import 'package:android_studio/constants.dart';
+import 'dart:convert';
+import 'package:android_studio/auth_service.dart';
 
 class AlgorithmLessonOverview extends StatefulWidget {
   final String userName;
+  final int lessonId;
 
-  const AlgorithmLessonOverview({super.key, required this.userName});
+  const AlgorithmLessonOverview({super.key, required this.userName, required this.lessonId});
 
   @override
-  State<AlgorithmLessonOverview> createState() =>
-      _AlgorithmLessonOverviewState();
+  State<AlgorithmLessonOverview> createState() => _AlgorithmLessonOverviewState();
 }
 
 class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   List<Map<String, dynamic>> lessonSections = [
     {
       'title': "Beginner",
+      'sectionId': 1,
       'unlocked': true,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
       'title': 'Intermediate',
+      'sectionId': 2,
       'unlocked': false,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
       'title': 'Advanced',
+      'sectionId': 3,
       'unlocked': false,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
   ];
+
+  Future<void> updateUnlockedSection() async {
+    final token = await AuthService().getString('token');
+
+    final response = await http.get(
+      Uri.parse('$baseURL/progress/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      for (var item in data) {
+        if (item['lesson_id'] == widget.lessonId && item['section_id'] == 1) {
+          final subsection = item['current_subsection'];
+          if (subsection == 'intermediate') {
+            setState(() {
+              lessonSections[1]['unlocked'] = true;
+            });
+          } else if (subsection == 'advanced') {
+            setState(() {
+              lessonSections[1]['unlocked'] = true;
+              lessonSections[2]['unlocked'] = true;
+            });
+          }
+        }
+      }
+    }
+  }
 
   void onContentCompleted(int sectionIndex, int levelIndex) {
     setState(() {
@@ -42,14 +80,19 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         level['completedContent']++;
       }
 
-      final allCompleted = lessonSections[sectionIndex]['levels'].every(
-        (lvl) => lvl['completedContent'] == 3,
-      );
+      final allCompleted = lessonSections[sectionIndex]['levels']
+          .every((lvl) => lvl['completedContent'] == 3);
 
       if (allCompleted && sectionIndex + 1 < lessonSections.length) {
         lessonSections[sectionIndex + 1]['unlocked'] = true;
       }
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    updateUnlockedSection();
   }
 
   @override
@@ -65,29 +108,17 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         child: SafeArea(
           child: Stack(
             children: [
-              // Sayfanın üst kısmı: Kullanıcı barı + içerikler
               Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
                     child: Stack(
                       alignment: Alignment.centerLeft,
                       children: [
-                        Image.asset(
-                          'assets/user_bar.png',
-                          fit: BoxFit.contain,
-                          width: 400,
-                          height: 70,
-                        ),
+                        Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
                         Positioned(
                           left: 16,
-                          child: Image.asset(
-                            'assets/profile_pic.png',
-                            height: 36,
-                          ),
+                          child: Image.asset('assets/profile_pic.png', height: 36),
                         ),
                         Positioned(
                           left: 60,
@@ -102,21 +133,15 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                         ),
                         Positioned(
                           right: 48,
-                          child: Image.asset(
-                            'assets/health_bar.png',
-                            height: 24,
-                          ),
+                          child: Image.asset('assets/health_bar.png', height: 24),
                         ),
-                        // Updated Report Button
                         Positioned(
                           right: 20,
                           child: GestureDetector(
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => ReportScreen1(),
-                                ),
+                                MaterialPageRoute(builder: (context) => ReportScreen1()),
                               );
                             },
                             child: Image.asset('assets/report.png', height: 22),
@@ -126,8 +151,6 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  // İçerik: ders kartları
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.only(bottom: 100),
@@ -137,10 +160,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                         final levels = section['levels'];
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12.0,
-                            horizontal: 16,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -157,25 +177,17 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: levels.length,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      mainAxisSpacing: 20,
-                                      crossAxisSpacing: 20,
-                                      childAspectRatio: 1,
-                                    ),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 20,
+                                  crossAxisSpacing: 20,
+                                  childAspectRatio: 1,
+                                ),
                                 itemBuilder: (context, levelIndex) {
                                   final level = levels[levelIndex];
-                                  final completedContent =
-                                      level['completedContent'];
+                                  final completedContent = level['completedContent'];
 
-                                  final isUnlocked =
-                                      section['unlocked'] &&
-                                      (levelIndex == 0 ||
-                                          levels[levelIndex -
-                                                  1]['completedContent'] ==
-                                              3);
-
+                                  final isUnlocked = section['unlocked'] && (levelIndex == 0 || levels[levelIndex - 1]['completedContent'] == 3);
                                   final isCompleted = completedContent == 3;
 
                                   String imageAsset;
@@ -201,12 +213,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                                 builder: (_) => QuestionPage(
                                                   sectionIndex: sectionIndex,
                                                   levelIndex: levelIndex,
+                                                  sectionId: section['sectionId'],
                                                   isLevelCompleted: isCompleted,
+                                                  lessonId: widget.lessonId,
                                                   onCompleted: () {
-                                                    onContentCompleted(
-                                                      sectionIndex,
-                                                      levelIndex,
-                                                    );
+                                                    onContentCompleted(sectionIndex, levelIndex);
                                                   },
                                                 ),
                                               ),
@@ -219,16 +230,9 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                           child: Stack(
                                             alignment: Alignment.center,
                                             children: [
-                                              Image.asset(
-                                                imageAsset,
-                                                width: 140,
-                                                height: 140,
-                                              ),
+                                              Image.asset(imageAsset, width: 140, height: 140),
                                               if (!isUnlocked)
-                                                Image.asset(
-                                                  'assets/kilitli_dosya.png',
-                                                  height: 60,
-                                                )
+                                                Image.asset('assets/kilitli_dosya.png', height: 60)
                                               else
                                                 Positioned(
                                                   bottom: 54,
@@ -237,8 +241,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                                     style: const TextStyle(
                                                       fontSize: 20,
                                                       color: Colors.white,
-                                                      fontFamily:
-                                                          'Poppins-Bold',
+                                                      fontFamily: 'Poppins-Bold',
                                                     ),
                                                   ),
                                                 ),
@@ -248,11 +251,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        !isUnlocked
-                                            ? "Kilitli Aşama"
-                                            : isCompleted
-                                            ? "Tamamlandı"
-                                            : "Devam Ediyor",
+                                        !isUnlocked ? "Kilitli Aşama" : isCompleted ? "Tamamlandı" : "Devam Ediyor",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontFamily: 'Poppins-Regular',
@@ -272,8 +271,6 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                   ),
                 ],
               ),
-
-              // Alt Bar (Stack içinde ve Positioned ile)
               Positioned(
                 bottom: 20,
                 left: 0,
@@ -283,16 +280,10 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                   children: [
                     SizedBox(
                       width: 350,
-                      child: Image.asset(
-                        "assets/alt_bar.png",
-                        fit: BoxFit.fill,
-                      ),
+                      child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 60.0,
-                        vertical: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -301,10 +292,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => HomeScreen(
-                                    userMail: '',
-                                    userName: widget.userName,
-                                  ),
+                                  builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
                                 ),
                               );
                             },
@@ -315,10 +303,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => DersSec(
-                                    userMail: '',
-                                    userName: widget.userName,
-                                  ),
+                                  builder: (_) => DersSec(userMail: '', userName: widget.userName),
                                 ),
                               );
                             },
@@ -329,15 +314,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      ProfilePage(userName: widget.userName),
+                                  builder: (_) => ProfilePage(userName: widget.userName),
                                 ),
                               );
                             },
-                            child: Image.asset(
-                              "assets/profile.png",
-                              height: 28,
-                            ),
+                            child: Image.asset("assets/profile.png", height: 28),
                           ),
                         ],
                       ),

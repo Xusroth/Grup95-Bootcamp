@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
-import 'package:android_studio/screens/ReportScreen1.dart'; // ReportScreen1 import edildi
+import 'package:android_studio/auth_service.dart';
+import 'package:android_studio/screens/ReportScreen1.dart';
 
 class QuestionPage extends StatefulWidget {
   final int sectionIndex;
   final int levelIndex;
   final VoidCallback onCompleted;
   final bool isLevelCompleted;
+  final int sectionId;
+  final int lessonId;
 
   const QuestionPage({
     super.key,
@@ -16,6 +19,8 @@ class QuestionPage extends StatefulWidget {
     required this.levelIndex,
     required this.onCompleted,
     required this.isLevelCompleted,
+    required this.sectionId,
+    required this.lessonId,
   });
 
   @override
@@ -25,6 +30,7 @@ class QuestionPage extends StatefulWidget {
 class _QuestionPageState extends State<QuestionPage>
     with SingleTickerProviderStateMixin {
   String selectedAnswer = '';
+  String correctAnswer = '';
   bool answered = false;
   bool isCorrect = false;
   int currentQuestionIndex = 0;
@@ -35,10 +41,28 @@ class _QuestionPageState extends State<QuestionPage>
 
   List<Map<String, dynamic>> questions = [];
 
+  String getSubsectionName(int index) {
+    switch (index) {
+      case 0:
+        return 'beginner';
+      case 1:
+        return 'intermediate';
+      case 2:
+        return 'advanced';
+      default:
+        return 'beginner';
+    }
+  }
+
   Future<void> fetchQuestions() async {
+    final token = await AuthService().getString('token');
+
     final response = await http.get(
-      Uri.parse('$baseURL/lesson/questions/1'),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse('$baseURL/lesson/questions?lesson_id=${widget.lessonId}&section_id=${widget.sectionId}&subsection=${getSubsectionName(widget.sectionIndex)}'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -47,7 +71,72 @@ class _QuestionPageState extends State<QuestionPage>
         questions = data.cast<Map<String, dynamic>>().take(10).toList();
       });
     } else {
-      throw Exception('Soru çekme başarısız: ${response.body}');
+      debugPrint('Soru çekme başarısız: ${response.body}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sorular yüklenemedi')),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> sendAnswer(String answer) async {
+    final token = await AuthService().getString('token');
+    final questionId = questions[currentQuestionIndex]['id'];
+
+    final response = await http.post(
+      Uri.parse('$baseURL/progress/answer_question'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'question_id': questionId,
+        'user_answer': answer,
+      }),
+    );
+
+    final result = jsonDecode(response.body);
+
+    setState(() {
+      isCorrect = response.statusCode == 200;
+      correctAnswer = result['correct_answer'] ?? '';
+    });
+  }
+
+  void handleAnswer(String key) async {
+    if (answered) return;
+
+    setState(() {
+      selectedAnswer = key;
+      answered = true;
+    });
+
+    await sendAnswer(key);
+    _controller.forward();
+  }
+
+  Color getButtonColor(String key) {
+    if (!answered) return Colors.white.withOpacity(0.1);
+    if (key == selectedAnswer && isCorrect) return Colors.green;
+    if (key == selectedAnswer && !isCorrect) return Colors.red;
+    if (key == correctAnswer && !isCorrect) return Colors.green.withOpacity(0.6);
+    return Colors.white.withOpacity(0.1);
+  }
+
+  void goToNextQuestion() {
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        selectedAnswer = '';
+        answered = false;
+        isCorrect = false;
+        correctAnswer = '';
+        _controller.reset();
+        progress += 1 / questions.length;
+      });
+    } else {
+      widget.onCompleted();
+      Navigator.pop(context);
     }
   }
 
@@ -61,52 +150,17 @@ class _QuestionPageState extends State<QuestionPage>
       });
     }
 
-    fetchQuestions(); // soruları getir
+    fetchQuestions();
 
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: const Offset(0, 0),
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
-
-  void handleAnswer(String key) {
-    if (answered) return;
-
-    setState(() {
-      selectedAnswer = key;
-      answered = true;
-      isCorrect = key == questions[currentQuestionIndex]['correct_answer'];
-    });
-
-    _controller.forward();
-  }
-
-  Color getButtonColor(String key) {
-    if (!answered) return Colors.white.withOpacity(0.1);
-    if (key == questions[currentQuestionIndex]['correct_answer'])
-      return Colors.green;
-    if (key == selectedAnswer) return Colors.red;
-    return Colors.white.withOpacity(0.1);
-  }
-
-  void goToNextQuestion() {
-    if (currentQuestionIndex < questions.length - 1) {
-      setState(() {
-        currentQuestionIndex++;
-        selectedAnswer = '';
-        answered = false;
-        isCorrect = false;
-        _controller.reset();
-        progress += 1 / questions.length;
-      });
-    } else {
-      widget.onCompleted();
-      Navigator.pop(context);
-    }
   }
 
   @override
@@ -123,10 +177,10 @@ class _QuestionPageState extends State<QuestionPage>
 
     final question = questions[currentQuestionIndex];
 
+
     return Scaffold(
       body: Stack(
         children: [
-          // Arka plan
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -135,8 +189,6 @@ class _QuestionPageState extends State<QuestionPage>
               ),
             ),
           ),
-
-          // Kullanıcı barı
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -149,7 +201,6 @@ class _QuestionPageState extends State<QuestionPage>
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    // Profil resmi
                     Container(
                       width: 55,
                       height: 55,
@@ -163,7 +214,6 @@ class _QuestionPageState extends State<QuestionPage>
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Progress bar
                     Expanded(
                       child: Stack(
                         alignment: Alignment.centerLeft,
@@ -204,7 +254,6 @@ class _QuestionPageState extends State<QuestionPage>
                         ],
                       ),
                     ),
-                    // Sağdaki ikonlar
                     Row(
                       children: [
                         Image.asset('assets/health_bar.png', height: 24),
@@ -227,7 +276,6 @@ class _QuestionPageState extends State<QuestionPage>
               ),
             ),
           ),
-          // Soru kısmı
           Center(
             child: Stack(
               alignment: Alignment.topCenter,
@@ -244,9 +292,7 @@ class _QuestionPageState extends State<QuestionPage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.symmetric(
-                          horizontal: 80,
-                          vertical: 30,
-                        ),
+                            horizontal: 80, vertical: 30),
                         decoration: BoxDecoration(
                           color: Colors.white12,
                           borderRadius: BorderRadius.circular(20),
@@ -264,15 +310,11 @@ class _QuestionPageState extends State<QuestionPage>
                       SizedBox(
                         width: 260,
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
                           children: List.generate(4, (index) {
-                            String key = String.fromCharCode(
-                              65 + index,
-                            ); // A, B, C, D
+                            String key = String.fromCharCode(65 + index);
                             return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10.0,
-                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 10.0),
                               child: Container(
                                 width: double.infinity,
                                 height: 75,
@@ -283,8 +325,7 @@ class _QuestionPageState extends State<QuestionPage>
                                 child: TextButton(
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
+                                        horizontal: 16),
                                     alignment: Alignment.centerLeft,
                                   ),
                                   onPressed: () => handleAnswer(key),
@@ -308,8 +349,6 @@ class _QuestionPageState extends State<QuestionPage>
               ],
             ),
           ),
-
-          // Alttan çıkan panel
           Positioned(
             bottom: 0,
             left: 0,
@@ -333,7 +372,7 @@ class _QuestionPageState extends State<QuestionPage>
                     Text(
                       isCorrect
                           ? "Tebrikler!"
-                          : "Tekrar etmeye gelişmeye devam et",
+                          : "Yanıt yanlış, tekrar dene",
                       style: const TextStyle(
                         fontSize: 20,
                         color: Colors.white,
@@ -342,30 +381,16 @@ class _QuestionPageState extends State<QuestionPage>
                     ),
                     const SizedBox(height: 14),
                     ElevatedButton(
-                      onPressed: () {
-                        if (isCorrect) {
-                          goToNextQuestion();
-                        } else {
-                          setState(() {
-                            answered = false;
-                            selectedAnswer = '';
-                            isCorrect = false;
-                            _controller.reset();
-                          });
-                        }
-                      },
+                      onPressed: goToNextQuestion,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: Text(isCorrect ? "Sonraki Soru" : "Tekrar Dene"),
+                      child: const Text("Sonraki Soru"),
                     ),
                   ],
                 ),

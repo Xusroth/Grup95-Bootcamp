@@ -23,11 +23,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int completedTaskCount = 0;
   bool isLoading = true;
+  String avatarPath = 'profile_pic.png';
+  List<Map<String, dynamic>> selectedLessons = [];
 
   @override
   void initState() {
     super.initState();
     fetchDailyTasks();
+    loadAvatar();
+    fetchUserLessons();
+  }
+
+  Future<void> loadAvatar() async {
+    final auth = AuthService();
+    final avatar = await auth.getString('user_avatar');
+    setState(() {
+      avatarPath = avatar ?? 'profile_pic.png';
+    });
   }
 
   Future<void> fetchDailyTasks() async {
@@ -49,6 +61,31 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => isLoading = false);
     }
   }
+
+Future<void> fetchUserLessons() async {
+  final prefs = AuthService();
+  final token = await prefs.getString('token');
+  final userId = await prefs.getString('user_id');
+  if (userId == null) return;
+
+  final response = await http.get(
+    Uri.parse('$baseURL/lesson/users/$userId/lessons'),
+    headers: {'Authorization': 'Bearer $token'},
+  );
+
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    final List lessons = body["lessons"];
+    setState(() {
+      selectedLessons = lessons
+          .map<Map<String, dynamic>>((lesson) => {
+                "title": lesson["title"],
+                "id": lesson["id"],
+              })
+          .toList();
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +113,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Stack(
                         alignment: Alignment.centerLeft,
                         children: [
-                          Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
+                          Image.asset(
+                            'assets/user_bar.png',
+                            fit: BoxFit.contain,
+                            width: 400,
+                            height: 70,
+                          ),
                           Positioned(
-                            left: 16,
+                            left: 0,
                             child: GestureDetector(
                               onTap: () {
                                 Navigator.push(
@@ -88,23 +130,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 );
                               },
-                              child: Image.asset('assets/profile_pic.png', height: 36),
+                              child: Container(
+                                width: 55,
+                                height: 55,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  image: DecorationImage(
+                                    image: AssetImage(
+                                      avatarPath.startsWith('avatar_')
+                                          ? 'assets/avatars/$avatarPath'
+                                          : 'assets/$avatarPath',
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                           Positioned(
-                            left: 60,
+                            left: 80,
                             child: Text(
                               'Merhaba ${widget.userName}',
                               style: const TextStyle(
                                 fontFamily: 'Poppins-Regular',
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: 16,
                               ),
                             ),
                           ),
                           Positioned(
                             right: 48,
-                            child: Image.asset('assets/health_bar.png', height: 24),
+                            child: Image.asset(
+                              'assets/health_bar.png',
+                              height: 24,
+                            ),
                           ),
                           Positioned(
                             right: 20,
@@ -117,7 +176,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 );
                               },
-                              child: Image.asset('assets/report.png', height: 22),
+                              child: Image.asset(
+                                'assets/report.png',
+                                height: 22,
+                              ),
                             ),
                           ),
                         ],
@@ -168,26 +230,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    buildLessonCard(
-                      "Python",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AlgorithmLessonOverview(userName: widget.userName),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 10),
+                    buildLessonSection(),
+                    const SizedBox(height: 16),
                     buildLessonCard(
                       "Günlük\nGörev",
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => QuestScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => QuestScreen()),
                         );
                       },
                     ),
@@ -263,13 +313,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget buildLessonSection() {
+    if (selectedLessons.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    if (selectedLessons.length == 1) {
+      final lesson = selectedLessons.first;
+      return buildLessonCard(
+        lesson["title"],
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AlgorithmLessonOverview(
+                userName: widget.userName,
+                lessonId: lesson["id"],
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      return Wrap(
+        spacing: 0,
+        runSpacing: 16,
+        alignment: WrapAlignment.center,
+        children: selectedLessons.map((lesson) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AlgorithmLessonOverview(
+                    userName: widget.userName,
+                    lessonId: lesson["id"],
+                  ),
+                ),
+              );
+            },
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.asset("assets/card.png", width: 170, height: 170),
+                Text(
+                  lesson["title"],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Poppins-Bold',
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    }
+  }
+
   Widget buildLessonCard(String title, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Image.asset("assets/genis_card.png", width: 280, height: 180),
+          Image.asset("assets/genis_card.png", width: 320, height: 200),
           Text(
             title,
             textAlign: TextAlign.center,

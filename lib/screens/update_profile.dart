@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:android_studio/auth_service.dart';
 import 'change_avatar.dart';
 
 class ProfileUpdate extends StatefulWidget {
@@ -12,17 +14,98 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
   int selectedTime = 5;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _nicknameController = TextEditingController();
-  String selectedAvatar = "assets/profile_pic.png";
+  String avatarPath = 'profile_pic.png';
 
-  void _selectAvatar() async {
+  @override
+  void initState() {
+    super.initState();
+    loadAvatar();
+    loadUserInfo();
+  }
+
+  Future<void> loadAvatar() async {
+    try {
+      final authService = AuthService();
+      final avatar = await authService.getString('user_avatar');
+      setState(() {
+        avatarPath = avatar ?? 'profile_pic.png';
+        debugPrint('Avatar loaded: $avatarPath');
+      });
+    } catch (e) {
+      debugPrint('Avatar loading error: $e');
+      setState(() {
+        avatarPath = 'profile_pic.png';
+      });
+    }
+  }
+
+  Future<void> loadUserInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final name = prefs.getString('user_name');
+      final nickname = prefs.getString('user_nickname');
+      final dailyGoal = prefs.getInt('daily_goal');
+      setState(() {
+        _nameController.text = name ?? '';
+        _nicknameController.text = nickname ?? '';
+        selectedTime = dailyGoal ?? 5;
+      });
+    } catch (e) {
+      debugPrint('Error loading user info: $e');
+    }
+  }
+
+  Future<void> _selectAvatar() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AvatarSelectionScreen()),
     );
 
     if (result != null && result is String) {
-      setState(() => selectedAvatar = result);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_avatar', result);
+        setState(() {
+          avatarPath = result;
+          debugPrint('Avatar selected and saved: $avatarPath');
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avatar başarıyla güncellendi.')),
+        );
+      } catch (e) {
+        debugPrint('Error saving avatar: $e');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Avatar kaydedilemedi.')));
+      }
     }
+  }
+
+  Future<void> _saveProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', _nameController.text);
+      await prefs.setString('user_nickname', _nicknameController.text);
+      await prefs.setInt('daily_goal', selectedTime);
+      debugPrint(
+        'Profile saved: Ad: ${_nameController.text}, Kullanıcı Adı: ${_nicknameController.text}, Süre: $selectedTime dk',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil başarıyla güncellendi.')),
+      );
+    } catch (e) {
+      debugPrint('Error saving profile: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil güncelleme başarısız.')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nicknameController.dispose();
+    super.dispose();
   }
 
   @override
@@ -31,10 +114,7 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
       body: Stack(
         children: [
           SizedBox.expand(
-            child: Image.asset(
-              'assets/arkaplan.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/arkaplan.png', fit: BoxFit.cover),
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -46,19 +126,45 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                       Image.asset('assets/upper_bar.png'),
                       Positioned(
                         top: 60,
-                        child: CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.white, 
-                          backgroundImage: AssetImage(selectedAvatar),
-                        )
+                        child: GestureDetector(
+                          onTap: _selectAvatar,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color.fromARGB(255, 59, 59, 59),
+                                width: 1,
+                              ),
+                              image: DecorationImage(
+                                image: AssetImage(
+                                  avatarPath.startsWith('avatar_')
+                                      ? 'assets/avatars/$avatarPath'
+                                      : 'assets/$avatarPath',
+                                ),
+                                fit: BoxFit.cover,
+                                onError: (exception, stackTrace) {
+                                  debugPrint('Asset image error: $exception');
+                                  setState(() {
+                                    avatarPath = 'profile_pic.png';
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: _selectAvatar,
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -104,7 +210,9 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                           label: Text(
                             '$minute dk',
                             style: TextStyle(
-                              color: isSelected ? Colors.black : Colors.blueGrey,
+                              color: isSelected
+                                  ? Colors.black
+                                  : Colors.blueGrey,
                               fontFamily: 'Poppins-Regular',
                             ),
                           ),
@@ -123,13 +231,13 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton(
-                    onPressed: () {
-                      // Güncelleme işlemi yapılacak alan
-                      print("Ad: \${_nameController.text}, Kullanıcı Adı: \${_nicknameController.text}, Süre: \${selectedTime} dk");
-                    },
+                    onPressed: _saveProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.greenAccent.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 60,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -158,10 +266,16 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 6),
       child: TextField(
         controller: controller,
-        style: const TextStyle(color: Colors.white, fontFamily: 'Poppins-Regular'),
+        style: const TextStyle(
+          color: Colors.white,
+          fontFamily: 'Poppins-Regular',
+        ),
         decoration: InputDecoration(
           hintText: label,
-          hintStyle: const TextStyle(color: Colors.white38, fontFamily: 'Poppins-Regular'),
+          hintStyle: const TextStyle(
+            color: Colors.white38,
+            fontFamily: 'Poppins-Regular',
+          ),
           filled: true,
           fillColor: Colors.white10,
           border: OutlineInputBorder(

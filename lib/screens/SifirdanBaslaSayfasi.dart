@@ -146,6 +146,7 @@ class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
                                 MaterialPageRoute(
                                   builder: (_) => AlgorithmLessonOverview(
                                     userName: widget.userName,
+                                    lessonId: 1,
                                   ),
                                 ),
                               );
