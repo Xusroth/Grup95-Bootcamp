@@ -261,6 +261,7 @@ class QuestionResponse(BaseModel):
     lesson_id: int
     section_id: int
     level: str
+    subsection: str
 
     class Config:
         from_attributes = True

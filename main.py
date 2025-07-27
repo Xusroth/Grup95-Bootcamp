@@ -22,6 +22,12 @@ from routers.avatar import router as avatar_router
 from utils.streak import start_streak_scheduler
 from utils.health import start_health_scheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import logging
+
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 
@@ -59,14 +65,30 @@ def get_db(): # database için dependency oluşturdum.
 db_dependency = Annotated[Session, Depends(get_db)] # burada daha da kısaltarak Dependency Injection Annotated yaptım
 
 
-
+health_scheduler = None # health_count zamanlayıcısını tutmak
+streak_scheduler = None # streak zamanlayıcısını tutmak
 
 
 @app.on_event("startup")
 async def startup_event():
-    create_admin()  # # uygulama çalıştığında otomatik belirlenen isimlerden admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
-    start_streak_scheduler()
-    start_health_scheduler()
+    global health_scheduler, streak_scheduler
+    logger.info("Uygulama başlatılıyor...")
+    create_admin() # uygulama çalıştığında otomatik belirlenen isimlerden admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
+    health_scheduler = start_health_scheduler()
+    streak_scheduler = start_streak_scheduler()
+    logger.info("Zamanlayıcılar başlatıldı.")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    global health_scheduler, streak_scheduler
+    logger.info("Uygulama kapatılıyor..!")
+    if health_scheduler:
+        health_scheduler.shutdown()
+        logger.info("Can hakkı yenileme zamanlayıcısı durduruldu.")
+    if streak_scheduler:
+        streak_scheduler.shutdown()
+        logger.info("Streak yenileme zamanlayıcısı durduruldu.")
 
 
 @app.get('/')

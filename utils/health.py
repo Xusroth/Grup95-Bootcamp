@@ -88,3 +88,4 @@ def start_health_scheduler():
     scheduler.add_job(update_all_users_health, 'interval', hours=1)
     scheduler.start()
     logger.info("Can hakkı yenileme zamanlayıcısı başlatıldı.")
+    return scheduler

@@ -65,10 +65,11 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
         logger.error(f"Soru ID {request.question_id} bulunamadı.")
         raise HTTPException(status_code=404, detail="Soru bulunamadı.")
 
-    user_question = db.query(UserQuestion).filter(
-        UserQuestion.user_id == user.id,
-        UserQuestion.question_id == request.question_id
-    ).first()
+    user_question = db.query(UserQuestion).filter(UserQuestion.user_id == user.id, UserQuestion.question_id == request.question_id).all()
+
+    answered_correctly = any(i.is_correct for i in user_question)
+    if answered_correctly:
+        raise HTTPException(status_code=400, detail="Bu soruyu zaten doğru cevapladınız.")
 
     if user_question:
         logger.warning(f"Kullanıcı {user.id}, soru {request.question_id}'i zaten cevapladı.")
@@ -79,22 +80,45 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
     progress = None
 
     try:
+        user_question = UserQuestion(
+            user_id=user.id,
+            question_id=request.question_id,
+            used_at=datetime.now(timezone.utc),
+            is_correct=is_correct
+        )
+        db.add(user_question)
+
         if is_correct:
             progress = db.query(Progress).filter(
                 Progress.user_id == user.id,
                 Progress.lesson_id == question.lesson_id,
                 Progress.section_id == question.section_id
             ).first()
+
             if not progress:
                 section = db.query(Section).filter(Section.id == question.section_id).first()
                 if not section:
                     logger.error(f"Bölüm ID {question.section_id} bulunamadı.")
                     raise HTTPException(status_code=404, detail="Bölüm bulunamadı.")
 
-                total_questions = db.query(Question).filter(
+                total_questions = db.query(Question).filter(Question.section_id == question.section_id).count()
+
+                beginner_questions = db.query(Question).filter( # alt bölümlerdeki soruları loglama
                     Question.section_id == question.section_id,
-                    Question.level == user.level
+                    Question.subsection == 'beginner'
                 ).count()
+                intermediate_questions = db.query(Question).filter(
+                    Question.section_id == question.section_id,
+                    Question.subsection == 'intermediate'
+                ).count()
+                advanced_questions = db.query(Question).filter(
+                    Question.section_id == question.section_id,
+                    Question.subsection == 'advanced'
+                ).count()
+
+                logger.debug(f"Bölüm {question.section_id} için soru sayıları: "
+                                f"beginner={beginner_questions}, intermediate={intermediate_questions}, "
+                                f"advanced={advanced_questions}, total={total_questions}")
 
                 if total_questions == 0:
                     logger.warning(f"Bölüm {question.section_id} için seviye {user.level} uygun soru bulunamadı.")
@@ -115,55 +139,76 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                 db.refresh(progress)
 
             progress.completed_questions += 1
-            progress.completion_percentage = (
-                progress.completed_questions / progress.total_questions * 100 if progress.total_questions > 0 else 0)
 
-            questions_per_subsection = max(1, progress.total_questions // 3)
-            if progress.completed_questions <= questions_per_subsection:
-                progress.current_subsection = 'beginner'
-                progress.subsection_completion = min(1, progress.completed_questions // questions_per_subsection)
-            elif progress.completed_questions <= 2 * questions_per_subsection:
-                progress.current_subsection = 'intermediate'
-                progress.subsection_completion = min(2, progress.completed_questions // questions_per_subsection)
-            else:
+            progress.completion_percentage = (progress.completed_questions / progress.total_questions * 100 if progress.total_questions > 0 else 0)
+
+            beginner_count = db.query(Question).filter(
+                Question.section_id == question.section_id,
+                Question.subsection == 'beginner'
+            ).count()
+
+            intermediate_count = db.query(Question).filter(
+                Question.section_id == question.section_id,
+                Question.subsection == 'intermediate'
+            ).count()
+
+            advanced_count = db.query(Question).filter(
+                Question.section_id == question.section_id,
+                Question.subsection == 'advanced'
+            ).count()
+
+            # Kullanıcının her seviyede çözdüğü doğru soruları say
+            beginner_solved = db.query(UserQuestion).filter(
+                UserQuestion.user_id == user.id,
+                UserQuestion.is_correct == True,
+                UserQuestion.question_id.in_(
+                    db.query(Question.id).filter(
+                        Question.section_id == question.section_id,
+                        Question.subsection == 'beginner'
+                    )
+                )
+            ).count()
+
+            intermediate_solved = db.query(UserQuestion).filter(
+                UserQuestion.user_id == user.id,
+                UserQuestion.is_correct == True,
+                UserQuestion.question_id.in_(
+                    db.query(Question.id).filter(
+                        Question.section_id == question.section_id,
+                        Question.subsection == 'intermediate'
+                    )
+                )
+            ).count()
+
+            advanced_solved = db.query(UserQuestion).filter(
+                UserQuestion.user_id == user.id,
+                UserQuestion.is_correct == True,
+                UserQuestion.question_id.in_(
+                    db.query(Question.id).filter(
+                        Question.section_id == question.section_id,
+                        Question.subsection == 'advanced'
+                    )
+                )
+            ).count()
+
+            # Current_subsection ve subsection_completion'ı güncelle
+            if beginner_solved >= beginner_count and intermediate_solved >= intermediate_count and advanced_solved >= advanced_count:
                 progress.current_subsection = 'advanced'
                 progress.subsection_completion = 3
+            elif beginner_solved >= beginner_count and intermediate_solved >= intermediate_count:
+                progress.current_subsection = 'advanced'
+                progress.subsection_completion = 2
+            elif beginner_solved >= beginner_count:
+                progress.current_subsection = 'intermediate'
+                progress.subsection_completion = 1
+            else:
+                progress.current_subsection = 'beginner'
+                progress.subsection_completion = 0
 
-            if progress.subsection_completion == 3:
-                section = db.query(Section).filter(Section.id == progress.section_id).first()
-                next_section = db.query(Section).filter(
-                    Section.lesson_id == question.lesson_id,
-                    Section.order > section.order
-                ).order_by(Section.order.asc()).first()
-
-                if next_section:
-                    existing_progress = db.query(Progress).filter(
-                        Progress.user_id == user.id,
-                        Progress.lesson_id == question.lesson_id,
-                        Progress.section_id == next_section.id
-                    ).first()
-
-                    if not existing_progress:
-                        total_questions = db.query(Question).filter(
-                            Question.section_id == next_section.id,
-                            Question.level == user.level
-                        ).count()
-                        if total_questions == 0:
-                            logger.warning(f"Yeni bölüm {next_section.id} için uygun soru bulunamadı.")
-
-                        else:
-                            new_progress = Progress(
-                                user_id=user.id,
-                                lesson_id=question.lesson_id,
-                                section_id=next_section.id,
-                                completed_questions=0,
-                                total_questions=total_questions,
-                                completion_percentage=0.0,
-                                current_subsection='beginner',
-                                subsection_completion=0
-                            )
-                            db.add(new_progress)
-                            logger.debug(f"Kullanıcı {user.id} için bölüm tamamlandı, yeni bölüm: {next_section.id}")
+            logger.debug(f"Subsection durumu: beginner={beginner_solved}/{beginner_count}, "
+                            f"intermediate={intermediate_solved}/{intermediate_count}, "
+                            f"advanced={advanced_solved}/{advanced_count}, "
+                            f"current_subsection={progress.current_subsection}")
 
             progress_updated = True
 
@@ -203,13 +248,6 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
             user.health_count = max(user.health_count - 1, 0)
             user.health_count_update_time = datetime.now(timezone.utc)
 
-        user_question = UserQuestion(
-            user_id=user.id,
-            question_id=request.question_id,
-            used_at=datetime.now(timezone.utc),
-            is_correct=is_correct
-        )
-        db.add(user_question)
         db.commit()
 
         if progress_updated:
@@ -235,4 +273,4 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
     except Exception as err:
         db.rollback()
         logger.error(f"Soru cevaplama hatası, kullanıcı ID {user.id}, soru ID {request.question_id}: {str(err)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Bir hata oluştu: {str(err)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Bir hata oluştu:{str(err)}")

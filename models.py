@@ -42,6 +42,7 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     streaks = relationship('Streak', back_populates='user')
     reset_tokens = relationship('PasswordResetToken', back_populates='user')
     daily_tasks = relationship('DailyTask', back_populates='user')
+    user_questions = relationship('UserQuestion', back_populates='user')
 
 
 class Lesson(Base):
@@ -88,6 +89,7 @@ class Question(Base):
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
     level = Column(String, nullable=True, index=True) # soruların seviyesini saklamak (beginner, intermediate, advanced)
     section_id = Column(Integer, ForeignKey('sections.id'), nullable=False, index=True)
+    subsection = Column(String, nullable=False, index=True) # soruları seviyesine göre çekmek için (beginner, intermediate, advanced)
 
     lesson = relationship('Lesson', back_populates='questions')
     section = relationship('Section', back_populates='questions')
@@ -171,9 +173,10 @@ class UserQuestion(Base):
     __tablename__ = 'user_questions'
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    question_id = Column(Integer, ForeignKey('questions.id'))
+    user_id = Column(Integer, ForeignKey('users.id'), index=True)
+    question_id = Column(Integer, ForeignKey('questions.id'), index=True)
     used_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_correct = Column(Boolean, default=False)  # Sorunun doğru cevaplanıp cevaplanmadığını belirtir
-    user = relationship('User')
+
+    user = relationship('User', back_populates='user_questions')
     question = relationship('Question', back_populates='used_by')
