@@ -3,7 +3,6 @@ import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/change_password_inapp.dart';
 import 'package:android_studio/screens/email_sent.dart';
-import 'package:android_studio/screens/change_password.dart';
 import 'package:android_studio/screens/sss.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +17,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   String userName = "Yükleniyor...";
+  String avatarPath = 'profile_pic.png';
 
   final List<Map<String, dynamic>> settingsItems = [
     {"icon": "assets/user-circle-minus-fill.png", "text": "Hesabı Sil"},
@@ -32,6 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     fetchUserName();
+    loadAvatar();
   }
 
   Future<void> fetchUserName() async {
@@ -48,6 +49,14 @@ class _SettingsPageState extends State<SettingsPage> {
         userName = userData['username'] ?? "Kullanıcı";
       });
     }
+  }
+
+  Future<void> loadAvatar() async {
+    final auth = AuthService();
+    final avatar = await auth.getString('user_avatar');
+    setState(() {
+      avatarPath = avatar ?? 'profile_pic.png';
+    });
   }
 
   Future<void> deleteAccount() async {
@@ -88,9 +97,9 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundImage: AssetImage("assets/profile_pic.png"),
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundImage: AssetImage("assets/avatars/$avatarPath"),
                     ),
                     const SizedBox(width: 12),
                     Text(

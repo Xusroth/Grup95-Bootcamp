@@ -25,7 +25,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     {
       'title': "Beginner",
       'sectionId': 1,
-      'unlocked': true,
+      'unlocked': false,
       'levels': List.generate(10, (_) => {'completedContent': 0}),
     },
     {
@@ -42,6 +42,10 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     },
   ];
 
+  String currentSubsection = 'beginner';
+  int currentSectionId = 1;
+  int subsectionCompletion = 0;
+
   Future<void> updateUnlockedSection() async {
     final token = await AuthService().getString('token');
 
@@ -56,18 +60,24 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       for (var item in data) {
-        if (item['lesson_id'] == widget.lessonId && item['section_id'] == 1) {
-          final subsection = item['current_subsection'];
-          if (subsection == 'intermediate') {
-            setState(() {
-              lessonSections[1]['unlocked'] = true;
-            });
-          } else if (subsection == 'advanced') {
-            setState(() {
-              lessonSections[1]['unlocked'] = true;
-              lessonSections[2]['unlocked'] = true;
-            });
-          }
+        if (item['lesson_id'] == widget.lessonId) {
+          final current = item['current_subsection'];
+          final sectionId = item['section_id'];
+          final completion = item['subsection_completion'];
+
+          setState(() {
+            currentSubsection = current;
+            currentSectionId = sectionId;
+            subsectionCompletion = completion;
+
+            for (var section in lessonSections) {
+              final title = section['title'].toString().toLowerCase();
+              section['unlocked'] = section['sectionId'] == sectionId &&
+                  title == current.toLowerCase();
+            }
+          });
+
+          break;
         }
       }
     }
@@ -78,13 +88,6 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
       final level = lessonSections[sectionIndex]['levels'][levelIndex];
       if (level['completedContent'] < 3) {
         level['completedContent']++;
-      }
-
-      final allCompleted = lessonSections[sectionIndex]['levels']
-          .every((lvl) => lvl['completedContent'] == 3);
-
-      if (allCompleted && sectionIndex + 1 < lessonSections.length) {
-        lessonSections[sectionIndex + 1]['unlocked'] = true;
       }
     });
   }
@@ -116,10 +119,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                       alignment: Alignment.centerLeft,
                       children: [
                         Image.asset('assets/user_bar.png', fit: BoxFit.contain, width: 400, height: 70),
-                        Positioned(
-                          left: 16,
-                          child: Image.asset('assets/profile_pic.png', height: 36),
-                        ),
+                        Positioned(left: 16, child: Image.asset('assets/profile_pic.png', height: 36)),
                         Positioned(
                           left: 60,
                           child: Text(
@@ -131,18 +131,12 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                             ),
                           ),
                         ),
-                        Positioned(
-                          right: 48,
-                          child: Image.asset('assets/health_bar.png', height: 24),
-                        ),
+                        Positioned(right: 48, child: Image.asset('assets/health_bar.png', height: 24)),
                         Positioned(
                           right: 20,
                           child: GestureDetector(
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => ReportScreen1()),
-                              );
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen1()));
                             },
                             child: Image.asset('assets/report.png', height: 22),
                           ),
@@ -187,7 +181,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                   final level = levels[levelIndex];
                                   final completedContent = level['completedContent'];
 
-                                  final isUnlocked = section['unlocked'] && (levelIndex == 0 || levels[levelIndex - 1]['completedContent'] == 3);
+                                  final isUnlocked = section['unlocked'] && levelIndex == subsectionCompletion;
                                   final isCompleted = completedContent == 3;
 
                                   String imageAsset;
@@ -216,9 +210,8 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                                   sectionId: section['sectionId'],
                                                   isLevelCompleted: isCompleted,
                                                   lessonId: widget.lessonId,
-                                                  onCompleted: () {
-                                                    onContentCompleted(sectionIndex, levelIndex);
-                                                  },
+                                                  currentSubsection: currentSubsection,
+                                                  onCompleted: () => updateUnlockedSection(),
                                                 ),
                                               ),
                                             );
@@ -230,7 +223,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                           child: Stack(
                                             alignment: Alignment.center,
                                             children: [
-                                              Image.asset(imageAsset, width: 140, height: 140),
+                                              Image.asset(
+                                                imageAsset,
+                                                width: 140,
+                                                height: 140,
+                                              ),
                                               if (!isUnlocked)
                                                 Image.asset('assets/kilitli_dosya.png', height: 60)
                                               else
@@ -251,7 +248,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        !isUnlocked ? "Kilitli Aşama" : isCompleted ? "Tamamlandı" : "Devam Ediyor",
+                                        !isUnlocked
+                                            ? "Kilitli Aşama"
+                                            : isCompleted
+                                                ? "Tamamlandı"
+                                                : "Devam Ediyor",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontFamily: 'Poppins-Regular',
@@ -278,10 +279,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    SizedBox(
-                      width: 350,
-                      child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
-                    ),
+                    SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
                       child: Row(

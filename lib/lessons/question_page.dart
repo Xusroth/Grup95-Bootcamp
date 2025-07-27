@@ -12,6 +12,7 @@ class QuestionPage extends StatefulWidget {
   final bool isLevelCompleted;
   final int sectionId;
   final int lessonId;
+  final String currentSubsection;
 
   const QuestionPage({
     super.key,
@@ -21,6 +22,7 @@ class QuestionPage extends StatefulWidget {
     required this.isLevelCompleted,
     required this.sectionId,
     required this.lessonId,
+    required this.currentSubsection,
   });
 
   @override
@@ -34,6 +36,7 @@ class _QuestionPageState extends State<QuestionPage>
   bool answered = false;
   bool isCorrect = false;
   int currentQuestionIndex = 0;
+  int correctAnswers = 0;
   double progress = 0.0;
 
   late AnimationController _controller;
@@ -41,24 +44,12 @@ class _QuestionPageState extends State<QuestionPage>
 
   List<Map<String, dynamic>> questions = [];
 
-  String getSubsectionName(int index) {
-    switch (index) {
-      case 0:
-        return 'beginner';
-      case 1:
-        return 'intermediate';
-      case 2:
-        return 'advanced';
-      default:
-        return 'beginner';
-    }
-  }
-
   Future<void> fetchQuestions() async {
     final token = await AuthService().getString('token');
 
     final response = await http.get(
-      Uri.parse('$baseURL/lesson/questions?lesson_id=${widget.lessonId}&section_id=${widget.sectionId}&subsection=${getSubsectionName(widget.sectionIndex)}'),
+      Uri.parse(
+          '$baseURL/lesson/questions?lesson_id=${widget.lessonId}&section_id=${widget.sectionId}&current_subsection=${widget.currentSubsection}'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -71,7 +62,6 @@ class _QuestionPageState extends State<QuestionPage>
         questions = data.cast<Map<String, dynamic>>().take(10).toList();
       });
     } else {
-      debugPrint('Soru çekme başarısız: ${response.body}');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sorular yüklenemedi')),
       );
@@ -79,10 +69,11 @@ class _QuestionPageState extends State<QuestionPage>
     }
   }
 
-  Future<void> sendAnswer(String answer) async {
-    final token = await AuthService().getString('token');
-    final questionId = questions[currentQuestionIndex]['id'];
+Future<void> sendAnswer(String answer) async {
+  final token = await AuthService().getString('token');
+  final question = questions[currentQuestionIndex];
 
+  try {
     final response = await http.post(
       Uri.parse('$baseURL/progress/answer_question'),
       headers: {
@@ -90,54 +81,102 @@ class _QuestionPageState extends State<QuestionPage>
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'question_id': questionId,
+        'question_id': question['id'],
         'user_answer': answer,
       }),
     );
 
-    final result = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-    setState(() {
-      isCorrect = response.statusCode == 200;
-      correctAnswer = result['correct_answer'] ?? '';
-    });
+      setState(() {
+        correctAnswer = question['correct_answer'];
+        isCorrect = true;
+        correctAnswers++;
+        progress = correctAnswers / questions.length;
+      });
+
+      
+      if (data['subsection_completion'] == 1 && data['current_subsection'] == 'intermediate') {
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => QuestionPage(
+                sectionIndex: widget.sectionIndex,
+                levelIndex: widget.levelIndex,
+                onCompleted: widget.onCompleted,
+                isLevelCompleted: false,
+                sectionId: widget.sectionId,
+                lessonId: widget.lessonId,
+                currentSubsection: 'intermediate',
+              ),
+            ),
+          );
+        });
+      } else if (data['subsection_completion'] == 2 && data['current_subsection'] == 'advanced') {
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => QuestionPage(
+                sectionIndex: widget.sectionIndex,
+                levelIndex: widget.levelIndex,
+                onCompleted: widget.onCompleted,
+                isLevelCompleted: false,
+                sectionId: widget.sectionId,
+                lessonId: widget.lessonId,
+                currentSubsection: 'advanced',
+              ),
+            ),
+          );
+        });
+      }
+
+    } else if (response.statusCode == 400) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        correctAnswer = question['correct_answer'];
+        isCorrect = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['detail'] ?? 'Yanlış cevap')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cevap gönderilemedi.')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Bir hata oluştu.')),
+    );
   }
 
-  void handleAnswer(String key) async {
-    if (answered) return;
+  _controller.forward();
+}
 
-    setState(() {
-      selectedAnswer = key;
-      answered = true;
-    });
 
-    await sendAnswer(key);
-    _controller.forward();
-  }
 
-  Color getButtonColor(String key) {
+
+  void handleAnswer(String key) {
+  if (answered) return;
+
+  setState(() {
+    selectedAnswer = key;
+    answered = true;
+  });
+
+  sendAnswer(key);
+}
+
+  Color getAnswerColor(String key) {
     if (!answered) return Colors.white.withOpacity(0.1);
     if (key == selectedAnswer && isCorrect) return Colors.green;
     if (key == selectedAnswer && !isCorrect) return Colors.red;
     if (key == correctAnswer && !isCorrect) return Colors.green.withOpacity(0.6);
     return Colors.white.withOpacity(0.1);
-  }
-
-  void goToNextQuestion() {
-    if (currentQuestionIndex < questions.length - 1) {
-      setState(() {
-        currentQuestionIndex++;
-        selectedAnswer = '';
-        answered = false;
-        isCorrect = false;
-        correctAnswer = '';
-        _controller.reset();
-        progress += 1 / questions.length;
-      });
-    } else {
-      widget.onCompleted();
-      Navigator.pop(context);
-    }
   }
 
   @override
@@ -176,7 +215,6 @@ class _QuestionPageState extends State<QuestionPage>
     }
 
     final question = questions[currentQuestionIndex];
-
 
     return Scaffold(
       body: Stack(
@@ -280,10 +318,7 @@ class _QuestionPageState extends State<QuestionPage>
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                Image.asset(
-                  'assets/corner_gradient_rectangle_long.png',
-                  height: 570,
-                ),
+                Image.asset('assets/corner_gradient_rectangle_long.png', height: 570),
                 Padding(
                   padding: const EdgeInsets.only(top: 10.0),
                   child: Column(
@@ -291,8 +326,7 @@ class _QuestionPageState extends State<QuestionPage>
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 80, vertical: 30),
+                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical: 30),
                         decoration: BoxDecoration(
                           color: Colors.white12,
                           borderRadius: BorderRadius.circular(20),
@@ -313,19 +347,17 @@ class _QuestionPageState extends State<QuestionPage>
                           children: List.generate(4, (index) {
                             String key = String.fromCharCode(65 + index);
                             return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 10.0),
+                              padding: const EdgeInsets.symmetric(vertical: 10.0),
                               child: Container(
                                 width: double.infinity,
                                 height: 75,
                                 decoration: BoxDecoration(
-                                  color: getButtonColor(key),
+                                  color: getAnswerColor(key),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: TextButton(
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
                                     alignment: Alignment.centerLeft,
                                   ),
                                   onPressed: () => handleAnswer(key),
@@ -335,7 +367,6 @@ class _QuestionPageState extends State<QuestionPage>
                                       color: Colors.white,
                                       fontSize: 14,
                                     ),
-                                    textAlign: TextAlign.left,
                                   ),
                                 ),
                               ),
@@ -358,9 +389,7 @@ class _QuestionPageState extends State<QuestionPage>
               child: Container(
                 height: 160,
                 decoration: BoxDecoration(
-                  color: isCorrect
-                      ? Colors.green.withOpacity(0.9)
-                      : Colors.red.withOpacity(0.9),
+                  color: isCorrect ? Colors.green.withOpacity(0.9) : Colors.red.withOpacity(0.9),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(30),
                     topRight: Radius.circular(30),
@@ -370,9 +399,7 @@ class _QuestionPageState extends State<QuestionPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      isCorrect
-                          ? "Tebrikler!"
-                          : "Yanıt yanlış, tekrar dene",
+                      isCorrect ? "Tebrikler!" : "Yanıt yanlış",
                       style: const TextStyle(
                         fontSize: 20,
                         color: Colors.white,
@@ -381,7 +408,26 @@ class _QuestionPageState extends State<QuestionPage>
                     ),
                     const SizedBox(height: 14),
                     ElevatedButton(
-                      onPressed: goToNextQuestion,
+                      onPressed: () {
+                        _controller.reset();
+
+                        if (currentQuestionIndex < questions.length - 1) {
+                          setState(() {
+                            currentQuestionIndex++;
+                            answered = false;
+                            selectedAnswer = '';
+                            correctAnswer = '';
+                            isCorrect = false;
+                            
+                          });
+                        } else {
+                          
+                          if (correctAnswers == questions.length) {
+                            widget.onCompleted(); 
+                          }
+                          Navigator.pop(context); 
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
@@ -392,6 +438,7 @@ class _QuestionPageState extends State<QuestionPage>
                       ),
                       child: const Text("Sonraki Soru"),
                     ),
+
                   ],
                 ),
               ),
