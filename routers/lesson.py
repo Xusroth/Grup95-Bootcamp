@@ -615,18 +615,61 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
 
 
 @router.get('/questions', response_model=list[QuestionResponse]) # belirtilen ders veya bölüme göre soruları getirir. Her ikisi de belirtilirse, hem derse hem bölüme uygun sorular döner  !!!! GÜNCELLEME current_subsection sorugusu da eklendi !!!!
-async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, section_id: Optional[int] = None, current_subsection: Optional[str] = None, current_user: User = Depends(get_current_user)):
+async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, section_id: Optional[int] = None,
+                        current_subsection: Optional[str] = None, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar soruları göremez.")
 
     if not lesson_id and not section_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="En az bir parametre (lesson_id veya section_id) belirtilmeli.")
 
-    if current_subsection and not section_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="section_id belirtilmeden current_subsection belirtilemez.")
+    # Section kontrolü
+    if section_id:
+        section = db.query(SectionModels).filter(SectionModels.id == section_id).first()
+        if not section:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
 
-    if current_subsection and current_subsection not in ['beginner', 'intermediate', 'advanced']:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz current_subsection. Sadece 'beginner', 'intermediate' veya 'advanced' olabilir.")
+        # Bu section için progress kaydı var mı kontrol et
+        progress = db.query(ProgressModels).filter(
+            ProgressModels.user_id == current_user.id,
+            ProgressModels.section_id == section_id
+        ).first()
+
+        if not progress:
+            # Bu section henüz aktif değil, önceki section'ları kontrol et
+            current_section = section
+            previous_sections = db.query(SectionModels).filter(
+                SectionModels.lesson_id == current_section.lesson_id,
+                SectionModels.order < current_section.order
+            ).order_by(SectionModels.order.desc()).all()
+
+            if previous_sections:
+                # Önceki section'ların tamamlanıp tamamlanmadığını kontrol et
+                for prev_section in previous_sections:
+                    prev_progress = db.query(ProgressModels).filter(
+                        ProgressModels.user_id == current_user.id,
+                        ProgressModels.section_id == prev_section.id
+                    ).first()
+
+                    if not prev_progress or prev_progress.current_subsection != 'completed':
+                        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Bu bölüme erişmek için önce '{prev_section.title}' bölümünü tamamlamanız gerekiyor.")
+
+                # Tüm önceki section'lar tamamlanmış, bu section için progress oluştur
+                total_questions = db.query(QuestionModels).filter(QuestionModels.section_id == section_id).count()
+                progress = ProgressModels(
+                    user_id=current_user.id,
+                    lesson_id=section.lesson_id,
+                    section_id=section_id,
+                    completed_questions=0,
+                    total_questions=total_questions,
+                    completion_percentage=0.0,
+                    current_subsection='beginner',
+                    subsection_completion=0
+                )
+                db.add(progress)
+                db.commit()
+                db.refresh(progress)
+                logger.debug(f"Kullanıcı {current_user.id} için section {section_id} aktif edildi.")
 
     query = db.query(QuestionModels)
 
@@ -634,28 +677,68 @@ async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, sect
         query = query.filter(QuestionModels.lesson_id == lesson_id)
 
     if section_id:
-        section = db.query(SectionModels).filter(SectionModels.id == section_id).first()
-        if not section:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
         query = query.filter(QuestionModels.section_id == section_id)
 
-    if current_subsection:
-        progress = db.query(ProgressModels).filter(ProgressModels.user_id == current_user.id, ProgressModels.section_id == section_id).first()
-        if progress and progress.current_subsection != current_subsection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Bu bölümde alt bölümünüz {progress.current_subsection}. {current_subsection} sorularına erişemezsiniz.")
+        # Progress kaydından current_subsection'ı al
+        if not current_subsection:
+            progress = db.query(ProgressModels).filter(
+                ProgressModels.user_id == current_user.id,
+                ProgressModels.section_id == section_id
+            ).first()
 
-        answered_correctly = db.query(UserQuestionModels.question_id).filter(UserQuestionModels.user_id == current_user.id, UserQuestionModels.is_correct == True).subquery()
+            if progress:
+                current_subsection = progress.current_subsection
+            else:
+                current_subsection = 'beginner'  # Default
 
-        query = query.filter(or_(QuestionModels.subsection == current_subsection, and_(QuestionModels.subsection.is_(None), QuestionModels.level == current_subsection)),
-                                not_(QuestionModels.id.in_(answered_correctly)))
+        # Eğer section tamamlanmışsa, soru gösterme
+        if current_subsection == 'completed':
+            raise HTTPException(status_code=status.HTTP_200_OK, detail="Bu bölümü tamamladınız. Sıradaki bölüme geçebilirsiniz.")
 
-    question_count = query.count()
-    logger.debug(f"Lesson ID {lesson_id}, Section ID {section_id}, Subsection {current_subsection} için {question_count} soru bulundu.")
+        # Current subsection'ın geçerli olup olmadığını kontrol et
+        if current_subsection not in ['beginner', 'intermediate', 'advanced']:
+            current_subsection = 'beginner'
+
+        # Sadece mevcut seviyedeki soruları getir
+        query = query.filter(QuestionModels.subsection == current_subsection)
+
+        # Daha önce doğru cevaplanmış soruları hariç tut
+        answered_correctly = db.query(UserQuestionModels.question_id).filter(
+            UserQuestionModels.user_id == current_user.id,
+            UserQuestionModels.is_correct == True
+        ).subquery()
+
+        query = query.filter(not_(QuestionModels.id.in_(answered_correctly)))
 
     questions = query.all()
+    question_count = len(questions)
+
+    logger.debug(
+        f"Lesson ID {lesson_id}, Section ID {section_id}, Subsection {current_subsection} için {question_count} soru bulundu.")
 
     if not questions:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Belirtilen ders, bölüm veya alt bölüm için uygun soru bulunamadı.")
+        if section_id and current_subsection:
+            # Bu seviyede cevaplanmamış soru kalmamış, bir sonraki seviyeye geçiş yapılabilir mi kontrol et
+            progress = db.query(ProgressModels).filter(
+                ProgressModels.user_id == current_user.id,
+                ProgressModels.section_id == section_id
+            ).first()
+
+            if progress:
+                if current_subsection == 'beginner':
+                    detail_message = "Beginner seviyesi tamamlandı. Intermediate seviyesine geçebilirsiniz."
+                elif current_subsection == 'intermediate':
+                    detail_message = "Intermediate seviyesi tamamlandı. Advanced seviyesine geçebilirsiniz."
+                elif current_subsection == 'advanced':
+                    detail_message = "Advanced seviyesi tamamlandı. Bu bölümü tamamladınız!"
+                else:
+                    detail_message = "Bu seviyede çözebileceğiniz soru kalmamış."
+            else:
+                detail_message = "Belirtilen kriterlere uygun soru bulunamadı."
+        else:
+            detail_message = "Belirtilen kriterlere uygun soru bulunamadı."
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail_message)
 
     return [
         QuestionResponse(
