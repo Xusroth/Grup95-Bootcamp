@@ -3,12 +3,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from utils.config import DATABASE_URL
 
-DATABASE_URL = "sqlite:///./codebite.db"
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
     pool_size=10, # max bağlantı sayısı
     max_overflow=20, # extra bağlantı sayısı
     pool_timeout=60, # zaman aşımı bekleme süresi
