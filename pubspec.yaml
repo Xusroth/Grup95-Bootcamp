@@ -153,6 +153,7 @@ flutter:
     - assets/batteries/battery_full.png
     - assets/streak.png
     - assets/terminal.png
+    - assets/tick.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

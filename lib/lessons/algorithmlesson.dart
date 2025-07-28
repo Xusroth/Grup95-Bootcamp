@@ -24,6 +24,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   int currentSectionOrder = 1;
   String currentSubsection = 'beginner';
   int subsectionCompletion = 0;
+  Map<int, int> completedQuestionsMap = {};
 
   @override
   void initState() {
@@ -72,6 +73,10 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
       final progressData = jsonDecode(progressRes.body);
       final lessonProgress = progressData.where((e) => e['lesson_id'] == widget.lessonId).toList();
 
+      for (var item in lessonProgress) {
+        completedQuestionsMap[item['section_id']] = item['completed_questions'];
+      }
+
       final active = lessonProgress.firstWhere(
         (e) => e['current_subsection'] != 'completed',
         orElse: () => null,
@@ -110,10 +115,36 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   bool isUnlocked(int order) => order <= currentSectionOrder;
   bool isCompleted(int order) => order < currentSectionOrder;
 
-  String getSubsectionLabel(int order) {
-    if (order < currentSectionOrder) return "✔️";
-    if (order > currentSectionOrder) return "";
-    return "$subsectionCompletion/3";
+  Widget getSubsectionWidget(int order) {
+    if (order < currentSectionOrder) {
+      return SizedBox(
+        height: 90,
+        child: Center(
+          child: Image.asset('assets/tick.png', height: 80),
+        ),
+      );
+    }
+    if (order > currentSectionOrder) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(
+      height: 90,
+      child: Center(
+        child: Text(
+          "$subsectionCompletion/3",
+          style: const TextStyle(
+            fontSize: 20,
+            color: Colors.white,
+            fontFamily: 'Poppins-Bold',
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool hasIncompleteQuestions(int sectionOrder) {
+    final completed = completedQuestionsMap[sectionOrder] ?? 0;
+    return completed > 0 && completed % 10 != 0;
   }
 
   @override
@@ -212,7 +243,6 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                   final unlocked = isUnlocked(order);
                                   final completed = isCompleted(order);
                                   final imageAsset = getImageAsset(order);
-                                  final label = getSubsectionLabel(order);
 
                                   return Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -245,16 +275,9 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                               if (!unlocked && !completed)
                                                 Image.asset('assets/kilitli_dosya.png', height: 60),
                                               if (order == currentSectionOrder || completed)
-                                                Positioned(
-                                                  bottom: 50,
-                                                  child: Text(
-                                                    label,
-                                                    style: const TextStyle(
-                                                      fontSize: 20,
-                                                      color: Colors.white,
-                                                      fontFamily: 'Poppins-Bold',
-                                                    ),
-                                                  ),
+                                                Align(
+                                                  alignment: Alignment.center,
+                                                  child: getSubsectionWidget(order),
                                                 ),
                                             ],
                                           ),
@@ -278,12 +301,20 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                             ? "Kilitli Aşama"
                                             : completed
                                                 ? "Tamamlandı"
-                                                : "Devam Ediyor",
-                                        style: const TextStyle(
+                                                : hasIncompleteQuestions(order)
+                                                    ? "Eksiklerini kontrol et"
+                                                    : "Devam Ediyor",
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontFamily: 'Poppins-Regular',
-                                          color: Colors.white70,
-                                        ),
+                                          color: !unlocked && !completed
+                                              ? const Color.fromARGB(226, 255, 255, 255)
+                                              : completed
+                                                  ? Colors.greenAccent
+                                                  : hasIncompleteQuestions(order)
+                                                      ? const Color.fromARGB(255, 255, 54, 54)
+                                                      : Colors.yellowAccent,
+                                        ),  
                                         textAlign: TextAlign.center,
                                       ),
                                     ],
