@@ -38,11 +38,14 @@ class _DersSecState extends State<DersSec> {
   final bool csharpKilit = true;
 
   String avatarPath = 'profile_pic.png';
+  int healthCount = 3;
+  int streakCount = 0;
 
   @override
   void initState() {
     super.initState();
     loadAvatar();
+    fetchUserStatus();
   }
 
   Future<void> loadAvatar() async {
@@ -51,6 +54,42 @@ class _DersSecState extends State<DersSec> {
     setState(() {
       avatarPath = avatar ?? 'profile_pic.png';
     });
+  }
+
+  Future<void> fetchUserStatus() async {
+    final token = await AuthService().getString('token');
+    try {
+      final healthRes = await http.get(
+        Uri.parse('$baseURL/auth/health_count'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      final streakRes = await http.get(
+        Uri.parse('$baseURL/auth/streak_count'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (healthRes.statusCode == 200) {
+        final healthData = json.decode(healthRes.body);
+        healthCount = healthData['health_count'];
+      }
+      if (streakRes.statusCode == 200) {
+        final streakData = json.decode(streakRes.body);
+        streakCount = streakData['streak_count'];
+      }
+      setState(() {});
+    } catch (e) {
+      print("Hata: $e");
+    }
+  }
+
+  String getBatteryAsset(int count) {
+    if (count <= 0) return 'assets/batteries/battery_empty.png';
+    if (count == 1) return 'assets/batteries/battery_1.png';
+    if (count == 2) return 'assets/batteries/battery_2.png';
+    if (count == 3) return 'assets/batteries/battery_3.png';
+    if (count == 4) return 'assets/batteries/battery_4.png';
+    if (count == 5) return 'assets/batteries/battery_5.png';
+    return 'assets/batteries/battery_full.png';
   }
 
   Future<void> dersiSec(int lessonId) async {
@@ -109,11 +148,53 @@ class _DersSecState extends State<DersSec> {
   }
 
   void handleFlip(int index, bool locked) {
-    if (locked) return;
-    setState(() {
-      flippedIndex = flippedIndex == index ? null : index;
-    });
+  if (locked) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color.fromARGB(181, 45, 33, 59),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.hourglass_bottom, color: Color(0xFFFFC107), size: 48),
+              SizedBox(height: 16),
+              Text(
+                "ÇOK YAKINDA!!!",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins-Bold',
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            Center(
+              child: TextButton(
+                child: const Text(
+                  "Tamam",
+                  style: TextStyle(color: Colors.amber),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    return;
   }
+
+  setState(() {
+    flippedIndex = flippedIndex == index ? null : index;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -195,28 +276,56 @@ class _DersSecState extends State<DersSec> {
                               ),
                             ),
                           ),
-                          Text(
-                            "Merhaba ${widget.userName}",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontFamily: 'Poppins-Regular',
-                            ),
-                          ),
                           Row(
                             children: [
-                              Image.asset('assets/health_bar.png', height: 28),
-                              const SizedBox(width: 3),
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => ReportScreen1()),
-                                  );
-                                },
-                                icon: Image.asset('assets/report.png', width: 36, height: 36),
+                              Text(
+                                widget.userName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Poppins-Regular',
+                                  fontSize: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              Row(
+                                children: [
+                                  Image.asset(getBatteryAsset(healthCount), height: 55),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$healthCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Poppins-Bold',
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 16),
+                              Row(
+                                children: [
+                                  Image.asset('assets/streak.png', height: 36),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$streakCount',
+                                    style: const TextStyle(
+                                      color: Colors.deepOrange,
+                                      fontFamily: 'Poppins-Bold',
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => ReportScreen1()),
+                              );
+                            },
+                            icon: Image.asset('assets/report.png', width: 36, height: 36),
                           ),
                         ],
                       ),
@@ -368,3 +477,4 @@ class _DersSecState extends State<DersSec> {
     );
   }
 }
+

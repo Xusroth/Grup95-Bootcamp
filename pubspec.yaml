@@ -144,6 +144,15 @@ flutter:
     - assets/avatars/avatar_turtle.png
     - assets/avatars/avatar_vampire.png
     - assets/avatars/avatar_wizard.png
+    - assets/batteries/battery_1.png
+    - assets/batteries/battery_2.png
+    - assets/batteries/battery_3.png
+    - assets/batteries/battery_4.png
+    - assets/batteries/battery_5.png
+    - assets/batteries/battery_empty.png
+    - assets/batteries/battery_full.png
+    - assets/streak.png
+    - assets/terminal.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

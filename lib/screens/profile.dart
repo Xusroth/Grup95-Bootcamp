@@ -276,70 +276,57 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 350,
-                  child: Image.asset('assets/alt_bar.png', fit: BoxFit.fill),
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/home.png", height: 28),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/ders.png", height: 28),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProfilePage(userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/profile.png", height: 28),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 60.0,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => HomeScreen(
-                                userMail: '',
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset('assets/home.png', height: 28),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DersSec(
-                                userMail: '',
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset('assets/ders.png', height: 28),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  ProfilePage(userName: widget.userName),
-                            ),
-                          );
-                        },
-                        child: Image.asset('assets/profile.png', height: 28),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
         ],
       ),
     );

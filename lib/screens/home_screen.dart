@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:android_studio/screens/profile.dart';
 import 'package:android_studio/screens/quest_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
 import 'package:android_studio/lessons/algorithmlesson.dart';
-import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
@@ -24,6 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int completedTaskCount = 0;
   bool isLoading = true;
   String avatarPath = 'profile_pic.png';
+  int healthCount = 3;
+  int streakCount = 0;
   List<Map<String, dynamic>> selectedLessons = [];
 
   @override
@@ -32,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     fetchDailyTasks();
     loadAvatar();
     fetchUserLessons();
+    fetchUserStatus();
   }
 
   Future<void> loadAvatar() async {
@@ -40,6 +44,42 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       avatarPath = avatar ?? 'profile_pic.png';
     });
+  }
+
+  Future<void> fetchUserStatus() async {
+    final token = await AuthService().getString('token');
+    try {
+      final healthRes = await http.get(
+        Uri.parse('$baseURL/auth/health_count'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      final streakRes = await http.get(
+        Uri.parse('$baseURL/auth/streak_count'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (healthRes.statusCode == 200) {
+        final healthData = json.decode(healthRes.body);
+        healthCount = healthData['health_count'];
+      }
+      if (streakRes.statusCode == 200) {
+        final streakData = json.decode(streakRes.body);
+        streakCount = streakData['streak_count'];
+      }
+      setState(() {});
+    } catch (e) {
+      print("Hata: $e");
+    }
+  }
+
+  String getBatteryAsset(int count) {
+    if (count <= 0) return 'assets/batteries/battery_empty.png';
+    if (count == 1) return 'assets/batteries/battery_1.png';
+    if (count == 2) return 'assets/batteries/battery_2.png';
+    if (count == 3) return 'assets/batteries/battery_3.png';
+    if (count == 4) return 'assets/batteries/battery_4.png';
+    if (count == 5) return 'assets/batteries/battery_5.png';
+    return 'assets/batteries/battery_full.png';
   }
 
   Future<void> fetchDailyTasks() async {
@@ -62,30 +102,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-Future<void> fetchUserLessons() async {
-  final prefs = AuthService();
-  final token = await prefs.getString('token');
-  final userId = await prefs.getString('user_id');
-  if (userId == null) return;
+  Future<void> fetchUserLessons() async {
+    final prefs = AuthService();
+    final token = await prefs.getString('token');
+    final userId = await prefs.getString('user_id');
+    if (userId == null) return;
 
-  final response = await http.get(
-    Uri.parse('$baseURL/lesson/users/$userId/lessons'),
-    headers: {'Authorization': 'Bearer $token'},
-  );
+    final response = await http.get(
+      Uri.parse('$baseURL/lesson/users/$userId/lessons'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
 
-  if (response.statusCode == 200) {
-    final body = jsonDecode(response.body);
-    final List lessons = body["lessons"];
-    setState(() {
-      selectedLessons = lessons
-          .map<Map<String, dynamic>>((lesson) => {
-                "title": lesson["title"],
-                "id": lesson["id"],
-              })
-          .toList();
-    });
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      final List lessons = body["lessons"];
+      setState(() {
+        selectedLessons = lessons
+            .map<Map<String, dynamic>>((lesson) => {
+                  "title": lesson["title"],
+                  "id": lesson["id"],
+                })
+            .toList();
+      });
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -149,20 +189,47 @@ Future<void> fetchUserLessons() async {
                           ),
                           Positioned(
                             left: 80,
-                            child: Text(
-                              'Merhaba ${widget.userName}',
-                              style: const TextStyle(
-                                fontFamily: 'Poppins-Regular',
-                                color: Colors.white,
-                                fontSize: 16,
+                            child: Row(
+                              children: [
+                              Text(
+                                widget.userName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Poppins-Regular',
+                                  fontSize: 20,
+                                ),
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            right: 48,
-                            child: Image.asset(
-                              'assets/health_bar.png',
-                              height: 24,
+                              const SizedBox(width: 20),
+                              Row(
+                                children: [
+                                  Image.asset(getBatteryAsset(healthCount), height: 55),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$healthCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Poppins-Bold',
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 16),
+                              Row(
+                                children: [
+                                  Image.asset('assets/streak.png', height: 36),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$streakCount',
+                                    style: const TextStyle(
+                                      color: Colors.deepOrange,
+                                      fontFamily: 'Poppins-Bold',
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             ),
                           ),
                           Positioned(
@@ -248,66 +315,58 @@ Future<void> fetchUserLessons() async {
             ),
           ),
           Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 350,
-                  child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/home.png", height: 28),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/ders.png", height: 28),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProfilePage(userName: widget.userName),
+                                ),
+                              );
+                            },
+                            child: Image.asset("assets/profile.png", height: 28),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => HomeScreen(
-                                userMail: '',
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset("assets/home.png", height: 28),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DersSec(
-                                userMail: '',
-                                userName: widget.userName,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Image.asset("assets/ders.png", height: 28),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProfilePage(userName: widget.userName),
-                            ),
-                          );
-                        },
-                        child: Image.asset("assets/profile.png", height: 28),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+
         ],
       ),
     );

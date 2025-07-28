@@ -111,7 +111,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   bool isCompleted(int order) => order < currentSectionOrder;
 
   String getSubsectionLabel(int order) {
-    if (order < currentSectionOrder) return "3/3";
+    if (order < currentSectionOrder) return "✔️";
     if (order > currentSectionOrder) return "";
     return "$subsectionCompletion/3";
   }
