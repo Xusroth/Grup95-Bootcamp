@@ -8,6 +8,7 @@ import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/update_profile.dart';
 import 'package:android_studio/screens/setting_screen.dart';
+import 'package:android_studio/screens/streak pages/streak1.dart';
 
 class ProfilePage extends StatefulWidget {
   final String userName;
@@ -21,12 +22,14 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   int completedCount = 0;
   int totalCount = 0;
+  int streakCount = 0;
   String avatarPath = 'profile_pic.png';
 
   @override
   void initState() {
     super.initState();
     fetchDailyTasks();
+    fetchStreakCount();
     loadAvatar();
   }
 
@@ -50,13 +53,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final authService = AuthService();
       final token = await authService.getString('token');
-      if (token == null) {
-        debugPrint('Token not found');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Giriş yapılmamış.')));
-        return;
-      }
+      if (token == null) return;
 
       final response = await http.get(
         Uri.parse('$baseURL/tasks/daily'),
@@ -65,26 +62,39 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (response.statusCode == 200) {
         final tasks = jsonDecode(response.body);
-        final completed = tasks
-            .where((task) => task['is_completed'] == true)
-            .length;
+        final completed = tasks.where((task) => task['is_completed'] == true).length;
 
         setState(() {
           totalCount = tasks.length;
           completedCount = completed;
-          debugPrint('Tasks loaded: $completedCount/$totalCount');
         });
-      } else {
-        debugPrint('Failed to load tasks: ${response.statusCode}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Görevler alınamadı: ${response.statusCode}')),
-        );
       }
     } catch (e) {
-      debugPrint('Error fetching tasks: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Görevler alınırken bir hata oluştu.')),
+      debugPrint('Daily task fetch error: $e');
+    }
+  }
+
+  Future<void> fetchStreakCount() async {
+    try {
+      final authService = AuthService();
+      final token = await authService.getString('token');
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse('$baseURL/auth/streak_count'),
+        headers: {'Authorization': 'Bearer $token'},
       );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          streakCount = data['streak'] ?? 0;
+        });
+      } else {
+        debugPrint('Streak fetch failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Streak fetch error: $e');
     }
   }
 
@@ -137,12 +147,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                       : 'assets/$avatarPath',
                                 ),
                                 fit: BoxFit.cover,
-                                onError: (exception, stackTrace) {
-                                  debugPrint('Asset image error: $exception');
-                                  setState(() {
-                                    avatarPath = 'profile_pic.png';
-                                  });
-                                },
                               ),
                               border: Border.all(
                                 color: const Color.fromARGB(255, 59, 59, 59),
@@ -171,8 +175,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     );
                   }),
                   const SizedBox(height: 15),
-                  _buildGradientButton('Devam Eden Eğitimler', () {}),
-                  const SizedBox(height: 15),
                   _buildGradientButton('Ayarlar', () {
                     Navigator.push(
                       context,
@@ -181,11 +183,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   }),
                   const SizedBox(height: 15),
                   GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       final authService = AuthService();
-                      authService.clearString(
-                        'token',
-                      ); 
+                      authService.clearString('token');
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => WelcomeScreen2()),
@@ -211,6 +211,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Günlük Görevler Kartı
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.symmetric(
@@ -271,62 +273,126 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-                bottom: 20,
-                left: 0,
-                right: 0,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+
+                  const SizedBox(height: 12),
+
+                  // Streak Kartı
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const StreakPage1()),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      height: 120,
+                      width: 340,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(36),
+                        image: const DecorationImage(
+                          image: AssetImage('assets/genis_card.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
-                                ),
-                              );
-                            },
-                            child: Image.asset("assets/home.png", height: 28),
+                          Image.asset(
+                            'assets/streak.png',
+                            height: 80,
+                            width: 80,
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Streak',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              );
-                            },
-                            child: Image.asset("assets/ders.png", height: 28),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$streakCount gün',
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ],
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProfilePage(userName: widget.userName),
-                                ),
-                              );
-                            },
-                            child: Image.asset("assets/profile.png", height: 28),
+                          Image.asset(
+                            'assets/streak.png',
+                            height:80,
+                            width: 80,
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+          ),
+
+          // Alt Bar
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
+                            ),
+                          );
+                        },
+                        child: Image.asset("assets/home.png", height: 28),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                            ),
+                          );
+                        },
+                        child: Image.asset("assets/ders.png", height: 28),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProfilePage(userName: widget.userName),
+                            ),
+                          );
+                        },
+                        child: Image.asset("assets/profile.png", height: 28),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
