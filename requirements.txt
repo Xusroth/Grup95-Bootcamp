@@ -1,5 +1,6 @@
 fastapi # kullanacağımız framework
 pydantic # veri doğrulama ve basitleştirme
+email-validator # email doğrulaması için gerekli
 bcrypt # parola şifreleme gibi güvenlik işlemleri
 cryptography # veri şifreleme vb. güvenlik işlemleri
 python-jose # Json Web Token (JWT) için kullanıcaz. JWT ile kimlik doğrulama ve yetkilendirme için lazım.
