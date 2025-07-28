@@ -113,8 +113,7 @@ class AvatarUpdate(BaseModel):
             'avatar_robot_2.png', 'avatar_rock.png', 'avatar_sleepy.png', 'avatar_supergirl.png',
             'avatar_turtle.png', 'avatar_vampire.png', 'avatar_wizard.png'
         ]
-        
-        # Eğer uzantı yoksa .png ekle
+
         if not value.endswith(('.png', '.jpg', '.jpeg')):
             value = f"{value}.png"
             
