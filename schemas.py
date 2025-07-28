@@ -303,6 +303,18 @@ class StreakUpdate(BaseModel):
     last_update: Optional[datetime] = None
 
 
+class StreakResponse(BaseModel):
+    user_id: int
+    username: str
+    lesson_id: int
+    title: str
+    streak_count: int
+    last_update: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
 
 # password resetleme
 class PasswordResetRequest(BaseModel):
