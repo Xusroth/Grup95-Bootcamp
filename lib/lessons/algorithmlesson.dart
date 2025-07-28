@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:android_studio/lessons/question_page.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/dersec_screen.dart';
-import 'package:android_studio/screens/quest_screen.dart';
 import 'package:android_studio/screens/profile.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
 import 'package:http/http.dart' as http;
@@ -21,36 +20,23 @@ class AlgorithmLessonOverview extends StatefulWidget {
 }
 
 class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
-  List<Map<String, dynamic>> lessonSections = [
-    {
-      'title': "Beginner",
-      'sectionId': 1,
-      'unlocked': false,
-      'levels': List.generate(10, (_) => {'completedContent': 0}),
-    },
-    {
-      'title': 'Intermediate',
-      'sectionId': 2,
-      'unlocked': false,
-      'levels': List.generate(10, (_) => {'completedContent': 0}),
-    },
-    {
-      'title': 'Advanced',
-      'sectionId': 3,
-      'unlocked': false,
-      'levels': List.generate(10, (_) => {'completedContent': 0}),
-    },
-  ];
-
+  List<dynamic> allSections = [];
+  int currentSectionOrder = 1;
   String currentSubsection = 'beginner';
-  int currentSectionId = 1;
   int subsectionCompletion = 0;
 
-  Future<void> updateUnlockedSection() async {
+  @override
+  void initState() {
+    super.initState();
+    fetchSections();
+    fetchProgress();
+  }
+
+  Future<void> fetchSections() async {
     final token = await AuthService().getString('token');
 
     final response = await http.get(
-      Uri.parse('$baseURL/progress/me'),
+      Uri.parse('$baseURL/sections/lessons/${widget.lessonId}/sections'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -58,48 +44,90 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      for (var item in data) {
-        if (item['lesson_id'] == widget.lessonId) {
-          final current = item['current_subsection'];
-          final sectionId = item['section_id'];
-          final completion = item['subsection_completion'];
+      final data = jsonDecode(response.body);
+      setState(() {
+        allSections = List.generate(30, (i) => {
+          'order': i + 1,
+          'title': data.firstWhere(
+            (s) => s['order'] == i + 1,
+            orElse: () => {'title': ''},
+          )['title'],
+        });
+      });
+    }
+  }
 
-          setState(() {
-            currentSubsection = current;
-            currentSectionId = sectionId;
-            subsectionCompletion = completion;
+  Future<void> fetchProgress() async {
+    final token = await AuthService().getString('token');
 
-            for (var section in lessonSections) {
-              final title = section['title'].toString().toLowerCase();
-              section['unlocked'] = section['sectionId'] == sectionId &&
-                  title == current.toLowerCase();
-            }
-          });
+    final progressRes = await http.get(
+      Uri.parse('$baseURL/progress/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-          break;
-        }
+    if (progressRes.statusCode == 200) {
+      final progressData = jsonDecode(progressRes.body);
+      final lessonProgress = progressData.where((e) => e['lesson_id'] == widget.lessonId).toList();
+
+      final active = lessonProgress.firstWhere(
+        (e) => e['current_subsection'] != 'completed',
+        orElse: () => null,
+      );
+
+      if (active != null) {
+        setState(() {
+          currentSectionOrder = active['section_id'];
+          currentSubsection = active['current_subsection'];
+          subsectionCompletion = active['subsection_completion'];
+        });
+      } else {
+        final maxSection = lessonProgress.map((e) => e['section_id'] as int).fold(0, (a, b) => a > b ? a : b);
+        setState(() {
+          currentSectionOrder = maxSection + 1;
+          currentSubsection = 'beginner';
+          subsectionCompletion = 0;
+        });
       }
     }
   }
 
-  void onContentCompleted(int sectionIndex, int levelIndex) {
-    setState(() {
-      final level = lessonSections[sectionIndex]['levels'][levelIndex];
-      if (level['completedContent'] < 3) {
-        level['completedContent']++;
-      }
-    });
+  String getImageAsset(int order) {
+    if (order < currentSectionOrder) return 'assets/3-3_ders.png';
+    if (order > currentSectionOrder) return 'assets/bos_ders.png';
+
+    switch (currentSubsection) {
+      case 'beginner': return 'assets/bos_ders.png';
+      case 'intermediate': return 'assets/1-3_ders.png';
+      case 'advanced': return 'assets/2-3_ders.png';
+      case 'completed': return 'assets/3-3_ders.png';
+      default: return 'assets/bos_ders.png';
+    }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    updateUnlockedSection();
+  bool isUnlocked(int order) => order <= currentSectionOrder;
+  bool isCompleted(int order) => order < currentSectionOrder;
+
+  String getSubsectionLabel(int order) {
+    if (order < currentSectionOrder) return "3/3";
+    if (order > currentSectionOrder) return "";
+    return "$subsectionCompletion/3";
   }
 
   @override
   Widget build(BuildContext context) {
+    final beginner = allSections.where((e) => e['order'] <= 10).toList();
+    final intermediate = allSections.where((e) => e['order'] > 10 && e['order'] <= 20).toList();
+    final advanced = allSections.where((e) => e['order'] > 20).toList();
+
+    final List<Map<String, dynamic>> sectionGroups = [
+      {'title': 'Beginner', 'items': beginner},
+      {'title': 'Intermediate', 'items': intermediate},
+      {'title': 'Advanced', 'items': advanced},
+    ];
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -148,10 +176,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.only(bottom: 100),
-                      itemCount: lessonSections.length,
-                      itemBuilder: (context, sectionIndex) {
-                        final section = lessonSections[sectionIndex];
-                        final levels = section['levels'];
+                      itemCount: sectionGroups.length,
+                      itemBuilder: (context, index) {
+                        final group = sectionGroups[index];
+                        final title = group['title'] as String;
+                        final items = group['items'] as List<dynamic>;
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
@@ -159,7 +188,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                section['title'],
+                                title,
                                 style: const TextStyle(
                                   fontFamily: 'Poppins-SemiBold',
                                   fontSize: 18,
@@ -170,48 +199,37 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                               GridView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemCount: levels.length,
+                                itemCount: items.length,
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
                                   mainAxisSpacing: 20,
                                   crossAxisSpacing: 20,
-                                  childAspectRatio: 1,
+                                  childAspectRatio: 0.95,
                                 ),
-                                itemBuilder: (context, levelIndex) {
-                                  final level = levels[levelIndex];
-                                  final completedContent = level['completedContent'];
-
-                                  final isUnlocked = section['unlocked'] && levelIndex == subsectionCompletion;
-                                  final isCompleted = completedContent == 3;
-
-                                  String imageAsset;
-                                  if (completedContent == 3) {
-                                    imageAsset = 'assets/3-3_ders.png';
-                                  } else if (completedContent == 2) {
-                                    imageAsset = 'assets/2-3_ders.png';
-                                  } else if (completedContent == 1) {
-                                    imageAsset = 'assets/1-3_ders.png';
-                                  } else {
-                                    imageAsset = 'assets/bos_ders.png';
-                                  }
+                                itemBuilder: (context, i) {
+                                  final section = items[i];
+                                  final order = section['order'];
+                                  final unlocked = isUnlocked(order);
+                                  final completed = isCompleted(order);
+                                  final imageAsset = getImageAsset(order);
+                                  final label = getSubsectionLabel(order);
 
                                   return Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       GestureDetector(
                                         onTap: () {
-                                          if (isUnlocked && !isCompleted) {
+                                          if (order == currentSectionOrder) {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (_) => QuestionPage(
-                                                  sectionIndex: sectionIndex,
-                                                  levelIndex: levelIndex,
-                                                  sectionId: section['sectionId'],
-                                                  isLevelCompleted: isCompleted,
+                                                  sectionIndex: order - 1,
+                                                  levelIndex: 0,
+                                                  sectionId: order,
+                                                  isLevelCompleted: completed,
                                                   lessonId: widget.lessonId,
                                                   currentSubsection: currentSubsection,
-                                                  onCompleted: () => updateUnlockedSection(),
                                                 ),
                                               ),
                                             );
@@ -223,18 +241,14 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                           child: Stack(
                                             alignment: Alignment.center,
                                             children: [
-                                              Image.asset(
-                                                imageAsset,
-                                                width: 140,
-                                                height: 140,
-                                              ),
-                                              if (!isUnlocked)
-                                                Image.asset('assets/kilitli_dosya.png', height: 60)
-                                              else
+                                              Image.asset(imageAsset, width: 140, height: 140),
+                                              if (!unlocked && !completed)
+                                                Image.asset('assets/kilitli_dosya.png', height: 60),
+                                              if (order == currentSectionOrder || completed)
                                                 Positioned(
-                                                  bottom: 54,
+                                                  bottom: 50,
                                                   child: Text(
-                                                    "$completedContent/3",
+                                                    label,
                                                     style: const TextStyle(
                                                       fontSize: 20,
                                                       color: Colors.white,
@@ -246,15 +260,27 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 4),
                                       Text(
-                                        !isUnlocked
+                                        section['title'] ?? '',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                          fontFamily: 'Poppins-SemiBold',
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        !unlocked && !completed
                                             ? "Kilitli Aşama"
-                                            : isCompleted
+                                            : completed
                                                 ? "Tamamlandı"
                                                 : "Devam Ediyor",
                                         style: const TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 13,
                                           fontFamily: 'Poppins-Regular',
                                           color: Colors.white70,
                                         ),

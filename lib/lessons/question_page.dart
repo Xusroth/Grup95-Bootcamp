@@ -1,14 +1,15 @@
+import 'package:android_studio/lessons/result.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
+import 'package:android_studio/lessons/result.dart'; 
 
 class QuestionPage extends StatefulWidget {
   final int sectionIndex;
   final int levelIndex;
-  final VoidCallback onCompleted;
   final bool isLevelCompleted;
   final int sectionId;
   final int lessonId;
@@ -18,7 +19,6 @@ class QuestionPage extends StatefulWidget {
     super.key,
     required this.sectionIndex,
     required this.levelIndex,
-    required this.onCompleted,
     required this.isLevelCompleted,
     required this.sectionId,
     required this.lessonId,
@@ -48,8 +48,7 @@ class _QuestionPageState extends State<QuestionPage>
     final token = await AuthService().getString('token');
 
     final response = await http.get(
-      Uri.parse(
-          '$baseURL/lesson/questions?lesson_id=${widget.lessonId}&section_id=${widget.sectionId}&current_subsection=${widget.currentSubsection}'),
+      Uri.parse('$baseURL/lesson/questions?lesson_id=${widget.lessonId}&section_id=${widget.sectionId}&current_subsection=${widget.currentSubsection}'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -69,107 +68,64 @@ class _QuestionPageState extends State<QuestionPage>
     }
   }
 
-Future<void> sendAnswer(String answer) async {
-  final token = await AuthService().getString('token');
-  final question = questions[currentQuestionIndex];
+  Future<void> sendAnswer(String answer) async {
+    final token = await AuthService().getString('token');
+    final question = questions[currentQuestionIndex];
 
-  try {
-    final response = await http.post(
-      Uri.parse('$baseURL/progress/answer_question'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'question_id': question['id'],
-        'user_answer': answer,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      setState(() {
-        correctAnswer = question['correct_answer'];
-        isCorrect = true;
-        correctAnswers++;
-        progress = correctAnswers / questions.length;
-      });
-
-      
-      if (data['subsection_completion'] == 1 && data['current_subsection'] == 'intermediate') {
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => QuestionPage(
-                sectionIndex: widget.sectionIndex,
-                levelIndex: widget.levelIndex,
-                onCompleted: widget.onCompleted,
-                isLevelCompleted: false,
-                sectionId: widget.sectionId,
-                lessonId: widget.lessonId,
-                currentSubsection: 'intermediate',
-              ),
-            ),
-          );
-        });
-      } else if (data['subsection_completion'] == 2 && data['current_subsection'] == 'advanced') {
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => QuestionPage(
-                sectionIndex: widget.sectionIndex,
-                levelIndex: widget.levelIndex,
-                onCompleted: widget.onCompleted,
-                isLevelCompleted: false,
-                sectionId: widget.sectionId,
-                lessonId: widget.lessonId,
-                currentSubsection: 'advanced',
-              ),
-            ),
-          );
-        });
-      }
-
-    } else if (response.statusCode == 400) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        correctAnswer = question['correct_answer'];
-        isCorrect = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['detail'] ?? 'Yanlış cevap')),
+    try {
+      final response = await http.post(
+        Uri.parse('$baseURL/progress/answer_question'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'question_id': question['id'],
+          'user_answer': answer,
+        }),
       );
-    } else {
+
+      if (response.statusCode == 200) {
+        setState(() {
+          correctAnswer = question['correct_answer'];
+          isCorrect = true;
+          correctAnswers++;
+          progress = correctAnswers / questions.length;
+        });
+      } else if (response.statusCode == 400) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          correctAnswer = question['correct_answer'];
+          isCorrect = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['detail'] ?? 'Yanlış cevap')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cevap gönderilemedi.')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cevap gönderilemedi.')),
+        const SnackBar(content: Text('Bir hata oluştu.')),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bir hata oluştu.')),
-    );
+
+    _controller.forward();
   }
 
-  _controller.forward();
-}
-
-
-
-
   void handleAnswer(String key) {
-  if (answered) return;
+    if (answered) return;
 
-  setState(() {
-    selectedAnswer = key;
-    answered = true;
-  });
+    setState(() {
+      selectedAnswer = key;
+      answered = true;
+    });
 
-  sendAnswer(key);
-}
+    sendAnswer(key);
+  }
 
   Color getAnswerColor(String key) {
     if (!answered) return Colors.white.withOpacity(0.1);
@@ -411,21 +367,31 @@ Future<void> sendAnswer(String answer) async {
                       onPressed: () {
                         _controller.reset();
 
-                        if (currentQuestionIndex < questions.length - 1) {
+                        if (currentQuestionIndex == questions.length - 1) {
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ResultScreen(
+                                  correctAnswers: correctAnswers,
+                                  totalQuestions: questions.length,
+                                  lessonId: widget.lessonId,
+                                  sectionId: widget.sectionId,
+                                  currentSubsection: widget.currentSubsection,
+                                  levelIndex: widget.levelIndex,
+                                  sectionIndex: widget.sectionIndex,
+                                ),
+                              ),
+                            );
+                          });
+                        } else {
                           setState(() {
                             currentQuestionIndex++;
                             answered = false;
                             selectedAnswer = '';
                             correctAnswer = '';
                             isCorrect = false;
-                            
                           });
-                        } else {
-                          
-                          if (correctAnswers == questions.length) {
-                            widget.onCompleted(); 
-                          }
-                          Navigator.pop(context); 
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -438,7 +404,6 @@ Future<void> sendAnswer(String answer) async {
                       ),
                       child: const Text("Sonraki Soru"),
                     ),
-
                   ],
                 ),
               ),
