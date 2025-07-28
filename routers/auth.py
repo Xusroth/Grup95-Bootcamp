@@ -1,11 +1,13 @@
+
+
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Annotated
 from pydantic import BaseModel
 from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
-from models import User, PasswordResetToken, DailyTask, Progress as ProgressModels, Streak as StreakModels, UserQuestion, ErrorReport
-from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset
+from models import User, PasswordResetToken, DailyTask, Progress as ProgressModels, Streak as StreakModels, UserQuestion, ErrorReport, Lesson as LessonModels
+from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset, StreakResponse
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
 from jose import jwt, JWTError
@@ -390,3 +392,45 @@ async def admin_restore_health_count(db: db_dependency, user_id: int, current_us
     db.refresh(user)
 
     return {'user_id': user.id, 'health_count': user.health_count, 'health_count_update_time': user.health_count_update_time}
+
+
+@router.get('/streaks', response_model=list[StreakResponse])
+async def get_streaks(db: db_dependency, current_user: User = Depends(get_current_user)):
+    if current_user.role == 'guest':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar streak bilgilerini göremez.")
+
+    streaks = []
+    if current_user.role == 'admin':
+        streak_rec = db.query(StreakModels).join(LessonModels, StreakModels.lesson_id == LessonModels.id).all()
+
+        for i in streak_rec:
+            user = db.query(User).filter(User.id == i.user_id).first()
+            streaks.append({
+                'user_id': i.user_id,
+                'username': user.username,
+                'lesson_id': i.lesson_id,
+                'title': i.lesson.title,
+                'streak_count': i.streak_count,
+                'last_update': i.last_update
+            })
+
+    else:
+        streak_rec = db.query(StreakModels).join(LessonModels, StreakModels.lesson_id == LessonModels.id).filter(
+            StreakModels.user_id == current_user.id,
+            LessonModels.id.in_([i.id for i in current_user.lessons])
+        ).all()
+
+        for i in streak_rec:
+            streaks.append({
+                'user_id': i.user_id,
+                'username': current_user.username,
+                'lesson_id': i.lesson_id,
+                'title': i.lesson.title,
+                'streak_count': i.streak_count,
+                'last_update': i.last_update
+            })
+
+    if not streaks:
+        return []
+
+    return streaks
