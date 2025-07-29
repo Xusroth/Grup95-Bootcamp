@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           Positioned(
-                            left: 80,
+                            left: 60,
                             child: Row(
                               children: [
                               Text(
