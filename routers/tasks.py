@@ -49,10 +49,7 @@ def generate_daily_tasks(db: db_dependency, user: User):
 
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    existing_tasks = db.query(DailyTask).filter(
-        DailyTask.user_id == user.id,
-        DailyTask.create_time >= today
-    ).all()
+    existing_tasks = db.query(DailyTask).filter(DailyTask.user_id == user.id, DailyTask.create_time >= today).all()
     logger.debug(f"Kullanıcı {user.id} için mevcut görevler: {len(existing_tasks)}")
 
     if len(existing_tasks) >= 3:
@@ -69,13 +66,13 @@ def generate_daily_tasks(db: db_dependency, user: User):
     available_task_types = [task for task in TASK_TYPES]
 
     if user.has_taken_level_test:
-        available_task_types = [task for task in available_task_types if task['type'] != 'take_level_test'] # user seviye tespit sınavı aldıysa günlük görevlerde bu atanmaz !!!
+        available_task_types = [task for task in available_task_types if task['type'] != 'take_level_test'] # kullanıcı seviye tespit sınavı aldıysa günlük görevlerde bu atanmaz
 
     if len(available_task_types) < tasks_to_create:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Yeterli görev türü tanımlı değil.")
 
-    selected_tasks = random.sample(available_task_types, k=tasks_to_create) # rastgele görev seçme kısmı
-    selected_lessons = random.choices(lessons, k=tasks_to_create) # rastgele ders seçme kısmı
+    selected_tasks = random.sample(available_task_types, k=tasks_to_create)
+    selected_lessons = random.choices(lessons, k=tasks_to_create)
 
     for task, lesson in zip(selected_tasks, selected_lessons):
         section = None
@@ -105,6 +102,7 @@ def generate_daily_tasks(db: db_dependency, user: User):
                     current_subsection='beginner',
                     subsection_completion=0
                 )
+
                 db.add(progress)
 
         if task['type'] == 'take_level_test':
@@ -116,7 +114,7 @@ def generate_daily_tasks(db: db_dependency, user: User):
             ).first()
 
             if existing_level_task:
-                logger.debug(f"Kullanıcı {user.id} için zaten bir take_level_test görevi var, bu görev atlanıyor.") # terminalden loglara bakın !!!!!!
+                logger.debug(f"Kullanıcı {user.id} için zaten bir take_level_test görevi var, bu görev atlanıyor.")
                 continue
 
         daily_task = DailyTask(
@@ -167,13 +165,10 @@ async def get_daily_tasks(db: db_dependency, user: user_dependency, lesson_id: O
     try:
         generate_daily_tasks(db, target_user)
     except HTTPException as e:
-        logger.error(f"Hedef kullanıcı {target_id} için görev oluşturma hatası: {e.detail}")
+        logger.error(f'Hedef kullanıcı {target_id} için görev oluşturma hatası: {e.detail}')
         raise e
 
-    query = db.query(DailyTask).filter(
-        DailyTask.user_id == target_id,
-        DailyTask.expires_time > datetime.now(timezone.utc)
-    )
+    query = db.query(DailyTask).filter(DailyTask.user_id == target_id, DailyTask.expires_time > datetime.now(timezone.utc))
     if lesson_id:
         query = query.filter(DailyTask.lesson_id == lesson_id)
     tasks = query.all()
@@ -184,19 +179,19 @@ async def get_daily_tasks(db: db_dependency, user: user_dependency, lesson_id: O
 @router.post('/review_mistakes', response_model=list[QuestionResponse])
 async def review_mistakes(db: db_dependency, lesson_id: int, current_user: User = Depends(get_current_user), background_tasks: BackgroundTasks = None):
     if current_user.role == 'guest':
-        raise HTTPException(status_code=403, detail="Misafir kullanıcılar bu işlemi yapamaz.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
 
     user = db.query(User).filter(User.id == current_user.id).first()
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
 
     if not user or not lesson:
-        raise HTTPException(status_code=404, detail="Kullanıcı veya ders bulunamadı.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı veya ders bulunamadı.")
 
     if lesson not in user.lessons:
-        raise HTTPException(status_code=400, detail="Bu ders kullanıcı tarafından seçilmemiş.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu ders kullanıcı tarafından seçilmemiş.")
 
     if user.health_count <= 0:
-        raise HTTPException(status_code=403, detail="Yeterli can hakkınız yok. Lütfen can hakkı yenilenmesini bekleyin.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Yeterli can hakkınız yok. Lütfen can hakkı yenilenmesini bekleyin.")
 
     wrong_questions = db.query(UserQuestion).join(QuestionModels).filter(
         and_(
@@ -207,13 +202,14 @@ async def review_mistakes(db: db_dependency, lesson_id: int, current_user: User 
     ).all()
 
     if not wrong_questions:
-        logger.info(f"Kullanıcı {current_user.id} için ders {lesson_id} içinde yanlış cevaplanmış soru bulunamadı.")
+        logger.info(f'Kullanıcı {current_user.id} için ders {lesson_id} içinde yanlış cevaplanmış soru bulunamadı.')
         return []
 
     response_questions = []
 
     for user_question in wrong_questions:
         question = user_question.question
+
         response_questions.append(
             QuestionResponse(
                 id=question.id,
@@ -249,12 +245,13 @@ async def review_mistakes(db: db_dependency, lesson_id: int, current_user: User 
     return response_questions
 
 
-@router.get('/debug_daily_tasks')
+@router.get('/debug_daily_tasks') # backend test için
 async def debug_daily_tasks(db: db_dependency, user: user_dependency):
     if user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
 
     lessons = db.query(Lesson).join(user_lessons).filter(user_lessons.c.user_id == user.id).all()
+
     tasks = db.query(DailyTask).filter(
         DailyTask.user_id == user.id,
         DailyTask.expires_time > datetime.now(timezone.utc)

@@ -29,8 +29,9 @@ def update_user_health_count(db: Session, user_id: int):
             if user.health_count_update_time.tzinfo is None:
                 user.health_count_update_time = user.health_count_update_time.replace(tzinfo=timezone.utc)
             time_diff = (current_time - user.health_count_update_time).total_seconds() / 3600
-            if time_diff >= 2:
-                user.health_count = min(user.health_count + 2, 6)
+
+            if time_diff >= 1:
+                user.health_count = min(user.health_count + 1, 6)
                 user.health_count_update_time = current_time
                 logger.debug(f"Kullanıcı {user_id} için can hakkı güncellendi: {user.health_count}")
             else:
@@ -87,5 +88,5 @@ def start_health_scheduler():
     scheduler = AsyncIOScheduler()
     scheduler.add_job(update_all_users_health, 'interval', hours=1)
     scheduler.start()
-    logger.info("Can hakkı yenileme zamanlayıcısı başlatıldı.")
+    logger.info('Can hakkı yenileme zamanlayıcısı başlatıldı.')
     return scheduler

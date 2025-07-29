@@ -1,3 +1,5 @@
+
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Annotated
@@ -8,14 +10,14 @@ from routers.auth import get_current_user
 from starlette import status
 import logging
 
-# Logging ayarları
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Router tanımlaması
+
 router = APIRouter(prefix='/avatar', tags=['Avatar'])
 
-# Database dependency
+
 def get_db():
     db = SessionLocal()
     try:
@@ -27,11 +29,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 
 @router.put('/update', response_model=UserPublicResponse)
-async def update_user_avatar(
-    db: db_dependency, 
-    avatar_update: AvatarUpdate, 
-    current_user: User = Depends(get_current_user)
-):
+async def update_user_avatar(db: db_dependency, avatar_update: AvatarUpdate, current_user: User = Depends(get_current_user)):
     """
     Kullanıcının profil avatar'ını günceller
     
@@ -45,15 +43,11 @@ async def update_user_avatar(
     Raises:
         HTTPException: Misafir kullanıcı veya geçersiz dosya formatı durumunda
     """
-    # Misafir kullanıcı kontrolü
+
     if current_user.role == 'guest':
         logger.warning(f"Misafir kullanıcı {current_user.id} avatar güncellemeye çalıştı")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Misafir kullanıcılar avatar güncelleyemez."
-        )
-    
-    # Avatar dosya formatı kontrolü
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar avatar güncelleyemez.")
+
     allowed_extensions = ('.png', '.jpg', '.jpeg')
     if not avatar_update.avatar.lower().endswith(allowed_extensions):
         logger.warning(f"Kullanıcı {current_user.id} geçersiz dosya formatı: {avatar_update.avatar}")
@@ -63,7 +57,6 @@ async def update_user_avatar(
         )
     
     try:
-        # Kullanıcıyı mevcut session'da tekrar sorgula
         user = db.query(User).filter(User.id == current_user.id).first()
         if not user:
             raise HTTPException(
@@ -71,7 +64,7 @@ async def update_user_avatar(
                 detail="Kullanıcı bulunamadı."
             )
         
-        # Kullanıcının avatar'ını güncelle
+
         old_avatar = user.avatar
         user.avatar = avatar_update.avatar
         db.commit()

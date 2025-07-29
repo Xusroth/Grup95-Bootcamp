@@ -56,54 +56,45 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                 user.health_count_update_time = user.health_count_update_time.replace(tzinfo=timezone.utc)
             time_diff = datetime.now(timezone.utc) - user.health_count_update_time
             remaining_hours = 2 - (time_diff.total_seconds() / 3600)
-            raise HTTPException(status_code=403, detail=f"Can hakkınız bitti. {remaining_hours:.2f} saat sonra tekrar deneyin.")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Can hakkınız bitti. {remaining_hours:.2f} saat sonra tekrar deneyin.")
         else:
-            raise HTTPException(status_code=403, detail="Can hakkınız bitti. Lütfen bekleyin.")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Can hakkınız bitti. Lütfen bekleyin.")
 
     question = db.query(Question).filter(Question.id == request.question_id).first()
     if not question:
         logger.error(f"Soru ID {request.question_id} bulunamadı.")
-        raise HTTPException(status_code=404, detail="Soru bulunamadı.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soru bulunamadı.")
 
-    # Kullanıcının bu soruyu daha önce doğru cevaplayıp cevaplamadığını kontrol et
-    existing_correct = db.query(UserQuestion).filter(
-        UserQuestion.user_id == user.id,
-        UserQuestion.question_id == request.question_id,
-        UserQuestion.is_correct == True
-    ).first()
+    # kullanıcı mevcut soruyu soruyu daha önce doğru cevaplayıp cevaplamadığının kontrolü
+    existing_correct = db.query(UserQuestion).filter(UserQuestion.user_id == user.id, UserQuestion.question_id == request.question_id, UserQuestion.is_correct == True).first()
 
     if existing_correct:
-        raise HTTPException(status_code=400, detail="Bu soruyu zaten doğru cevapladınız.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu soruyu zaten doğru cevapladınız.")
 
     is_correct = request.user_answer == question.correct_answer
     progress_updated = False
     progress = None
 
     try:
-        # UserQuestion kaydını ekle ve hemen commit et
         user_question = UserQuestion(
             user_id=user.id,
             question_id=request.question_id,
             used_at=datetime.now(timezone.utc),
             is_correct=is_correct
         )
+
         db.add(user_question)
-        db.commit()  # UserQuestion kaydını hemen commit et
+        db.commit()
         db.refresh(user_question)
 
         if is_correct:
-            # Progress kaydını al veya oluştur
-            progress = db.query(Progress).filter(
-                Progress.user_id == user.id,
-                Progress.lesson_id == question.lesson_id,
-                Progress.section_id == question.section_id
-            ).first()
+            progress = db.query(Progress).filter(Progress.user_id == user.id, Progress.lesson_id == question.lesson_id, Progress.section_id == question.section_id).first()
 
             if not progress:
                 section = db.query(Section).filter(Section.id == question.section_id).first()
                 if not section:
-                    logger.error(f"Bölüm ID {question.section_id} bulunamadı.")
-                    raise HTTPException(status_code=404, detail="Bölüm bulunamadı.")
+                    logger.error(f'Bölüm ID {question.section_id} bulunamadı.')
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
 
                 total_questions = db.query(Question).filter(Question.section_id == question.section_id).count()
 
@@ -117,27 +108,17 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                     current_subsection='beginner',
                     subsection_completion=0
                 )
+
                 db.add(progress)
                 db.commit()
                 db.refresh(progress)
 
-            # Her seviyede kaç soru olduğunu hesapla
-            beginner_count = db.query(Question).filter(
-                Question.section_id == question.section_id,
-                Question.subsection == 'beginner'
-            ).count()
+            beginner_count = db.query(Question).filter(Question.section_id == question.section_id, Question.subsection == 'beginner').count()
 
-            intermediate_count = db.query(Question).filter(
-                Question.section_id == question.section_id,
-                Question.subsection == 'intermediate'
-            ).count()
+            intermediate_count = db.query(Question).filter(Question.section_id == question.section_id, Question.subsection == 'intermediate').count()
 
-            advanced_count = db.query(Question).filter(
-                Question.section_id == question.section_id,
-                Question.subsection == 'advanced'
-            ).count()
+            advanced_count = db.query(Question).filter(Question.section_id == question.section_id, Question.subsection == 'advanced').count()
 
-            # Kullanıcının her seviyede çözdüğü doğru soruları say
             beginner_solved = db.query(UserQuestion).join(Question).filter(
                 UserQuestion.user_id == user.id,
                 UserQuestion.is_correct == True,
@@ -159,34 +140,22 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                 Question.subsection == 'advanced'
             ).count()
 
-            # Progress güncelle
             progress.completed_questions = beginner_solved + intermediate_solved + advanced_solved
-            progress.completion_percentage = (
-                progress.completed_questions / progress.total_questions * 100 if progress.total_questions > 0 else 0)
+            progress.completion_percentage = (progress.completed_questions / progress.total_questions * 100 if progress.total_questions > 0 else 0)
 
-            # Current_subsection ve subsection_completion'ı güncelle
             if advanced_solved >= advanced_count and intermediate_solved >= intermediate_count and beginner_solved >= beginner_count:
-                # Tüm seviyeler tamamlandı - sıradaki section'a geç
                 progress.current_subsection = 'completed'
                 progress.subsection_completion = 3
 
-                # Sıradaki section'ı bul ve aktif et
                 current_section = db.query(Section).filter(Section.id == question.section_id).first()
-                next_section = db.query(Section).filter(
-                    Section.lesson_id == question.lesson_id,
-                    Section.order > current_section.order
-                ).order_by(Section.order.asc()).first()
+                next_section = db.query(Section).filter(Section.lesson_id == question.lesson_id, Section.order > current_section.order).order_by(Section.order.asc()).first()
 
                 if next_section:
-                    # Sıradaki section için progress kaydı oluştur
-                    next_progress = db.query(Progress).filter(
-                        Progress.user_id == user.id,
-                        Progress.lesson_id == question.lesson_id,
-                        Progress.section_id == next_section.id
-                    ).first()
+                    next_progress = db.query(Progress).filter(Progress.user_id == user.id, Progress.lesson_id == question.lesson_id, Progress.section_id == next_section.id).first()
 
                     if not next_progress:
                         next_total_questions = db.query(Question).filter(Question.section_id == next_section.id).count()
+
                         next_progress = Progress(
                             user_id=user.id,
                             lesson_id=question.lesson_id,
@@ -197,30 +166,29 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                             current_subsection='beginner',
                             subsection_completion=0
                         )
+
                         db.add(next_progress)
-                        logger.debug(f"Kullanıcı {user.id} için sıradaki section {next_section.id} aktif edildi.")
+                        logger.debug(f'Kullanıcı {user.id} için sıradaki section {next_section.id} aktif edildi.')
 
             elif intermediate_solved >= intermediate_count and beginner_solved >= beginner_count:
-                # Beginner ve intermediate tamamlandı - advanced'e geç
                 progress.current_subsection = 'advanced'
                 progress.subsection_completion = 2
+
             elif beginner_solved >= beginner_count:
-                # Beginner tamamlandı - intermediate'e geç
                 progress.current_subsection = 'intermediate'
                 progress.subsection_completion = 1
+
             else:
-                # Hala beginner seviyesinde
                 progress.current_subsection = 'beginner'
                 progress.subsection_completion = 0
 
-            logger.debug(f"Progress güncellendi: beginner={beginner_solved}/{beginner_count}, "
-                         f"intermediate={intermediate_solved}/{intermediate_count}, "
-                         f"advanced={advanced_solved}/{advanced_count}, "
-                         f"current_subsection={progress.current_subsection}")
+            logger.debug(f'Progress güncellendi: beginner={beginner_solved}/{beginner_count}, '
+                            f'intermediate={intermediate_solved}/{intermediate_count}, '
+                            f'advanced={advanced_solved}/{advanced_count}, '
+                            f'current_subsection={progress.current_subsection}')
 
             progress_updated = True
 
-            # Daily task kontrolü
             tasks = db.query(DailyTask).filter(
                 DailyTask.user_id == user.id,
                 DailyTask.lesson_id == question.lesson_id,
@@ -237,7 +205,6 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                     user.health_count = min(user.health_count + 2, 6)
                     user.health_count_update_time = datetime.now(timezone.utc)
 
-            # Section tamamlanma kontrolü
             if progress.subsection_completion == 3:
                 section_tasks = db.query(DailyTask).filter(
                     DailyTask.user_id == user.id,
@@ -255,7 +222,6 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                     user.health_count_update_time = datetime.now(timezone.utc)
 
         else:
-            # Yanlış cevap
             user.health_count = max(user.health_count - 1, 0)
             user.health_count_update_time = datetime.now(timezone.utc)
 
@@ -268,7 +234,7 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
         background_tasks.add_task(update_user_health_count, db, user.id)
 
         if not is_correct:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Yanlış cevap, 1 can kaybettiniz. Kalan can: {user.health_count}')
 
         response_data = {
             'message': "Doğru cevap!",
@@ -278,7 +244,6 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
             'subsection_completion': progress.subsection_completion if progress_updated else None
         }
 
-        # Eğer section tamamlandıysa bunu belirt
         if progress_updated and progress.current_subsection == 'completed':
             response_data['section_completed'] = True
             response_data['message'] = "Doğru cevap! Bu bölümü tamamladınız, sıradaki bölüm aktif edildi."
@@ -287,13 +252,14 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
 
     except HTTPException as err:
         raise err
+
     except Exception as err:
         db.rollback()
-        logger.error(f"Soru cevaplama hatası, kullanıcı ID {user.id}, soru ID {request.question_id}: {str(err)}")
+        logger.error(f'Soru cevaplama hatası, kullanıcı ID {user.id}, soru ID {request.question_id}: {str(err)}')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Bir hata oluştu:{str(err)}")
 
 
-@router.get('/users/{user_id}/lessons/{lesson_id}/accessible-sections', response_model=list[dict]) # kullanıcının hangi section'ı alabileceğini göstermeye çalıştım ?
+@router.get('/users/{user_id}/lessons/{lesson_id}/accessible-sections', response_model=list[dict]) # kullanıcının alabileceği sectionlar
 async def get_user_accessible_sections(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
@@ -310,13 +276,11 @@ async def get_user_accessible_sections(db: db_dependency, user_id: int, lesson_i
     if lesson not in user.lessons:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu ders kullanıcı tarafından seçilmemiş.")
 
-    # Dersin tüm section'larını sırayla al
     sections = db.query(Section).filter(Section.lesson_id == lesson_id).order_by(Section.order).all()
 
     result = []
 
     for section in sections:
-        # Bu section için progress kaydını al
         progress = db.query(Progress).filter(
             Progress.user_id == user_id,
             Progress.section_id == section.id
@@ -342,22 +306,16 @@ async def get_user_accessible_sections(db: db_dependency, user_id: int, lesson_i
                 'subsection_completion': progress.subsection_completion,
                 'completion_percentage': progress.completion_percentage
             })
+
         else:
-            # İlk section her zaman erişilebilir
             if section.order == 1:
                 section_data['is_accessible'] = True
+
             else:
-                # Önceki section tamamlanmış mı kontrol et
-                previous_section = db.query(Section).filter(
-                    Section.lesson_id == lesson_id,
-                    Section.order == section.order - 1
-                ).first()
+                previous_section = db.query(Section).filter(Section.lesson_id == lesson_id, Section.order == section.order - 1).first()
 
                 if previous_section:
-                    prev_progress = db.query(Progress).filter(
-                        Progress.user_id == user_id,
-                        Progress.section_id == previous_section.id
-                    ).first()
+                    prev_progress = db.query(Progress).filter(Progress.user_id == user_id, Progress.section_id == previous_section.id).first()
 
                     if prev_progress and prev_progress.current_subsection == 'completed':
                         section_data['is_accessible'] = True

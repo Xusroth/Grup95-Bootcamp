@@ -9,7 +9,10 @@ from models import ErrorReport, User
 from schemas import ErrorReportCreate, ErrorReportResponse, ErrorReportUpdate
 from routers.auth import get_current_user
 
+
+
 router = APIRouter(prefix='/error', tags=['Error Reporting'])
+
 
 def get_db():
     db = SessionLocal()
@@ -44,10 +47,10 @@ async def report_error(db: db_dependency, report: ErrorReportCreate, current_use
 
     except Exception as err:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Hata loglara kayıt edilemedi. {err}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Hata kayıt edilemedi. {err}")
 
 
-@router.get('/my_reports', response_model=list[ErrorReportResponse]) # user kendi oluşturduğu reportları görebilir
+@router.get('/my_reports', response_model=list[ErrorReportResponse]) # kullanıcı kendi oluşturduğu reportları görebilir
 async def get_my_error_reports(db: db_dependency, current_user: User = Depends(get_current_user)):
     reports = db.query(ErrorReport).filter(ErrorReport.user_id == current_user.id).all()
     return reports
@@ -57,6 +60,7 @@ async def get_my_error_reports(db: db_dependency, current_user: User = Depends(g
 async def get_error_reports(db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler hata raporlarını görebilir.")
+
     reports = db.query(ErrorReport).all()
     return reports
 

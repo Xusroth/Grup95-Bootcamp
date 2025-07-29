@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from models import User, PasswordResetToken, DailyTask, Progress as ProgressModels, Streak as StreakModels, UserQuestion, ErrorReport, Lesson as LessonModels
 from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset, StreakResponse
 import bcrypt
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # authorize kısmının düzelmesi için deniyorum..!
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 from utils.email import send_reset_email
@@ -19,7 +19,7 @@ import random
 
 
 
-router = APIRouter(prefix='/auth', tags=['Authentication']) # bu routerları oluşturup sonra hepsini main dosyasındaki app'e bağlıcaz
+router = APIRouter(prefix='/auth', tags=['Authentication'])
 
 oauth2 = OAuth2PasswordBearer(tokenUrl='auth/login')
 
@@ -59,10 +59,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2)], db: db_depend
         email: str = payload.get('sub')
         if email is None:
             raise credentials_exception
+
         user = db.query(User).filter(User.email == email).first()
         if user is None:
             raise credentials_exception
+
         return user
+
     except JWTError:
         raise credentials_exception
 
@@ -98,23 +101,24 @@ def create_admin(): # admin oluşturmak için fonksiyon. email -> admin@gmail.co
 
 
 
-@router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserPublicResponse) # kullanıcı kayıt
+@router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserPublicResponse)
 async def register(db: db_dependency, user: UserRegister, background_tasks: BackgroundTasks):
     mevcut_user = db.query(User).filter((User.email == user.email) | (User.username == user.username)).first()
     if mevcut_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu kullanıcı adı veya email zaten kayıtlı.")
 
-    # şifreyi hashliyorum
-    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8') # bcrypt.gensalt() -> şifre hashlemeye özel salt üretir. bu salt aynı şifrelerin her seferinde farklı hashlenmesini sağlar.      # encode('utf-8') -> bcrypt byte formatında çalıştığı için şifreyi byte formatına çeviriyor.
+    # şifre hashlendi   # encode('utf-8') -> bcrypt byte formatında çalıştığı için şifre byte formatına çevrildi
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # bcrypt.gensalt() -> şifre hashlemeye özel salt üretir. bu salt aynı şifrelerin her seferinde farklı hashlenmesini sağlar.
 
     # yeni kullanıcı oluşturma
     db_user = User(
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role='user',   # role kısmını user olarak sabitledim
-        level='beginner',  # kullanıcıların leveli default olarak beginner belirledim
-        has_taken_level_test=False, # en başta kullanıcılar seviye testine girmediği için False yaptım. sınava girmesine göre boolean değiştirecek
+        role='user', # role kısmını user olarak sabitlendi
+        level='beginner', # kullanıcıların levelini default olarak beginner belirlendi
+        has_taken_level_test=False, # kullanıcıların seviye tespit sınavına girmesine göre boolean olarak değişecek
         health_count=6,
         health_count_update_time=datetime.now(timezone.utc)
     )
@@ -128,16 +132,16 @@ async def register(db: db_dependency, user: UserRegister, background_tasks: Back
     return db_user
 
 
-@router.post('/login', response_model=Token) # kullanıcı login kısmı (token ekledim güncelledim)
+@router.post('/login', response_model=Token)
 async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    db_user = db.query(User).filter(User.email == form_data.username).first() # user.email kısmı değişti..!
+    db_user = db.query(User).filter(User.email == form_data.username).first() # user.email kısmı değişti.
     if not db_user or db_user.hashed_password is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
 
     if not bcrypt.checkpw(form_data.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Şifre yanlış.")
 
-    access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncelledim
+    access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncellendi
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -168,6 +172,7 @@ async def guest_login(db: db_dependency):
         data={'sub': guest_user.email},
         expires_delta=timedelta(hours=1)
     )
+
     return {'access_token': access_token, 'token_type': 'bearer', 'username' : guest_username}
 
 
@@ -203,17 +208,20 @@ async def update_user(db: db_dependency, user_id: int, user_update: UserUpdate, 
     return user
 
 
-@router.get('/me', response_model=UserPublicResponse) # login olan kullanıcının bilgilerini görebilmesi için
+@router.get('/me', response_model=UserPublicResponse) # login olan kullanıcının bilgilerini görebilmesi
 async def get_current_user_info(db: db_dependency, token: str = Depends(oauth2)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get('sub')
         if email is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz token.")
+
         user = db.query(User).filter(User.email == email).first()
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User bulunamadı.")
+
         return user
+
     except JWTError as err:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Not authenticated: {str(err)}")
 
@@ -227,6 +235,7 @@ async def make_admin(db: db_dependency, user_id: int, current_user: User = Depen
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler bu işlemi yapabilir.")
     user = db.query(User).filter(User.id == user_id).first()
+
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
 
@@ -236,7 +245,7 @@ async def make_admin(db: db_dependency, user_id: int, current_user: User = Depen
     user.role = 'admin'
     user.level = None
     db.commit()
-    return {"message": f"{user.username} kullanıcısına admin yetkisi verildi."}
+    return {'message': f"{user.username} kullanıcısına admin yetkisi verildi."}
 
 
 @router.get('/admin/users')
@@ -248,7 +257,7 @@ async def list_users(db: db_dependency, current_user: User = Depends(get_current
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler kullanıcıları listeleyebilir.")
 
     user = db.query(User).all()
-    return [{"user_id": i.id, "username": i.username, "email": i.email, "role": i.role, "level": i.level, "has_taken_level_test": i.has_taken_level_test, 'health_count': i.health_count, 'health_count_update_time': i.health_count_update_time} for i in user]
+    return [{'user_id': i.id, 'username': i.username, 'email': i.email, 'role': i.role, 'level': i.level, 'has_taken_level_test': i.has_taken_level_test, 'health_count': i.health_count, 'health_count_update_time': i.health_count_update_time, 'notification_preferences': i.notification_preferences, 'theme': i.theme, 'language': i.language, 'avatar': i.avatar} for i in user]
 
 
 @router.delete('/admin/users/{user_id}', status_code=status.HTTP_200_OK, response_model=dict)
@@ -274,14 +283,11 @@ async def delete_user(db: db_dependency, user_id: int, current_user: User = Depe
 
     db.delete(user)
     db.commit()
-    return {"message": f"{user.username} adlı kullanıcı silindi."}
+    return {'message': f"{user.username} adlı kullanıcı silindi."}
 
 
 @router.delete('/users/me/delete', status_code=status.HTTP_200_OK, response_model=dict)
 async def delete_own_account(db: db_dependency, current_user: User = Depends(get_current_user)):
-    if current_user.role == 'guest':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar hesap silemez.")
-
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
@@ -306,14 +312,14 @@ async def request_password_reset(db: db_dependency, request: PasswordResetReques
     if user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Misafir kullanıcılar şifre sıfırlayamaz.")
 
-    token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token create kısmı
+    token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token create
 
-    reset_token = PasswordResetToken(user_id=user.id, token=token, expires_time=datetime.now(timezone.utc) + timedelta(hours=1)) # token sıfırlama ve db'ye kaydetme kısmı
+    reset_token = PasswordResetToken(user_id=user.id, token=token, expires_time=datetime.now(timezone.utc) + timedelta(hours=1)) # token sıfırlama ve db'ye kaydetme
 
     db.add(reset_token)
     db.commit()
 
-    send_reset_email(user.email, token) # e posta gönderme kısmı
+    send_reset_email(user.email, token) # e posta gönderme
     return {'message': "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi."}
 
 
@@ -335,8 +341,8 @@ async def reset_password(db: db_dependency, reset: PasswordReset):
     if not reset_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
 
-    expires_time = reset_token.expires_time # burada token süresi kontrolü için normalize ettim öyle kontrol ettim ancak böyle db'ye kaydını adam akıllı yapabildim
-    if expires_time.tzinfo is None: # !!!!!!! zor bela sqlite timezone bilgisini saklıyor !!!!!!
+    expires_time = reset_token.expires_time # token süresi kontrolü için normalize edilip öyle kontrol edildi. db'ye kaydını bu şekilde düzgün yapılabildi.
+    if expires_time.tzinfo is None:
         expires_time = expires_time.replace(tzinfo=timezone.utc)
     if expires_time < datetime.now(timezone.utc):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
@@ -352,18 +358,16 @@ async def reset_password(db: db_dependency, reset: PasswordReset):
     return {'message': "Şifreniz başarıyla güncellendi."}
 
 
-@router.delete('/admin/cleanup_guests', status_code=status.HTTP_200_OK) # misafir kullanıcı 7 gün boyunca inaktif olursa db'den otomatik olarak hesabı silinir
+@router.delete('/admin/cleanup_guests', status_code=status.HTTP_200_OK) # misafir kullanıcılar 7 gün boyunca inaktif olursa db'den otomatik olarak hesabı silinir
 async def cleanup_guests(db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler bu işlemi yapabilir.")
 
     cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)
-    deleted_count = db.query(User).filter(
-        User.role == 'guest',
-        User.health_count_update_time < cutoff_time
-    ).delete()
+    deleted_count = db.query(User).filter(User.role == 'guest', User.health_count_update_time < cutoff_time).delete()
+
     db.commit()
-    return {"message": f"{deleted_count} inaktif misafir hesabı silindi."}
+    return {'message': f"{deleted_count} inaktif misafir hesabı silindi."}
 
 
 @router.get('/health_count')
@@ -405,6 +409,7 @@ async def get_streaks(db: db_dependency, current_user: User = Depends(get_curren
 
         for i in streak_rec:
             user = db.query(User).filter(User.id == i.user_id).first()
+
             streaks.append({
                 'user_id': i.user_id,
                 'username': user.username,

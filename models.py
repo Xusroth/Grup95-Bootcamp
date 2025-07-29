@@ -6,7 +6,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone, timedelta
 
 
-# bu kısımda ilişki many to many olucak çünkü birden fazla kullanıcı birden fazla ders alabilir. Ayrıca bu tür many to many ilişkilerde direkt ForeignKey ile bağlamak mümkün olmaz. Bu yüzden ara tablo yaptım.   # many-to-many ilişkili ara tablolarda her iki sütun da primary key olarak tanımlanır.
+# bu kısımda ilişki many to many olucak çünkü birden fazla kullanıcı birden fazla ders alabilir. Ayrıca bu tür many to many ilişkilerde direkt ForeignKey ile bağlamak mümkün olmaz. Bu yüzden ara tablo yaptım
+# many-to-many ilişkili ara tablolarda her iki sütun da primary key olarak tanımlanır.
 
 
 user_lessons = Table(
@@ -19,22 +20,22 @@ user_lessons = Table(
 
 
 
-class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=True diyerek index oluşturdum (böylece select işlemi hızlanır)
+class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=True diyerek index oluşturuldu (böylece select işlemi hızlanır)
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String) # parolanın şifrelenmiş hali
-    role = Column(String, default='user') # admin ve kullanıcıyı ayırmak için role ekledim
-    level = Column(String, nullable=True) # şimdilik beginner, intermediate ve advanced düzeyleri ekledim maksat prompta kullanıcı seviyesine göre soru generate edebilelim
-    has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi onun kontrolü
+    role = Column(String, default='user') # admin ve kullanıcıyı ayırmak için role bilgisi
+    level = Column(String, nullable=True) # beginner, intermediate ve advanced düzeyleri eklendi amaç prompta her kullanıcının seviyesine göre soru generate edilebilsin
+    has_taken_level_test = Column(Boolean, default=False) # seviye testine girdi mi girmedi mi kontrolü
     health_count = Column(Integer, default=6) # can hakkı
     health_count_update_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)) # can hakkının güncellenme zamanı
     notification_preferences = Column(JSON, default={'email': True, 'push': True}) # bildirim tercihleri
     theme = Column(String, default='dark') # dark, light tema tercihi
     language = Column(String, default='tr') # dil tercihleri (tr, en)
-    avatar = Column(String, default='profile_pic.png') # kullanıcının profil resmi
+    avatar = Column(String, default='profile_pic.png') # kullanıcının avatar profili resmi
 
     lessons = relationship('Lesson', secondary='user_lessons', back_populates='users')
     progress = relationship('Progress', back_populates='user')
@@ -55,10 +56,10 @@ class Lesson(Base):
 
     users = relationship('User', secondary=user_lessons, back_populates='lessons')
     progress = relationship('Progress', back_populates='lesson')
-    questions = relationship('Question', back_populates='lesson') # one to many ilişki
+    questions = relationship('Question', back_populates='lesson')
     streaks = relationship('Streak', back_populates='lesson')
     daily_tasks = relationship('DailyTask', back_populates='lesson')
-    sections = relationship('Section', back_populates='lesson', cascade='all, delete-orphan') # yeni ekledim ilişkiyi inş olmuştur !!!
+    sections = relationship('Section', back_populates='lesson', cascade='all, delete-orphan')
 
 
 class Progress(Base):
@@ -67,7 +68,7 @@ class Progress(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False)
-    section_id = Column(Integer, ForeignKey('sections.id'), nullable=False) # section_id'yi zorunlu tuttum bilerek yoksa %70 sıklıkla null dönüyor
+    section_id = Column(Integer, ForeignKey('sections.id'), nullable=False) # section_id'yi zorunlu tutuldu yoksa null dönüyor
     completed_questions = Column(Integer, default=0)
     total_questions = Column(Integer, default=0)
     completion_percentage = Column(Float, default=0.0) # tamamlama yüzdesi
@@ -76,7 +77,7 @@ class Progress(Base):
 
     user = relationship('User', back_populates='progress')
     lesson = relationship('Lesson', back_populates='progress')
-    section = relationship('Section', back_populates='progress') # section ile bağlandı
+    section = relationship('Section', back_populates='progress')
 
 
 class Question(Base):
@@ -84,27 +85,27 @@ class Question(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     content = Column(String, nullable=False) # soru içeriği
-    options = Column(JSON, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin //// JSON tipini denendim
+    options = Column(JSON, nullable=False) # şıklar JSON şeklinde saklanıyor ki flutter tarafından parse olabilsin  (JSON tipini denedim)
     correct_answer = Column(String, nullable=False) # doğru şık
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=False, index=True)
     level = Column(String, nullable=True, index=True) # soruların seviyesini saklamak (beginner, intermediate, advanced)
     section_id = Column(Integer, ForeignKey('sections.id'), nullable=False, index=True)
-    subsection = Column(String, nullable=False, index=True) # soruları seviyesine göre çekmek için (beginner, intermediate, advanced)
+    subsection = Column(String, nullable=False, index=True) # soruları seviyesine göre çekmek için (flutter için)
 
     lesson = relationship('Lesson', back_populates='questions')
     section = relationship('Section', back_populates='questions')
     used_by = relationship('UserQuestion', back_populates='question')
 
 
-class ErrorReport(Base): # error report feedback kısmı için
+class ErrorReport(Base):
     __tablename__ = 'error_reports'
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
     error_message = Column(String, nullable=False)
-    details = Column(String, nullable=True) # daha açıklayıcı olması için ek detaylar ekledim (duruma göre kaldırırız) !!
+    details = Column(String, nullable=True) # daha açıklayıcı olması için ek detaylar ekledim
     timestamp = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True)
-    status = Column(String, default='pending', index=True) # pending, resolved, rejected vb. durumlar (şimdilik bu üçü var)
+    status = Column(String, default='pending', index=True) # pending, resolved, rejected durumları
 
     user = relationship('User', back_populates='error_reports')
 
@@ -129,7 +130,7 @@ class PasswordResetToken(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     token = Column(String, nullable=False, index=True)
     created_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True)
-    expires_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc) + timedelta(hours=1), index=True) # lambda kullandım çünkü özel fonksiyon kullanılmazsa sabit zaman üretiyor
+    expires_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc) + timedelta(hours=1), index=True) # lambda kullandım diğer türlü sürekli sabit datetime üretiyor
 
     user = relationship('User', back_populates='reset_tokens')
 
@@ -157,7 +158,7 @@ class DailyTask(Base):
     lesson_id = Column(Integer, ForeignKey('lessons.id'), nullable=True, index=True)
     section_id = Column(Integer, ForeignKey('sections.id'), nullable=True, index=True)
     task_type = Column(String, nullable=False) # görev tipi
-    target = Column(Integer, nullable=False) # hedef mesela 5 soru çöz, 1 section tamamla vb.
+    target = Column(Integer, nullable=False) # hedef (5 soru çöz, 1 section tamamla vb.)
     current_progress = Column(Integer, default=0) # mevcut ilerleme
     is_completed = Column(Boolean, default=False)
     create_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), index=True)
@@ -176,7 +177,7 @@ class UserQuestion(Base):
     user_id = Column(Integer, ForeignKey('users.id'), index=True)
     question_id = Column(Integer, ForeignKey('questions.id'), index=True)
     used_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    is_correct = Column(Boolean, default=False)  # Sorunun doğru cevaplanıp cevaplanmadığını belirtir
+    is_correct = Column(Boolean, default=False)  # sorunun doğru mu yanlış mı cevaplandığını belirtir buna göre kullanıcı tekrar sorusunu gözden geçirip çözebilir
 
     user = relationship('User', back_populates='user_questions')
     question = relationship('Question', back_populates='used_by')

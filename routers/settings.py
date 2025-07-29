@@ -31,7 +31,7 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 
 
-@router.put('/profile', response_model=UserPublicResponse) # uygulama içinden şifre değiştirme kısmı !!!
+@router.put('/profile', response_model=UserPublicResponse) # ayarlar panelinden profil güncelleme kısmı
 async def update_profile(db: db_dependency, user_update: UserUpdate, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar profil güncelleyemez.")
@@ -57,31 +57,37 @@ async def update_profile(db: db_dependency, user_update: UserUpdate, current_use
         user.notification_preferences = user_update.notification_preferences.dict()
 
     if user_update.theme and user_update.theme not in ["light", "dark"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz tema seçimi: 'light' veya 'dark' olmalı.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz tema seçimi: light veya dark olmalı.")
+
     if user_update.theme:
         user.theme = user_update.theme
 
     if user_update.language and user_update.language not in ["tr", "en"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz dil seçimi: 'tr' veya 'en' olmalı.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz dil seçimi: tr veya en olmalı.")
+
     if user_update.language:
         user.language = user_update.language
 
     try:
         db.commit()
-        logger.debug(f"Kullanıcı {user.id} için commit başarılı.")
+        logger.debug(f'Kullanıcı {user.id} için commit başarılı.')
         db.refresh(user)
+
         if not user:
-            logger.error(f"Kullanıcı ID {current_user.id} refresh sonrası None döndü.")
+            logger.error(f'Kullanıcı ID {current_user.id} refresh sonrası None döndü.')
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Kullanıcı verisi yenilenirken bir hata oluştu.")
+
         logger.info(f"Kullanıcı {user.id} profilini güncelledi: {user_update.dict(exclude_unset=True)}")
         return user
+
     except Exception as err:
         db.rollback()
         logger.error(f"Profil güncelleme hatası, kullanıcı ID {current_user.id}: {str(err)}")
+
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Profil güncellenirken bir hata oluştu: {str(err)}")
 
 
-@router.post('/change_password', response_model=dict) # bu kısım uygulamaya giriş yapmış kullanıcıların uygulama içinden kullanıcını şifresini değiştirebilmesi kısmı (UYGULAMA İÇİ)
+@router.post('/change_password', response_model=dict) # ayarlar panelinde uygulama içinden kullanıcını şifresini değiştirebilmesi kısmı
 async def change_password(db: db_dependency, request: PasswordChangeRequest, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar şifre değiştiremez.")
@@ -97,6 +103,7 @@ async def change_password(db: db_dependency, request: PasswordChangeRequest, cur
     try:
         db.commit()
         return {'message': "Şifre başarıyla değiştirildi."}
+
     except Exception as err:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Şifre değiştirilirken bir hata oluştu.")

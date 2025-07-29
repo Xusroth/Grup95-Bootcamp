@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/sections', tags=['Sections'])
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -37,10 +38,7 @@ async def create_section(db: db_dependency, lesson_id: int, section: SectionCrea
     if not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
 
-    existing_section = db.query(SectionModels).filter( # bu kısımda aynı order olup olmadığı kontrolü yapılıyor
-        SectionModels.lesson_id == lesson_id,
-        SectionModels.order == section.order
-    ).first()
+    existing_section = db.query(SectionModels).filter(SectionModels.lesson_id == lesson_id, SectionModels.order == section.order).first()
     if existing_section:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu sıradaki bir bölüm zaten mevcut.")
 
@@ -69,9 +67,11 @@ async def update_section(section_id: int, section_update: SectionUpdate, db: db_
     update_data = section_update.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_section, key, value)
+
     db.commit()
     db.refresh(db_section)
-    logger.debug(f"Bölüm güncellendi: {db_section.title}, ID: {db_section.id}")
+    logger.debug(f'Bölüm güncellendi: {db_section.title}, ID: {db_section.id}')
+
     return db_section
 
 

@@ -2,19 +2,20 @@
 
 from typing import Optional, Dict
 from datetime import datetime
-import re # metinlerde regex ile desen arama ve tanımlama için re kütüphanesini kullandım
-from pydantic import BaseModel, Field, field_validator, EmailStr # EmailStr -> input olan string'in' geçerli bir e-posta adresi olup olmadığını kontrol eder
+import re
+from pydantic import BaseModel, Field, field_validator, EmailStr
+
+# re -> metinlerde regex ile desen arama ve tanımlama için re kütüphanesini kullandım
+# EmailStr -> input olan string'in geçerli bir e-posta adresi olup olmadığını kontrol eder
 # field_validator -> belirli alanlara özel doğrulama ve iş kuralları tanımlar
 
-# bu dosyada veri doğrulama ve veri yapıları tanımlanıyor. yani request ve response veri yapıları tanımlanıyor ve request doğrulaması yapılıyor.
 
 
 # user
-class UserRegister(BaseModel): # kullanıcının kayıt olabilmesi için kullanıcıdan gelmesi gereken veriler ve tipleri
+class UserRegister(BaseModel):
     username: str = Field(max_length=60)
     email: EmailStr
     password: str = Field(min_length=8)
-    # role: Optional[str] = 'user' # varsayılan user # bunun kullanıcıya görünmemesini nasıl sağlarım ?   !!! (BU KISMI SIMDILIK KALDIRDIM) !!!
 
     @field_validator('username', mode='before')
     def username_kontrol(username):
@@ -24,7 +25,7 @@ class UserRegister(BaseModel): # kullanıcının kayıt olabilmesi için kullan�
 
     @field_validator('email', mode='before')
     def eposta_kontrol(value):
-        mail_types = ['@gmail.com', '@outlook.com', '@hotmail.com', '@yahoo.com', '@icloud.com'] # özel mailler ve öğrenci mailleri için çözüm bul!!!
+        mail_types = ['@gmail.com', '@outlook.com', '@hotmail.com', '@yahoo.com', '@icloud.com']
         if not any(value.endswith(i) for i in mail_types):
             raise ValueError('Geçersiz E-posta adresi. Lütfen tekrar deneyiniz.')
         return value
@@ -40,8 +41,8 @@ class UserRegister(BaseModel): # kullanıcının kayıt olabilmesi için kullan�
         return password
 
 
-class UserLogin(BaseModel): # kullanıcının login olabilmesi için kullanıcıdan gelmesi gereken veriler ve tipleri
-    username: str # email kısmını değiştirdim..! # fastapi'den dolayı değiştirdim yani username alanına siz authorize kısmında email yazın..!
+class UserLogin(BaseModel):
+    username: str # fastapi'den dolayı email kısmını değiştirdim. username alanına siz authorize kısmında email yazın
     password: str
 
 
@@ -63,7 +64,7 @@ class UserUpdate(BaseModel):
     notification_preferences: Optional[NotificationPreferences] = None
     theme: Optional[str] = None
     language: Optional[str] = None
-    avatar: Optional[str] = None # kullanıcının avatar'ını güncellemek için
+    avatar: Optional[str] = None
 
     @field_validator('username', mode='before')
     def username_kontrol(username):
@@ -128,29 +129,29 @@ class UserResponse(BaseModel):
     email: str
     role: str
     level: Optional[str] = None
-    has_taken_level_test: bool # kullanıcının seviye belirleme testine girip girmediği
+    has_taken_level_test: bool
     notification_preferences: NotificationPreferences
     theme: str
     language: str
-    avatar: str # kullanıcının avatar bilgisi
+    avatar: str
 
     class Config:
         from_attributes = True
 
 
-class UserPublicResponse(BaseModel): # bilerek bu sınıfı oluşturdum diğer türlü role kısmı kullanıcıya da gözüküyor. Kullanıcıya role kısmı gözükmesin diye bu response sınıfını oluşturdum.
+class UserPublicResponse(BaseModel): # bu sınıfın oluşturulma sebebi kullanıcıya role kısmının gözükmesini önlemek
     id: int
     username: str
     email: str
     level: Optional[str] = None
     role : str
-    has_taken_level_test: bool  # kullanıcının seviye belirleme testine girip girmediği
+    has_taken_level_test: bool
     health_count: int
     health_count_update_time: datetime
     notification_preferences: NotificationPreferences
     theme: str
     language: str
-    avatar: str = "profile_pic.png"  # avatar alanı
+    avatar: str = "profile_pic.png"
 
     class Config:
         from_attributes = True
@@ -291,6 +292,7 @@ class ErrorReportResponse(BaseModel):
     error_message: str
     details: Optional[str]
     timestamp: datetime
+
     class Config:
         from_attributes = True
 

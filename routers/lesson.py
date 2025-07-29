@@ -11,32 +11,21 @@ from starlette import status
 from typing import Annotated
 from pydantic import BaseModel
 from database import SessionLocal
-from models import User, user_lessons
-from models import Progress as ProgressModels # sqlalchemy modeli
-from models import Lesson as LessonModels # sqlalchemy modeli
-from models import Question as QuestionModels # sqlalchemy modeli
-from models import Streak as StreakModels # sqlalchemy modeli
-from models import Section as SectionModels # sqlalchemy modeli
-from models import DailyTask as DailyTaskModels # sqlalchemy modeli
-from models import UserQuestion as UserQuestionModels # sqlalchemy modeli
-from schemas import Lesson, LessonCreate, LessonUpdate # pydantic modeli
-from schemas import Progress, ProgressCreate # pydantic modeli
-from schemas import QuestionCreate, QuestionResponse, QuestionUpdate # pydantic modeli
-from schemas import UserPublicResponse # pydantic modeli
-from schemas import StreakUpdate # pydantic model
-from schemas import Section, SectionCreate # pydantic model,
-from routers.auth import get_current_user # routers package'daki auth.py dosyasından import ettim   # gerekli endpointlere ekledim..! # authorize için kullanıyorum gerekli olanlara koyuyorum..!
+from models import User, user_lessons, Progress as ProgressModels, Lesson as LessonModels, Question as QuestionModels, Streak as StreakModels, Section as SectionModels, DailyTask as DailyTaskModels, UserQuestion as UserQuestionModels
+from schemas import Lesson, LessonCreate, LessonUpdate, Progress, ProgressCreate, QuestionCreate, QuestionResponse, QuestionUpdate, UserPublicResponse, StreakUpdate, Section, SectionCreate
+from routers.auth import get_current_user
 from utils.config import GEMINI_API_KEY
 from utils.streak import update_user_streak
 import google.generativeai as genai
+from datetime import datetime, timezone, timedelta
 import json
 import logging
-from datetime import datetime, timezone, timedelta
 
 
 
 
 router = APIRouter(prefix='/lesson', tags=['Lesson'])
+
 
 def get_db():
     db = SessionLocal()
@@ -60,13 +49,13 @@ class LevelTestSubmit(BaseModel):
 
 
 
-@router.get('/lessons', response_model=list[Lesson]) # bütün dersleri görmek için
+@router.get('/lessons', response_model=list[Lesson])
 async def list_lessons(db: db_dependency):
     lessons = db.query(LessonModels).all()
     return [Lesson.model_validate(i) for i in lessons]
 
 
-@router.post('/users/{user_id}/lessons/{lesson_id}') # kullanıcının ders seçmesi
+@router.post('/users/{user_id}/lessons/{lesson_id}')
 async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar ders seçemez.")
@@ -82,7 +71,7 @@ async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current
     if lesson in user.lessons:
         return {"message": "Ders zaten seçili."}
 
-    user.lessons.append(lesson) # ders user'a ekleniyor
+    user.lessons.append(lesson)
 
     first_section = db.query(SectionModels).filter(SectionModels.lesson_id == lesson_id).order_by(SectionModels.order.asc()).first() # section'ın ilk alt bölümünü almak
     if not first_section:
@@ -95,7 +84,7 @@ async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current
     ).first()
 
     if not db_progress:
-        total_questions = db.query(QuestionModels).filter(QuestionModels.section_id == first_section.id).count() # düzeltildi
+        total_questions = db.query(QuestionModels).filter(QuestionModels.section_id == first_section.id).count()
         db_progress = ProgressModels(
             user_id=user_id,
             lesson_id=lesson_id,
@@ -108,23 +97,25 @@ async def select_lesson(user_id: int, lesson_id: int, db: db_dependency, current
         )
 
         db.add(db_progress)
-        logging.debug(f"Kullanıcı {user_id} için yeni Progress kaydı oluşturuldu: section_id={first_section.id}")
+        logging.debug(f'Kullanıcı {user_id} için yeni Progress kaydı oluşturuldu: section_id={first_section.id}')
 
     db.commit()
     return {'message': f"{lesson.title} dersini seçtiniz. İlerleme kaydı oluşturuldu: section: {first_section.id}"}
 
 
-@router.get('/users/{user_id}/lessons')  # kullanıcının seçtiği dersleri görmek    # admin yetkisine sahip kullanıcılar tüm userların derslerini görebiliyor!
+@router.get('/users/{user_id}/lessons')
 async def get_user_lessons(user_id: int, db:db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı!")
-    return {"lessons": [Lesson.model_validate(i) for i in user.lessons]}
+
+    return {'lessons': [Lesson.model_validate(i) for i in user.lessons]}
 
 
-@router.delete('/users/{user_id}/lessons/{lesson_id}') # ders takibi bırakma (ilerleme kayıtlı kalıcak)
+@router.delete('/users/{user_id}/lessons/{lesson_id}')
 async def unfollow_lesson(db: db_dependency, user_id: int, lesson_id: int, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
@@ -138,19 +129,22 @@ async def unfollow_lesson(db: db_dependency, user_id: int, lesson_id: int, curre
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı veya ders bulunamadı..!")
 
     if lesson not in user.lessons:
-        return {"message": "Dersi zaten seçilmemiş."}
+        return {'message': "Dersi zaten seçilmemiş."}
     user.lessons.remove(lesson)
+
     db.commit()
-    return {"message": f"{lesson.title} dersi takibi bırakıldı."}
+    return {'message': f"{lesson.title} dersi takibi bırakıldı."}
 
 
-@router.post('/create', status_code=status.HTTP_201_CREATED, response_model=Lesson) # backend için ders oluşturma (SADECE ADMİNLER)
+@router.post('/create', status_code=status.HTTP_201_CREATED, response_model=Lesson) # adminler için ders oluşturma
 async def create_lesson(db: db_dependency, lesson: LessonCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler ders oluşturabilir.")
+
     db_lesson = db.query(LessonModels).filter(LessonModels.title == lesson.title).first()
     if db_lesson:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu başlıkta ders zaten mevcut.")
+
     new_lesson = LessonModels(**lesson.dict())
     db.add(new_lesson)
     db.commit()
@@ -158,7 +152,7 @@ async def create_lesson(db: db_dependency, lesson: LessonCreate, current_user: U
     return new_lesson
 
 
-@router.put('/lessons/{lesson_id}', response_model=Lesson) # !!! SADECE ADMİNLER DERS BİLGİLERİNİ GÜNCELLER !!!
+@router.put('/lessons/{lesson_id}', response_model=Lesson) # adminler için ders bilgilerini güncelleme
 async def update_lesson(db: db_dependency, lesson_id: int, lesson_update: LessonUpdate, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler ders güncelleyebilir.")
@@ -184,10 +178,11 @@ async def update_lesson(db: db_dependency, lesson_id: int, lesson_update: Lesson
     return lesson
 
 
-@router.delete('/lessons/{lesson_id}', status_code=status.HTTP_200_OK) # backend için ders silme (SADECE ADMİNLER) # dersi silince veritabanında dersle ilgili her şey siler.
+@router.delete('/lessons/{lesson_id}', status_code=status.HTTP_200_OK) # adminler için ders silme
 async def delete_lesson(lesson_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler ders silebilir.")
+
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
     if not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
@@ -203,7 +198,7 @@ async def delete_lesson(lesson_id: int, db: db_dependency, current_user: User = 
     return {'message': f"{lesson.title} dersi silindi."}
 
 
-@router.post('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress, status_code=status.HTTP_201_CREATED) # progress bar ekleme
+@router.post('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress, status_code=status.HTTP_201_CREATED)
 async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu işlemi yapmaya yetkiniz yok.")
@@ -213,7 +208,7 @@ async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progr
     if not user or not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Kullanıcı veya ders bulunamadı.')
 
-    if lesson not in user.lessons: # dersin user tarafından seçilip seçilmediğinin kontrolü
+    if lesson not in user.lessons:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu ders kullanıcı tarafından seçilmemiş.")
 
     first_section = db.query(SectionModels).filter(SectionModels.lesson_id == lesson_id).order_by(SectionModels.order.asc()).first()
@@ -229,7 +224,7 @@ async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progr
     if db_progress:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bu kullanıcı için bu derse ait ilerleme zaten mevcut.")
 
-    total_questions = db.query(QuestionModels).filter(QuestionModels.section_id == first_section.id).count() # düzeltildi
+    total_questions = db.query(QuestionModels).filter(QuestionModels.section_id == first_section.id).count()
 
     db_progress = ProgressModels(
         user_id=user_id,
@@ -248,7 +243,7 @@ async def create_progress(db: db_dependency, user_id: int, lesson_id: int, progr
     return db_progress
 
 
-@router.put('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress) # progress bar güncelleme
+@router.put('/users/{user_id}/lessons/{lesson_id}/progress', response_model=Progress)
 async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progress: ProgressCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
@@ -277,25 +272,28 @@ async def update_progress(db: db_dependency, user_id: int, lesson_id: int, progr
     return db_progress
 
 
-@router.get('/users/{user_id}/progress', response_model=list[Progress]) # progress bar görüntüleme  # admin yetkisine sahip kullanıcılar tüm userların progress bar ilerlemesini görebiliyor!
+@router.get('/users/{user_id}/progress', response_model=list[Progress])
 async def get_user_progress(db: db_dependency, user_id: int, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar bu işlemi yapamaz.")
 
     if current_user.role != 'admin' and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Bu işlemi yapmaya yetkiniz yok.')
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Kullanıcı bulunamadı.')
     return [Progress.model_validate(i) for i in user.progress]
 
 
-@router.get('/admin/users/lessons', response_model=list[dict]) # admin tüm userların derslerini görebilir
+@router.get('/admin/users/lessons', response_model=list[dict])
 async def get_all_users_lessons(db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler tüm kullanıcıların derslerini görebilir.")
+
     users = db.query(User).all()
     result = []
+
     for user in users:
         user_lessons = [
             {
@@ -306,6 +304,7 @@ async def get_all_users_lessons(db: db_dependency, current_user: User = Depends(
             }
             for lesson in user.lessons
         ]
+
         result.append({
             'user_id': user.id,
             'username': user.username,
@@ -317,10 +316,11 @@ async def get_all_users_lessons(db: db_dependency, current_user: User = Depends(
     return result
 
 
-@router.get('/admin/users/progress', response_model=list[dict]) # admin tüm userların progress bar ilerlemelerini görebilir
+@router.get('/admin/users/progress', response_model=list[dict])
 async def get_all_users_progress(db: db_dependency, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler tüm kullanıcıların ilerlemelerini görebilir.")
+
     users = db.query(User).all()
     result = []
     for user in users:
@@ -329,6 +329,7 @@ async def get_all_users_progress(db: db_dependency, current_user: User = Depends
             for progress in user.progress
             if progress.lesson_id is not None
         ]
+
         result.append({
             'user_id': user.id,
             'username': user.username,
@@ -336,16 +337,17 @@ async def get_all_users_progress(db: db_dependency, current_user: User = Depends
             'role': user.role,
             'progress': user_progress
         })
+
     return result
 
 
 
-# bu kısımda baya bi prompt denedim kodlarda sapıtıyor ayrıca türkçe istersek de sapıtıyor. (promptu ing. verip türkçe istesek de sapıtıyor). şimdilik çoktan seçmeli ancak loopa düşebiliyor..!
-# https://aistudio.google.com/app/apikey -> apiyi buradan alıcaz (modeli seçerken ince ayar yapmak lazım)
+# Detaylı şekilde prompt engineering yapılacak. sorular 4 şıklı ve türkçe gelmeli, özel isimleri bozmamalı, kod çıktısı sorduğunda hem content hem de options kısmı detaylıca görünmeli.
 @router.post('/lessons/{lesson_id}/generate_questions', response_model=list[QuestionResponse])
 async def generate_questions(db: db_dependency, lesson_id: int, section_id: int, current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sadece adminler sorular üretebilir.")
+
     lesson = db.query(LessonModels).filter(LessonModels.id == lesson_id).first()
     if not lesson:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ders bulunamadı.")
@@ -413,6 +415,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
     try:
         response = model.generate_content(prompt)
         response_text = response.text.strip()
+
     except Exception as err:
         logger.error(f"Gemini API error for lesson_id {lesson_id}, section_id {section_id}: {str(err)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Gemini API hatası. {err}")
@@ -420,32 +423,41 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
     questions = []
     current_question = None
     lines = response_text.split("\n")
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
+
         if line.startswith("- Question:"):
             if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
                 questions.append(current_question)
             current_question = {"content": line.replace("- Question:", "").strip(), "options": [], "correct_answer": "", "level": ""}
+
         elif current_question:
             if line.startswith("- A:"):
                 current_question["options"].append(line.replace("- A:", "").strip())
+
             elif line.startswith("- B:"):
                 current_question["options"].append(line.replace("- B:", "").strip())
+
             elif line.startswith("- C:"):
                 current_question["options"].append(line.replace("- C:", "").strip())
+
             elif line.startswith("- D:"):
                 current_question["options"].append(line.replace("- D:", "").strip())
+
             elif line.startswith("- Correct Answer:"):
                 current_question["correct_answer"] = line.replace("- Correct Answer:", "").strip()
+
             elif line.startswith("- Level:"):
                 current_question["level"] = line.replace("- Level:", "").strip()
+
     if current_question and len(current_question["options"]) == 4 and current_question["correct_answer"] and current_question["level"]:
         questions.append(current_question)
 
     if len(questions) < 6:
-        logger.error(f"Insufficient valid questions parsed for lesson_id {lesson_id}, section_id {section_id}: {len(questions)} questions, expected 5. Response: {response_text}")
+        logger.error(f'Insufficient valid questions parsed for lesson_id {lesson_id}, section_id {section_id}: {len(questions)} questions, expected 5. Response: {response_text}')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Yetersiz geçerli soru üretildi: {len(questions)}/6.")
 
     created_questions = []
@@ -460,8 +472,10 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
                 section_id=section_id,
                 subsection=q["level"] if q["level"] in ['beginner', 'intermediate', 'advanced'] else 'beginner'
             )
+
             db.add(question)
             created_questions.append(question)
+
         else:
             logger.warning(f"Invalid question skipped for lesson_id {lesson_id}, section_id {section_id}: {q}")
 
@@ -484,7 +498,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
         )
 
     if not response_questions:
-        logger.error(f"No questions saved to database for lesson_id {lesson_id}, section_id {section_id}")
+        logger.error(f'No questions saved to database for lesson_id {lesson_id}, section_id {section_id}')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Geçerli soru üretilemedi.")
 
     return response_questions
@@ -525,7 +539,7 @@ async def level_test(user_id: int, lesson_id: int, db: db_dependency, current_us
         ).order_by(func.random()).limit(count).all()
 
         if len(level_questions) < count:
-            logger.error(f"Yetersiz {level} seviyesi soru: {len(level_questions)}/{count}, lesson_id={lesson_id}")
+            logger.error(f'Yetersiz {level} seviyesi soru: {len(level_questions)}/{count}, lesson_id={lesson_id}')
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Yetersiz {level} seviyesi soru: {len(level_questions)}/{count}. Lütfen daha fazla soru ekleyin.")
 
         questions.extend(level_questions)
@@ -537,6 +551,7 @@ async def level_test(user_id: int, lesson_id: int, db: db_dependency, current_us
             question_id=question.id,
             used_at=datetime.now(timezone.utc)
         )
+
         db.add(user_question)
 
     db.commit()
@@ -589,8 +604,10 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
 
     if correct_count <= 6:
         user.level = 'beginner'
+
     elif 7 <= correct_count <= 14:
         user.level = 'intermediate'
+
     else:
         user.level = 'advanced'
 
@@ -603,6 +620,7 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
         DailyTaskModels.is_completed == False,
         DailyTaskModels.expires_time > datetime.now(timezone.utc)
     ).all()
+
     for task in tasks:
         task.current_progress = 1
         task.is_completed = True
@@ -614,29 +632,23 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
     return user
 
 
-@router.get('/questions', response_model=list[QuestionResponse]) # belirtilen ders veya bölüme göre soruları getirir. Her ikisi de belirtilirse, hem derse hem bölüme uygun sorular döner  !!!! GÜNCELLEME current_subsection sorugusu da eklendi !!!!
-async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, section_id: Optional[int] = None,
-                        current_subsection: Optional[str] = None, current_user: User = Depends(get_current_user)):
+@router.get('/questions', response_model=list[QuestionResponse]) # belirtilen ders, bölüm ve seviyeye göre soruları getirir.
+async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, section_id: Optional[int] = None, current_subsection: Optional[str] = None, current_user: User = Depends(get_current_user)):
     if current_user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Misafir kullanıcılar soruları göremez.")
 
     if not lesson_id and not section_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="En az bir parametre (lesson_id veya section_id) belirtilmeli.")
 
-    # Section kontrolü
     if section_id:
         section = db.query(SectionModels).filter(SectionModels.id == section_id).first()
         if not section:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bölüm bulunamadı.")
 
-        # Bu section için progress kaydı var mı kontrol et
-        progress = db.query(ProgressModels).filter(
-            ProgressModels.user_id == current_user.id,
-            ProgressModels.section_id == section_id
-        ).first()
+        progress = db.query(ProgressModels).filter(ProgressModels.user_id == current_user.id, ProgressModels.section_id == section_id).first()
 
         if not progress:
-            # Bu section henüz aktif değil, önceki section'ları kontrol et
+            # aktif olmayan sectionlardan öncesinin kontrolü
             current_section = section
             previous_sections = db.query(SectionModels).filter(
                 SectionModels.lesson_id == current_section.lesson_id,
@@ -644,18 +656,16 @@ async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, sect
             ).order_by(SectionModels.order.desc()).all()
 
             if previous_sections:
-                # Önceki section'ların tamamlanıp tamamlanmadığını kontrol et
+                # önceki sectionların tamamlanıp tamamlanmadığının kontrolü
                 for prev_section in previous_sections:
-                    prev_progress = db.query(ProgressModels).filter(
-                        ProgressModels.user_id == current_user.id,
-                        ProgressModels.section_id == prev_section.id
-                    ).first()
+                    prev_progress = db.query(ProgressModels).filter(ProgressModels.user_id == current_user.id, ProgressModels.section_id == prev_section.id).first()
 
                     if not prev_progress or prev_progress.current_subsection != 'completed':
                         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Bu bölüme erişmek için önce '{prev_section.title}' bölümünü tamamlamanız gerekiyor.")
 
-                # Tüm önceki section'lar tamamlanmış, bu section için progress oluştur
+                # önceki sectionlar tamamlanmışsa yeni section için progress oluşturma
                 total_questions = db.query(QuestionModels).filter(QuestionModels.section_id == section_id).count()
+
                 progress = ProgressModels(
                     user_id=current_user.id,
                     lesson_id=section.lesson_id,
@@ -666,10 +676,11 @@ async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, sect
                     current_subsection='beginner',
                     subsection_completion=0
                 )
+
                 db.add(progress)
                 db.commit()
                 db.refresh(progress)
-                logger.debug(f"Kullanıcı {current_user.id} için section {section_id} aktif edildi.")
+                logger.debug(f'Kullanıcı {current_user.id} için section {section_id} aktif edildi.')
 
     query = db.query(QuestionModels)
 
@@ -679,30 +690,28 @@ async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, sect
     if section_id:
         query = query.filter(QuestionModels.section_id == section_id)
 
-        # Progress kaydından current_subsection'ı al
+        # progress kaydındaki current_subsection kontrolü
         if not current_subsection:
-            progress = db.query(ProgressModels).filter(
-                ProgressModels.user_id == current_user.id,
-                ProgressModels.section_id == section_id
-            ).first()
+            progress = db.query(ProgressModels).filter(ProgressModels.user_id == current_user.id, ProgressModels.section_id == section_id).first()
 
             if progress:
                 current_subsection = progress.current_subsection
-            else:
-                current_subsection = 'beginner'  # Default
 
-        # Eğer section tamamlanmışsa, soru gösterme
+            else:
+                current_subsection = 'beginner'
+
+        # section'ın tamamlanıp tamamlanmamasına göre soru kontrolü
         if current_subsection == 'completed':
             raise HTTPException(status_code=status.HTTP_200_OK, detail="Bu bölümü tamamladınız. Sıradaki bölüme geçebilirsiniz.")
 
-        # Current subsection'ın geçerli olup olmadığını kontrol et
+        # current_subsection'ın geçerli olup olmadığının kontrolü
         if current_subsection not in ['beginner', 'intermediate', 'advanced']:
             current_subsection = 'beginner'
 
-        # Sadece mevcut seviyedeki soruları getir
+        # belirtilen leveldeki soruları getirme kontrolü
         query = query.filter(QuestionModels.subsection == current_subsection)
 
-        # Daha önce doğru cevaplanmış soruları hariç tut
+        # doğru cevaplanmış soruları göstermeme
         answered_correctly = db.query(UserQuestionModels.question_id).filter(
             UserQuestionModels.user_id == current_user.id,
             UserQuestionModels.is_correct == True
@@ -713,28 +722,29 @@ async def get_questions(db: db_dependency, lesson_id: Optional[int] = None, sect
     questions = query.all()
     question_count = len(questions)
 
-    logger.debug(
-        f"Lesson ID {lesson_id}, Section ID {section_id}, Subsection {current_subsection} için {question_count} soru bulundu.")
+    logger.debug(f'Lesson ID {lesson_id}, Section ID {section_id}, Subsection {current_subsection} için {question_count} soru bulundu.')
 
     if not questions:
         if section_id and current_subsection:
-            # Bu seviyede cevaplanmamış soru kalmamış, bir sonraki seviyeye geçiş yapılabilir mi kontrol et
-            progress = db.query(ProgressModels).filter(
-                ProgressModels.user_id == current_user.id,
-                ProgressModels.section_id == section_id
-            ).first()
+            # sonraki seviyeye geçmek için şu anki seviyede bütün soruların cevaplanıp cevaplanmadığı kontrolü
+            progress = db.query(ProgressModels).filter(ProgressModels.user_id == current_user.id, ProgressModels.section_id == section_id).first()
 
             if progress:
                 if current_subsection == 'beginner':
                     detail_message = "Beginner seviyesi tamamlandı. Intermediate seviyesine geçebilirsiniz."
+
                 elif current_subsection == 'intermediate':
                     detail_message = "Intermediate seviyesi tamamlandı. Advanced seviyesine geçebilirsiniz."
+
                 elif current_subsection == 'advanced':
                     detail_message = "Advanced seviyesi tamamlandı. Bu bölümü tamamladınız!"
+
                 else:
                     detail_message = "Bu seviyede çözebileceğiniz soru kalmamış."
+
             else:
                 detail_message = "Belirtilen kriterlere uygun soru bulunamadı."
+
         else:
             detail_message = "Belirtilen kriterlere uygun soru bulunamadı."
 

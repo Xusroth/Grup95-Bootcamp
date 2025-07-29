@@ -1,7 +1,7 @@
 
 
 from fastapi import FastAPI, HTTPException, Request, Depends, Path, APIRouter
-from fastapi.middleware.cors import CORSMiddleware # CORSMiddleware -> ara katman yazılımı. frontend backend'e request attığında hata olmasın diye kullanılır. (flutter + python olduğu için)
+from fastapi.middleware.cors import CORSMiddleware # CORSMiddleware -> ara katman yazılımı. frontend backend'e request attığında hata olmasın diye kullandık. (flutter + python)
 from pydantic import BaseModel, Field
 from starlette import status
 from sqlalchemy.orm import Session
@@ -45,35 +45,35 @@ app.include_router(settings_router)
 app.include_router(avatar_router)
 
 
-app.add_middleware( # mobil uygulamanın (flutter) backende erişebilmesi için ayar yaptım.
+app.add_middleware( # mobil uygulamanın (flutter) backende erişebilmesi için ayar yapıldı.
     CORSMiddleware,
-    allow_origins=["*"], # tüm domainlerden gelen isteklere izin verilecek
-    allow_credentials=True, # çerez ve kimlik bilgilerinin gönderilip gönderilmeyeceği belirleme (True -> gönderilecek)
-    allow_methods=["*"], # bütün http metodlarına izin verilecek
-    allow_headers=["*"] # tüm headerlara izin verilecek
+    allow_origins=["*"], # tüm domainlerden gelen isteklere izin ver
+    allow_credentials=True, # çerez ve kimlik bilgilerinin gönderilip gönderilmeyeceği belirler
+    allow_methods=["*"], # bütün http metodlarına izin ver
+    allow_headers=["*"] # tüm headerlara izin ver
 )
 
 
-def get_db(): # database için dependency oluşturdum.
+def get_db():
     db = SessionLocal()
     try:
-        yield db # yield ifadesi try except için return görevi görür
+        yield db
     finally:
         db.close()
 
 
-db_dependency = Annotated[Session, Depends(get_db)] # burada daha da kısaltarak Dependency Injection Annotated yaptım
+db_dependency = Annotated[Session, Depends(get_db)]
 
 
-health_scheduler = None # health_count zamanlayıcısını tutmak
-streak_scheduler = None # streak zamanlayıcısını tutmak
+health_scheduler = None # health_count zamanlayıcısı
+streak_scheduler = None # streak zamanlayıcısı
 
 
 @app.on_event("startup")
 async def startup_event():
     global health_scheduler, streak_scheduler
     logger.info("Uygulama başlatılıyor...")
-    create_admin() # uygulama çalıştığında otomatik belirlenen isimlerden admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
+    create_admin() # uygulama çalıştığında otomatik olarak admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
     health_scheduler = start_health_scheduler()
     streak_scheduler = start_streak_scheduler()
     logger.info("Zamanlayıcılar başlatıldı.")
