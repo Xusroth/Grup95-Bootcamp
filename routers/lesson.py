@@ -624,7 +624,7 @@ async def submit_level_test(db: db_dependency, user_id: int, submission: LevelTe
     for task in tasks:
         task.current_progress = 1
         task.is_completed = True
-        user.health_count = min(user.health_count + 2, 6)
+        user.health_count = min(user.health_count + 1, 6)
         user.health_count_update_time = datetime.now(timezone.utc)
 
     db.commit()

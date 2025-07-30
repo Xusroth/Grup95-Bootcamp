@@ -6,16 +6,17 @@ from pydantic import BaseModel
 from database import SessionLocal
 from starlette import status
 from sqlalchemy.orm import Session
-from models import User, PasswordResetToken, DailyTask, Progress as ProgressModels, Streak as StreakModels, UserQuestion, ErrorReport, Lesson as LessonModels
-from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset, StreakResponse
+from models import User, PasswordResetToken, DailyTask, Progress as ProgressModels, Streak as StreakModels, UserQuestion, ErrorReport, Lesson as LessonModels, RefreshToken
+from schemas import UserRegister, UserLogin, UserResponse, UserPublicResponse, UserUpdate, PasswordResetRequest, PasswordReset, StreakResponse, Token
 import bcrypt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 from utils.email import send_reset_email
-from utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from utils.health import update_user_health_count, update_all_users_health
 import random
+import secrets
 
 
 
@@ -36,6 +37,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 
 
+
 # JWT token kısmı
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -44,8 +46,21 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    to_encode.update({'exp': expire})
+    to_encode.update({'exp': expire, 'type': 'access'})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM) # hepsinin birleştiği kısım
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+    to_encode.update({'exp': expire, 'type': 'refresh'})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -55,7 +70,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2)], db: db_depend
         detail='Geçersiz token',
         headers={'WWW-Authenticate': 'Bearer'})
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get('type') != 'access':
+            raise credentials_exception
+
         email: str = payload.get('sub')
         if email is None:
             raise credentials_exception
@@ -68,11 +86,6 @@ async def get_current_user(token: Annotated[str, Depends(oauth2)], db: db_depend
 
     except JWTError:
         raise credentials_exception
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
 
@@ -142,10 +155,76 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Şifre yanlış.")
 
     access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncellendi
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = create_refresh_token(data={'sub': str(db_user.email)}) # auth/me kısmı ile uyumlu olması için email ile güncellendi
+
+    db_refresh_token = RefreshToken(
+        user_id=db_user.id,
+        token=refresh_token,
+        created_time=datetime.now(timezone.utc),
+        expires_time=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+
+    db.add(db_refresh_token)
+    db.commit()
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-@router.post('/guest', response_model=Token, tags=['Authentication'])
+@router.post('/refresh', response_model=Token)
+async def refresh_token(db: db_dependency, refresh_token: str):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Geçersiz veya süresi dolmuş refresh token",
+        headers={'WWW-Authenticate': 'Bearer'}
+    )
+
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get('type') != 'refresh':
+            raise credentials_exception
+
+        email: str = payload.get('sub')
+        if email is None:
+            raise credentials_exception
+
+        db_refresh_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).first() # db'de refresh token'ı kontrol etme
+        if not db_refresh_token:
+            raise credentials_exception
+
+        if db_refresh_token.expires_time.tzinfo is None: # token süresinin geçerlilik kontrolü
+            db_refresh_token.expires_time = db_refresh_token.expires_time.replace(tzinfo=timezone.utc)
+
+        if db_refresh_token.expires_time < datetime.now(timezone.utc):
+            db.delete(db_refresh_token)
+            db.commit()
+            raise credentials_exception
+
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise credentials_exception
+
+        new_access_token = create_access_token(data={'sub': str(user.email)}) # yeni access token
+        new_refresh_token = create_refresh_token(data={'sub': str(user.email)}) # yeni refresh token
+
+        db.delete(db_refresh_token)
+
+        db_new_refresh_token = RefreshToken(
+            user_id=user.id,
+            token=new_refresh_token,
+            created_time=datetime.now(timezone.utc),
+            expires_time=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        )
+
+        db.add(db_new_refresh_token)
+        db.commit()
+
+        return {"access_token": new_access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
+    except JWTError:
+        raise credentials_exception
+
+
+@router.post('/guest', response_model=Token)
 async def guest_login(db: db_dependency):
     guest_username = f'guest_{random.randint(1000, 9999)}'
     guest_email = f'guest_{random.randint(1000, 9999)}@codebite.com'
@@ -168,12 +247,17 @@ async def guest_login(db: db_dependency):
     db.commit()
     db.refresh(guest_user)
 
-    access_token = create_access_token(
-        data={'sub': guest_user.email},
-        expires_delta=timedelta(hours=1)
+    access_token = create_access_token(data={'sub': guest_user.email}, expires_delta=timedelta(hours=2))
+    refresh_token = create_refresh_token(data={'sub': guest_user.email}, expires_delta=timedelta(hours=4))
+
+    db_refresh_token = RefreshToken(
+        user_id=guest_user.id,
+        token=refresh_token,
+        created_time=datetime.now(timezone.utc),
+        expires_time=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
-    return {'access_token': access_token, 'token_type': 'bearer', 'username' : guest_username}
+    return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer', 'username' : guest_username}
 
 
 @router.put('/users/{user_id}', response_model=UserPublicResponse)
@@ -224,7 +308,6 @@ async def get_current_user_info(db: db_dependency, token: str = Depends(oauth2))
 
     except JWTError as err:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Not authenticated: {str(err)}")
-
 
 
 @router.post('/make_admin/{user_id}', status_code=status.HTTP_200_OK)
@@ -280,6 +363,7 @@ async def delete_user(db: db_dependency, user_id: int, current_user: User = Depe
     db.query(StreakModels).filter(StreakModels.user_id == user_id).delete()
     db.query(UserQuestion).filter(UserQuestion.user_id == user_id).delete()
     db.query(ErrorReport).filter(ErrorReport.user_id == user_id).delete()
+    db.query(RefreshToken).filter(RefreshToken.user_id == user_id).delete()
 
     db.delete(user)
     db.commit()
@@ -297,6 +381,7 @@ async def delete_own_account(db: db_dependency, current_user: User = Depends(get
     db.query(StreakModels).filter(StreakModels.user_id == current_user.id).delete()
     db.query(UserQuestion).filter(UserQuestion.user_id == current_user.id).delete()
     db.query(ErrorReport).filter(ErrorReport.user_id == current_user.id).delete()
+    db.query(RefreshToken).filter(RefreshToken.user_id == current_user.id).delete()
 
     db.delete(user)
     db.commit()
@@ -312,7 +397,7 @@ async def request_password_reset(db: db_dependency, request: PasswordResetReques
     if user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Misafir kullanıcılar şifre sıfırlayamaz.")
 
-    token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token create
+    token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token oluşturma
 
     reset_token = PasswordResetToken(user_id=user.id, token=token, expires_time=datetime.now(timezone.utc) + timedelta(hours=1)) # token sıfırlama ve db'ye kaydetme
 
