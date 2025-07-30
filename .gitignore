@@ -13,3 +13,6 @@ __pycache__/
 
 # Yerel veritabanı
 codebite.db
+
+# alembic.ini
+alembic.ini
