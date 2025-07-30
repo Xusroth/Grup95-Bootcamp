@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 
-Base.metadata.create_all(bind=engine) # bu kısım sqlalchemy'de tanımlanan veritabanı modellerine karşılık gelen tabloları gerçek veritabanında otomatik oluşturur
+Base.metadata.create_all(bind=engine) # sqlalchemy'de tanımlanan veritabanı modellerine karşılık gelen tabloları gerçek veritabanında otomatik oluşturur
 
 
 app = FastAPI()
