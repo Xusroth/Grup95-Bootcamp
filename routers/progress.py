@@ -54,9 +54,11 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
         if user.health_count_update_time:
             if user.health_count_update_time.tzinfo is None:
                 user.health_count_update_time = user.health_count_update_time.replace(tzinfo=timezone.utc)
+
             time_diff = datetime.now(timezone.utc) - user.health_count_update_time
-            remaining_hours = 2 - (time_diff.total_seconds() / 3600)
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Can hakkınız bitti. {remaining_hours:.2f} saat sonra tekrar deneyin.")
+            remaining_hours = 1 - (time_diff.total_seconds() / 3600)
+            remaining_minutes = remaining_hours * 60
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Can hakkınız bitti. {abs(int(remaining_minutes))} dakika sonra tekrar deneyin.")
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Can hakkınız bitti. Lütfen bekleyin.")
 
