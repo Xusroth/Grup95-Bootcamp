@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int completedTaskCount = 0;
   bool isLoading = true;
   String avatarPath = 'profile_pic.png';
-  int healthCount = 3;
+  int healthCount = 6;
   int streakCount = 0;
   List<Map<String, dynamic>> selectedLessons = [];
 
@@ -188,48 +188,48 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           Positioned(
-                            left: 60,
+                            left: 62,
                             child: Row(
                               children: [
-                              Text(
-                                widget.userName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'Poppins-Regular',
-                                  fontSize: 20,
+                                Text(
+                                  widget.userName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Poppins-Regular',
+                                    fontSize: 20,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 20),
-                              Row(
-                                children: [
-                                  Image.asset(getBatteryAsset(healthCount), height: 55),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$healthCount',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontFamily: 'Poppins-Bold',
-                                      fontSize: 20,
+                                const SizedBox(width: 20),
+                                Row(
+                                  children: [
+                                    Image.asset(getBatteryAsset(healthCount), height: 55),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$healthCount',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Poppins-Bold',
+                                        fontSize: 20,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 16),
-                              Row(
-                                children: [
-                                  Image.asset('assets/streak.png', height: 36),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$streakCount',
-                                    style: const TextStyle(
-                                      color: Colors.deepOrange,
-                                      fontFamily: 'Poppins-Bold',
-                                      fontSize: 20,
+                                  ],
+                                ),
+                                const SizedBox(width: 16),
+                                Row(
+                                  children: [
+                                    Image.asset('assets/streak.png', height: 36),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$streakCount',
+                                      style: const TextStyle(
+                                        color: Colors.deepOrange,
+                                        fontFamily: 'Poppins-Bold',
+                                        fontSize: 20,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                           Positioned(
@@ -281,22 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       isLoading ? "Yükleniyor..." : "$completedTaskCount/3 Tamamlandı",
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3F3F80),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: const Text(
-                        "Devam Et",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 64),
                     buildLessonSection(),
                     const SizedBox(height: 16),
                     buildLessonCard(
@@ -315,58 +300,57 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Positioned(
-                bottom: 20,
-                left: 0,
-                right: 0,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
-                                ),
-                              );
-                            },
-                            child: Image.asset("assets/home.png", height: 28),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DersSec(userMail: '', userName: widget.userName),
-                                ),
-                              );
-                            },
-                            child: Image.asset("assets/ders.png", height: 28),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProfilePage(userName: widget.userName),
-                                ),
-                              );
-                            },
-                            child: Image.asset("assets/profile.png", height: 28),
-                          ),
-                        ],
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
+                            ),
+                          );
+                        },
+                        child: Image.asset("assets/home.png", height: 28),
                       ),
-                    ),
-                  ],
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                            ),
+                          );
+                        },
+                        child: Image.asset("assets/ders.png", height: 28),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProfilePage(userName: widget.userName),
+                            ),
+                          );
+                        },
+                        child: Image.asset("assets/profile.png", height: 28),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
+              ],
+            ),
+          ),
         ],
       ),
     );

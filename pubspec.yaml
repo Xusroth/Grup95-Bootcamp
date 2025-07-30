@@ -31,6 +31,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  animated_text_kit: ^4.2.2
+  flutter_dotenv: ^5.0.2
   app_links: ^3.4.1
   shared_preferences: ^2.5.3
   http: ^1.4.0
@@ -154,6 +156,9 @@ flutter:
     - assets/streak.png
     - assets/terminal.png
     - assets/tick.png
+    - assets/sari_cloud.png
+    - assets/sol_kol.png
+    - assets/govde_kolsuz.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

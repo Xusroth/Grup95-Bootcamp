@@ -67,7 +67,7 @@ class _QuestScreenState extends State<QuestScreen> {
   List<DailyTask> tasks = [];
   bool isLoading = true;
   String avatarPath = 'profile_pic.png';
-  int healthCount = 3;
+  int healthCount = 6;
   int streakCount = 0;
 
   final Map<int, String> lessonIdMap = {

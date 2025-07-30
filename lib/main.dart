@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app_links/app_links.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
@@ -10,7 +12,7 @@ import 'package:android_studio/screens/welcome_screen1.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/password_reset_screen.dart';
 
-void main() {
+void main() async{
   runApp(const MyApp());  
 }
 

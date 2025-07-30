@@ -9,6 +9,7 @@ import 'package:android_studio/constants.dart';
 import 'package:android_studio/screens/update_profile.dart';
 import 'package:android_studio/screens/setting_screen.dart';
 import 'package:android_studio/screens/streak pages/streak1.dart';
+import 'package:android_studio/screens/quest_screen.dart'; // QuestScreen import edildi
 
 class ProfilePage extends StatefulWidget {
   final String userName;
@@ -62,7 +63,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (response.statusCode == 200) {
         final tasks = jsonDecode(response.body);
-        final completed = tasks.where((task) => task['is_completed'] == true).length;
+        final completed = tasks
+            .where((task) => task['is_completed'] == true)
+            .length;
 
         setState(() {
           totalCount = tasks.length;
@@ -212,65 +215,73 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Günlük Görevler Kartı
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 30,
-                    ),
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/hedef_kart.png'),
-                        fit: BoxFit.cover,
+                  // Günlük Görevler Kartı (GestureDetector eklendi)
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => QuestScreen()),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 30,
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Günlük Görevler',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        image: const DecorationImage(
+                          image: AssetImage('assets/hedef_kart.png'),
+                          fit: BoxFit.cover,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '$completedCount/$totalCount tamamlandı',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Center(
-                          child: Container(
-                            height: 5,
-                            width: 300,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Günlük Görevler',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: totalCount > 0
-                                  ? completedCount / totalCount
-                                  : 0.0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(3),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$completedCount/$totalCount tamamlandı',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: Container(
+                              height: 5,
+                              width: 300,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: totalCount > 0
+                                    ? completedCount / totalCount
+                                    : 0.0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 
@@ -286,13 +297,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       height: 120,
                       width: 340,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(36),
                         image: const DecorationImage(
-                          image: AssetImage('assets/genis_card.png'),
+                          image: AssetImage('assets/kart1.png'),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -328,7 +342,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           Image.asset(
                             'assets/streak.png',
-                            height:80,
+                            height: 80,
                             width: 80,
                           ),
                         ],
@@ -348,9 +362,15 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
+                SizedBox(
+                  width: 350,
+                  child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
+                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 60.0,
+                    vertical: 12,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -359,7 +379,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
+                              builder: (_) => HomeScreen(
+                                userMail: '',
+                                userName: widget.userName,
+                              ),
                             ),
                           );
                         },
@@ -370,7 +393,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                              builder: (_) => DersSec(
+                                userMail: '',
+                                userName: widget.userName,
+                              ),
                             ),
                           );
                         },
@@ -381,7 +407,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProfilePage(userName: widget.userName),
+                              builder: (_) =>
+                                  ProfilePage(userName: widget.userName),
                             ),
                           );
                         },

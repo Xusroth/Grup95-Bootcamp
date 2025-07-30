@@ -65,7 +65,7 @@ class WelcomeScreen2 extends StatelessWidget {
                     children: [
                       Image.asset(
                         'assets/anasayfa_maskot.png',
-                        height: 160,
+                        height: 200,
                       ),
                       const SizedBox(height: 36),
                       const Text(

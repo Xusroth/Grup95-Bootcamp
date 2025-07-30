@@ -25,7 +25,6 @@ class _SettingsPageState extends State<SettingsPage> {
     {"icon": "assets/password.png", "text": "Şifreyi Değiştir"},
     {"icon": "assets/paper-plane-right.png", "text": "Öneri ve İstek"},
     {"icon": "assets/question.png", "text": "S.S.S\n(Sıkça Sorulan Sorular)"},
-    {"icon": "assets/keyhole.png", "text": "Gizlilik"},
   ];
 
   @override
@@ -37,12 +36,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> fetchUserName() async {
     final token = await AuthService().getString('token');
-
     final response = await http.get(
       Uri.parse('$baseURL/auth/me'),
       headers: {'Authorization': 'Bearer $token'},
     );
-
     if (response.statusCode == 200) {
       final userData = jsonDecode(response.body);
       setState(() {
@@ -65,7 +62,6 @@ class _SettingsPageState extends State<SettingsPage> {
       Uri.parse('$baseURL/auth/users/me/delete'),
       headers: {'Authorization': 'Bearer $token'},
     );
-
     if (response.statusCode == 200) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -82,181 +78,266 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/arkaplan.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage("assets/avatars/$avatarPath"),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    )
-                  ],
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/arkaplan.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
                 ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: settingsItems.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 24),
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          final itemText = settingsItems[index]["text"];
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 27, 27, 27),
+                            shape: BoxShape.circle,
+                            image: DecorationImage(
+                              image: AssetImage("assets/avatars/$avatarPath"),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: settingsItems.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 32),
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              final itemText = settingsItems[index]["text"];
 
-                          if (itemText == "Hesabı Sil") {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) {
-                                String reason = "";
-                                return StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Dialog(
-                                      backgroundColor: Colors.deepPurple.shade900.withOpacity(0.95),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
+                              if (itemText == "Hesabı Sil") {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      backgroundColor: const Color.fromARGB(
+                                        213,
+                                        45,
+                                        33,
+                                        59,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      title: const Text(
+                                        "Hesabınızı silmek istediğinize emin misiniz?",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Poppins-Regular',
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      actionsPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
+                                      actions: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
-                                            const Text(
-                                              "Hesabınızı neden silmek istiyorsunuz?",
-                                              style: TextStyle(color: Colors.white, fontSize: 16),
-                                              textAlign: TextAlign.center,
+                                            _buildDialogFixedButton(
+                                              "Hayır",
+                                              () => Navigator.pop(context),
+                                              color: Colors.green,
                                             ),
-                                            const SizedBox(height: 16),
-                                            TextField(
-                                              onChanged: (value) => setState(() => reason = value),
-                                              style: const TextStyle(color: Colors.white),
-                                              decoration: InputDecoration(
-                                                hintText: "Sebep...",
-                                                hintStyle: const TextStyle(color: Colors.white54),
-                                                filled: true,
-                                                fillColor: Colors.white.withOpacity(0.1),
-                                                border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 24),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                              children: [
-                                                ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.grey.shade800,
-                                                  ),
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: const Text("Vazgeç"),
-                                                ),
-                                                ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: reason.trim().isEmpty
-                                                        ? Colors.grey
-                                                        : Colors.redAccent,
-                                                  ),
-                                                  onPressed: reason.trim().isEmpty
-                                                      ? null
-                                                      : () {
-                                                          Navigator.pop(context);
-                                                          deleteAccount();
-                                                        },
-                                                  child: const Text("Onayla"),
-                                                ),
-                                              ],
-                                            ),
+                                            const SizedBox(width: 24),
+                                            _buildDialogFixedButton("Evet", () {
+                                              Navigator.pop(context);
+                                              deleteAccount();
+                                            }, color: Colors.redAccent),
                                           ],
                                         ),
-                                      ),
+                                      ],
                                     );
                                   },
                                 );
-                              },
-                            );
-                          } else if (itemText == "Şifreyi Değiştir") {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const ChangePasswordInAppScreen()),
-                            );
-                          } else if (itemText == "S.S.S\n(Sıkça Sorulan Sorular)") {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const FaqScreen()),
-                            );
-                          } else if (itemText == "Dil Tercihi") {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Sonraki güncellemelerle gelecek")),
-                            );
-                          } else if (itemText == "Öneri ve İstek") {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => ReportScreen1()),
-                            );
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFBC52FC), Color(0xFF857BFB)],
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Image.asset(
-                                settingsItems[index]["icon"],
-                                width: 22,
-                                height: 22,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  settingsItems[index]["text"],
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                              } else if (itemText == "Dil Tercihi") {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    backgroundColor: const Color.fromARGB(
+                                      213,
+                                      45,
+                                      33,
+                                      59,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    title: const Text(
+                                      "Dil seçenekleri",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Poppins-SemiBold',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    content: const Text(
+                                      "Sonraki güncellemelerle gelecek",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontFamily: 'Poppins-Regular',
+                                      ),
+                                    ),
+                                    actionsPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    actions: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          _buildDialogFixedButton(
+                                            "Tamam",
+                                            () => Navigator.pop(context),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
+                                );
+                              } else if (itemText == "Şifreyi Değiştir") {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ChangePasswordInAppScreen(),
+                                  ),
+                                );
+                              } else if (itemText ==
+                                  "S.S.S\n(Sıkça Sorulan Sorular)") {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const FaqScreen(),
+                                  ),
+                                );
+                              } else if (itemText == "Öneri ve İstek") {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ReportScreen1(),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFBC52FC),
+                                    Color(0xFF857BFB),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.asset(
+                                    settingsItems[index]["icon"],
+                                    width: 22,
+                                    height: 22,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text(
+                                      settingsItems[index]["text"],
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
+          ),
+
+          
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Image.asset('assets/sari_cloud.png', fit: BoxFit.fitWidth),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogFixedButton(
+    String text,
+    VoidCallback onPressed, {
+    Color color = const Color(0xFF8E24AA),
+  }) {
+    return SizedBox(
+      width: 120,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: color,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
         ),
       ),

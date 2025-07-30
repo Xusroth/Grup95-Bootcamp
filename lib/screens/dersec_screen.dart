@@ -20,11 +20,7 @@ class DersSec extends StatefulWidget {
   final String userName;
   final String userMail;
 
-  const DersSec({
-    super.key,
-    required this.userName,
-    required this.userMail,
-  });
+  const DersSec({super.key, required this.userName, required this.userMail});
 
   @override
   State<DersSec> createState() => _DersSecState();
@@ -38,7 +34,7 @@ class _DersSecState extends State<DersSec> {
   final bool csharpKilit = true;
 
   String avatarPath = 'profile_pic.png';
-  int healthCount = 3;
+  int healthCount = 6;
   int streakCount = 0;
 
   @override
@@ -50,7 +46,7 @@ class _DersSecState extends State<DersSec> {
 
   Future<void> loadAvatar() async {
     final auth = AuthService();
-    final avatar = await auth.getString('user_avatar'); 
+    final avatar = await auth.getString('user_avatar');
     setState(() {
       avatarPath = avatar ?? 'profile_pic.png';
     });
@@ -97,9 +93,9 @@ class _DersSecState extends State<DersSec> {
     final token = await authService.getString('token');
 
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Giriş yapılmamış.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Giriş yapılmamış.")));
       return;
     }
 
@@ -140,61 +136,68 @@ class _DersSecState extends State<DersSec> {
         ),
       );
     } else {
-      final errorMessage = json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Ders seçilemedi: $errorMessage")),
-      );
+      final errorMessage =
+          json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Ders seçilemedi: $errorMessage")));
     }
   }
 
   void handleFlip(int index, bool locked) {
-  if (locked) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color.fromARGB(181, 45, 33, 59),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.hourglass_bottom, color: Color(0xFFFFC107), size: 48),
-              SizedBox(height: 16),
-              Text(
-                "ÇOK YAKINDA!!!",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Poppins-Bold',
+    if (locked) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: const Color.fromARGB(181, 45, 33, 59),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(
+                  Icons.hourglass_bottom,
+                  color: Color(0xFFFFC107),
+                  size: 48,
                 ),
-                textAlign: TextAlign.center,
+                SizedBox(height: 16),
+                Text(
+                  "ÇOK YAKINDA!!!",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins-Bold',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            actions: [
+              Center(
+                child: TextButton(
+                  child: const Text(
+                    "Tamam",
+                    style: TextStyle(color: Colors.amber),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
               ),
             ],
-          ),
-          actions: [
-            Center(
-              child: TextButton(
-                child: const Text(
-                  "Tamam",
-                  style: TextStyle(color: Colors.amber),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-    return;
-  }
+          );
+        },
+      );
+      return;
+    }
 
-  setState(() {
-    flippedIndex = flippedIndex == index ? null : index;
-  });
-}
+    setState(() {
+      flippedIndex = flippedIndex == index ? null : index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,10 +236,7 @@ class _DersSecState extends State<DersSec> {
       body: Stack(
         children: [
           SizedBox.expand(
-            child: Image.asset(
-              'assets/arkaplan.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/arkaplan.png', fit: BoxFit.cover),
           ),
           SafeArea(
             child: Column(
@@ -246,7 +246,12 @@ class _DersSecState extends State<DersSec> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Image.asset('assets/user_bar.png', width: 400, height: 70, fit: BoxFit.contain),
+                      Image.asset(
+                        'assets/user_bar.png',
+                        width: 400,
+                        height: 70,
+                        fit: BoxFit.contain,
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -255,7 +260,8 @@ class _DersSecState extends State<DersSec> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => ProfilePage(userName: widget.userName),
+                                  builder: (_) =>
+                                      ProfilePage(userName: widget.userName),
                                 ),
                               );
                             },
@@ -272,7 +278,10 @@ class _DersSecState extends State<DersSec> {
                                   ),
                                   fit: BoxFit.cover,
                                 ),
-                                border: Border.all(color: const Color.fromARGB(255, 59, 59, 59), width: 1),
+                                border: Border.all(
+                                  color: const Color.fromARGB(255, 59, 59, 59),
+                                  width: 1,
+                                ),
                               ),
                             ),
                           ),
@@ -289,7 +298,10 @@ class _DersSecState extends State<DersSec> {
                               const SizedBox(width: 20),
                               Row(
                                 children: [
-                                  Image.asset(getBatteryAsset(healthCount), height: 55),
+                                  Image.asset(
+                                    getBatteryAsset(healthCount),
+                                    height: 55,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '$healthCount',
@@ -322,10 +334,16 @@ class _DersSecState extends State<DersSec> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => ReportScreen1()),
+                                MaterialPageRoute(
+                                  builder: (_) => ReportScreen1(),
+                                ),
                               );
                             },
-                            icon: Image.asset('assets/report.png', width: 36, height: 36),
+                            icon: Image.asset(
+                              'assets/report.png',
+                              width: 36,
+                              height: 36,
+                            ),
                           ),
                         ],
                       ),
@@ -334,62 +352,149 @@ class _DersSecState extends State<DersSec> {
                 ),
                 const Text(
                   "Ders Seçin",
-                  style: TextStyle(fontSize: 36, color: Colors.white, fontFamily: 'Poppins-Regular'),
+                  style: TextStyle(
+                    fontSize: 36,
+                    color: Colors.white,
+                    fontFamily: 'Poppins-Regular',
+                  ),
                 ),
                 const SizedBox(height: 15),
                 Expanded(
-                  child: Padding(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: GridView.builder(
-                            padding: const EdgeInsets.only(bottom: 200),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 24,
-                              crossAxisSpacing: 24,
-                              childAspectRatio: 0.9,
-                            ),
-                            itemCount: courses.length,
-                            itemBuilder: (context, index) {
-                              final course = courses[index];
-                              final isFlipped = flippedIndex == index;
-                              return GestureDetector(
-                                onTap: () => handleFlip(index, course['locked']),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 500),
-                                  transitionBuilder: (child, animation) {
-                                    final rotate = Tween(begin: pi, end: 0.0).animate(animation);
-                                    return AnimatedBuilder(
-                                      animation: rotate,
-                                      child: child,
-                                      builder: (context, child) {
-                                        final isUnder = (ValueKey(isFlipped) != child!.key);
-                                        final rotationY = isUnder ? pi : 0.0;
-                                        return Transform(
-                                          transform: Matrix4.rotationY(rotationY + rotate.value),
-                                          alignment: Alignment.center,
-                                          child: child,
-                                        );
-                                      },
-                                    );
-                                  },
-                                  layoutBuilder: (currentChild, _) => currentChild!,
-                                  child: isFlipped
-                                      ? dersCardFlipped(course)
-                                      : dersCardFront(course),
-                                ),
-                              );
-                            },
-                          ),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(top: 16, bottom: 24),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 24,
+                                crossAxisSpacing: 24,
+                                childAspectRatio: 0.9,
+                              ),
+                          itemCount: courses.length,
+                          itemBuilder: (context, index) {
+                            final course = courses[index];
+                            final isFlipped = flippedIndex == index;
+                            return GestureDetector(
+                              onTap: () => handleFlip(index, course['locked']),
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 500),
+                                transitionBuilder: (child, animation) {
+                                  final rotate = Tween(
+                                    begin: pi,
+                                    end: 0.0,
+                                  ).animate(animation);
+                                  return AnimatedBuilder(
+                                    animation: rotate,
+                                    child: child,
+                                    builder: (context, child) {
+                                      final isUnder =
+                                          (ValueKey(isFlipped) != child!.key);
+                                      final rotationY = isUnder ? pi : 0.0;
+                                      return Transform(
+                                        transform: Matrix4.rotationY(
+                                          rotationY + rotate.value,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: child,
+                                      );
+                                    },
+                                  );
+                                },
+                                layoutBuilder: (currentChild, _) =>
+                                    currentChild!,
+                                child: isFlipped
+                                    ? dersCardFlipped(course)
+                                    : dersCardFront(course),
+                              ),
+                            );
+                          },
                         ),
+                        const SizedBox(height: 12),
                         ipucuMaskot(),
+                        const SizedBox(
+                          height: 80,
+                        ), // Alt bar için boşluk bıraktık
                       ],
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // Sabit Alt Bar
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: Colors.transparent,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 350,
+                    child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 60.0,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => HomeScreen(
+                                  userMail: '',
+                                  userName: widget.userName,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Image.asset("assets/home.png", height: 28),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DersSec(
+                                  userMail: '',
+                                  userName: widget.userName,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Image.asset("assets/ders.png", height: 28),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ProfilePage(userName: widget.userName),
+                              ),
+                            );
+                          },
+                          child: Image.asset("assets/profile.png", height: 28),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -411,11 +516,18 @@ class _DersSecState extends State<DersSec> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(course['title'], style: const TextStyle(fontSize: 22, color: Colors.white)),
+            Text(
+              course['title'],
+              style: const TextStyle(fontSize: 22, color: Colors.white),
+            ),
             const SizedBox(height: 12),
             Image.asset(course['icon'], height: 50),
             const SizedBox(height: 20),
-            Icon(course['locked'] ? Icons.lock : Icons.lock_open, color: Colors.black, size: 35),
+            Icon(
+              course['locked'] ? Icons.lock : Icons.lock_open,
+              color: Colors.black,
+              size: 35,
+            ),
           ],
         ),
       ),
@@ -437,16 +549,20 @@ class _DersSecState extends State<DersSec> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(course['description'],
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-                textAlign: TextAlign.center),
+            Text(
+              course['description'],
+              style: const TextStyle(fontSize: 18, color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () => dersiSec(course['lessonId']),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.yellow,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text("Seç", style: TextStyle(fontSize: 20)),
             ),
@@ -457,23 +573,40 @@ class _DersSecState extends State<DersSec> {
   }
 
   Widget ipucuMaskot() {
-    return Stack(
-      children: [
-        SizedBox(
-          height: 220,
-          width: double.infinity,
-          child: Image.asset('assets/yan_konusmabaloncuklu_maskot.png', fit: BoxFit.contain),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 0),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              height: 150,
+              width: double.infinity,
+              child: Image.asset('assets/kart1.png', fit: BoxFit.contain),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                "İpucu!\nTemel seviye için algoritmalar dersini öneriyoruz.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color.fromARGB(206, 255, 255, 255),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4,
+                      color: Colors.black45,
+                      offset: Offset(1, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        const Positioned(
-          left: 47,
-          top: 5,
-          child: Text(
-            "İpucu!\nTemel seviye için \nalgoritmalar dersini\nöneriyoruz.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontSize: 15),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
