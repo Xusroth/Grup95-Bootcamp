@@ -44,6 +44,7 @@ class User(Base): # sorguları hızlandırmak için genel olarak hepsinde index=
     reset_tokens = relationship('PasswordResetToken', back_populates='user')
     daily_tasks = relationship('DailyTask', back_populates='user')
     user_questions = relationship('UserQuestion', back_populates='user')
+    refresh_tokens = relationship('RefreshToken', back_populates='user')
 
 
 class Lesson(Base):
@@ -181,3 +182,15 @@ class UserQuestion(Base):
 
     user = relationship('User', back_populates='user_questions')
     question = relationship('Question', back_populates='used_by')
+
+
+class RefreshToken(Base):
+    __tablename__ = 'refresh_tokens'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    token = Column(String, nullable=False, index=True)
+    created_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
+    expires_time = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc) + timedelta(days=30), index=True) # refresh token geçerlilik süresi (30 gün belirledim)
+
+    user = relationship('User', back_populates='refresh_tokens')
