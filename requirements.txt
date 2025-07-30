@@ -20,3 +20,4 @@ python-multipart # access tokenlardaki form data request için gerekli
 authlib # google ile giriş yap seçeneği ve fastapi OAuth2 ile entegre olduğu için bu kütüphane gerekli
 apscheduler # streak ve health_count mantığının otomatik takibi ve kontrolü için gerekli
 psycopg2-binary # backend tarafı canlıya alınacağı için PostgreSQL'e geçiş yapılacak
+alembic # backend canlıya alındığında migration yapmak için kullanılacak
