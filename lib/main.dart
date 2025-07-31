@@ -118,8 +118,8 @@ class _AuthGateState extends State<AuthGate> {
 
   void _handleIncomingLinks() async {
     _appLinks.uriLinkStream.listen((Uri? uri) {
-      if (uri != null && uri.path == '/reset-password') {
-        final token = uri.queryParameters['token'];
+      if (uri?.scheme == 'codebite' && uri?.host == 'reset-password') {
+        final token = uri?.queryParameters['token'];
         if (token != null && token.isNotEmpty) {
           Navigator.push(
             context,
@@ -134,8 +134,8 @@ class _AuthGateState extends State<AuthGate> {
     });
 
     final Uri? initialUri = await _appLinks.getInitialAppLink();
-    if (initialUri != null && initialUri.path == '/reset-password') {
-      final token = initialUri.queryParameters['token'];
+    if (initialUri?.scheme == 'codebite' && initialUri?.host == 'reset-password') {
+      final token = initialUri?.queryParameters['token'];
       if (token != null && token.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.push(
