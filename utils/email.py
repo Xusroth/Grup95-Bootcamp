@@ -8,7 +8,7 @@ from utils.config import EMAIL_HOST, EMAIL_PORT, EMAIL_ADDRESS, EMAIL_PASSWORD
 
 
 def send_reset_email(email: str, token: str):
-    msg = MIMEText(f'Şifrenizi sıfırlamak için bu linke tıklayın: codebite://reset-password?token={token}') # bu kısma flutterdaki yeri yazıcaz
+    msg = MIMEText(f'Şifrenizi sıfırlamak için bu linke tıklayın: https://codebite-backend.onrender.com/reset-redirect?token={token}') # bu kısma redirect'tan sonra flutterdaki yolu yazcaz
     msg['Subject'] = 'Codebite Şifre Sıfırlama'
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = email
