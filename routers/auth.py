@@ -154,6 +154,9 @@ async def login(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestFor
     if not bcrypt.checkpw(form_data.password.encode('utf-8'), db_user.hashed_password.encode('utf-8')):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Şifre yanlış.")
 
+    delete_refresh = db.query(RefreshToken).filter(RefreshToken.user_id == db_user.id).delete()
+    db.commit()
+
     access_token = create_access_token(data={'sub': str(db_user.email)}) #  auth/me kısmı ile uyumlu olması için email ile güncellendi
     refresh_token = create_refresh_token(data={'sub': str(db_user.email)}) # auth/me kısmı ile uyumlu olması için email ile güncellendi
 
@@ -254,8 +257,11 @@ async def guest_login(db: db_dependency):
         user_id=guest_user.id,
         token=refresh_token,
         created_time=datetime.now(timezone.utc),
-        expires_time=datetime.now(timezone.utc) + timedelta(hours=1)
+        expires_time=datetime.now(timezone.utc) + timedelta(hours=4)
     )
+
+    db.add(db_refresh_token)
+    db.commit()
 
     return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer', 'username' : guest_username}
 
