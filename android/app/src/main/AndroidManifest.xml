@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
-                    android:scheme="https"
+                    android:scheme="http"
                     android:host="codebite.com"
                     android:pathPrefix="/reset-password"/>
             </intent-filter>

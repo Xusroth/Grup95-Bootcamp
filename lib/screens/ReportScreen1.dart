@@ -22,52 +22,107 @@ class _ReportScreen1State extends State<ReportScreen1> {
     'Performans Sorunu',
   ];
 
+  
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color.fromARGB(255, 255, 4, 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
+  }
+
+  
+  void _showSuccessSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
+  }
+
   void _submitFeedback() async {
     final auth = AuthService();
     final token = await auth.getString('token');
 
-    if ((selectedOption != null && selectedOption!.isNotEmpty) ||
-        _feedbackController.text.isNotEmpty) {
-      try {
-        final response = await http.post(
-          Uri.parse('$baseURL/error/report'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode({
-            'error_message': selectedOption ?? 'Serbest Geri Bildirim',
-            'details': _feedbackController.text,
-          }),
-        );
-
-        if (response.statusCode == 201) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => FeedbackThanksScreen()),
-          );
-        } else {
-          final detail =
-              jsonDecode(response.body)['detail'] ?? 'Gönderim başarısız';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(detail), backgroundColor: Colors.red),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hata oluştu: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lütfen geri bildirim türü seçin veya mesaj yazın'),
-          backgroundColor: Colors.red,
-        ),
+    if ((selectedOption == null || selectedOption!.isEmpty) &&
+        _feedbackController.text.isEmpty) {
+      _showErrorSnackBar(
+        context,
+        'Lütfen geri bildirim türü seçin veya mesaj yazın',
       );
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseURL/error/report'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'error_message': selectedOption ?? 'Serbest Geri Bildirim',
+          'details': _feedbackController.text,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => FeedbackThanksScreen()),
+        );
+      } else {
+        final detail =
+            jsonDecode(response.body)['detail'] ?? 'Gönderim başarısız';
+        if (!mounted) return;
+        _showErrorSnackBar(context, detail);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar(context, 'Hata oluştu: ${e.toString()}');
     }
   }
 
@@ -274,7 +329,7 @@ class _ReportScreen1State extends State<ReportScreen1> {
               child: IconButton(
                 icon: Icon(Icons.arrow_back, color: Colors.white, size: 28),
                 onPressed: () {
-                  Navigator.pop(context); // Geri gitme işlemi
+                  Navigator.pop(context); 
                 },
               ),
             ),

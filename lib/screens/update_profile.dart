@@ -87,8 +87,33 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
     );
 
     if (response.statusCode != 200) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Şifre yanlış.')),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Şifre yanlış',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red[600], // Kırmızı arkaplan
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+          elevation: 6,
+        ),
       );
       return;
     }
@@ -105,11 +130,11 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
         "level": "beginner",
         "notification_preferences": {
           "email": notificationsOn,
-          "push": notificationsOn
+          "push": notificationsOn,
         },
         "theme": "light",
         "language": "tr",
-        "avatar": avatarPath
+        "avatar": avatarPath,
       }),
     );
 
@@ -120,12 +145,64 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
       await prefs.setInt('daily_goal', selectedTime);
       await prefs.setBool('notifications_on', notificationsOn);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil başarıyla güncellendi.')),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Profil başarıyla güncellendi',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          duration: const Duration(seconds: 3),
+          elevation: 6,
+        ),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil güncelleme başarısız.')),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Profil güncelleme başarısız',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          duration: const Duration(seconds: 3),
+          elevation: 6,
+        ),
       );
     }
   }
@@ -164,15 +241,19 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                   ),
                 ),
               ),
-              actionsPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               actions: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildDialogFixedButton("Vazgeç",
-                        () => Navigator.pop(context, false),
-                        color: Colors.red),
+                    _buildDialogFixedButton(
+                      "Vazgeç",
+                      () => Navigator.pop(context, false),
+                      color: Colors.red,
+                    ),
                     const SizedBox(width: 24),
                     _buildDialogFixedButton("Düzenle", () {
                       if (_passwordController.text.isNotEmpty) {
@@ -188,16 +269,17 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
         false;
   }
 
-  Widget _buildDialogFixedButton(String text, VoidCallback onPressed,
-      {Color color = Colors.white}) {
+  Widget _buildDialogFixedButton(
+    String text,
+    VoidCallback onPressed, {
+    Color color = Colors.white,
+  }) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       child: Text(
         text,
@@ -343,8 +425,9 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                           label: Text(
                             '$minute dk',
                             style: TextStyle(
-                              color:
-                                  isSelected ? Colors.black : Colors.blueGrey,
+                              color: isSelected
+                                  ? Colors.black
+                                  : Colors.blueGrey,
                               fontFamily: 'Poppins-Regular',
                             ),
                           ),
