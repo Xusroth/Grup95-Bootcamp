@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:android_studio/auth_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:android_studio/constants.dart';
 import 'change_avatar.dart';
 
 class ProfileUpdate extends StatefulWidget {
@@ -12,9 +15,12 @@ class ProfileUpdate extends StatefulWidget {
 
 class _ProfileUpdateState extends State<ProfileUpdate> {
   int selectedTime = 5;
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _nicknameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   String avatarPath = 'profile_pic.png';
+  bool notificationsOn = true;
 
   @override
   void initState() {
@@ -24,35 +30,25 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
   }
 
   Future<void> loadAvatar() async {
-    try {
-      final authService = AuthService();
-      final avatar = await authService.getString('user_avatar');
-      setState(() {
-        avatarPath = avatar ?? 'profile_pic.png';
-        debugPrint('Avatar loaded: $avatarPath');
-      });
-    } catch (e) {
-      debugPrint('Avatar loading error: $e');
-      setState(() {
-        avatarPath = 'profile_pic.png';
-      });
-    }
+    final authService = AuthService();
+    final avatar = await authService.getString('user_avatar');
+    setState(() {
+      avatarPath = avatar ?? 'profile_pic.png';
+    });
   }
 
   Future<void> loadUserInfo() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final name = prefs.getString('user_name');
-      final nickname = prefs.getString('user_nickname');
-      final dailyGoal = prefs.getInt('daily_goal');
-      setState(() {
-        _nameController.text = name ?? '';
-        _nicknameController.text = nickname ?? '';
-        selectedTime = dailyGoal ?? 5;
-      });
-    } catch (e) {
-      debugPrint('Error loading user info: $e');
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final username = prefs.getString('user_name');
+    final email = prefs.getString('user_mail');
+    final dailyGoal = prefs.getInt('daily_goal');
+    final notif = prefs.getBool('notifications_on');
+    setState(() {
+      _usernameController.text = username ?? '';
+      _emailController.text = email ?? '';
+      selectedTime = dailyGoal ?? 5;
+      if (notif != null) notificationsOn = notif;
+    });
   }
 
   Future<void> _selectAvatar() async {
@@ -62,49 +58,163 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
     );
 
     if (result != null && result is String) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_avatar', result);
-        setState(() {
-          avatarPath = result;
-          debugPrint('Avatar selected and saved: $avatarPath');
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar başarıyla güncellendi.')),
-        );
-      } catch (e) {
-        debugPrint('Error saving avatar: $e');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Avatar kaydedilemedi.')));
-      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_avatar', result);
+      setState(() {
+        avatarPath = result;
+      });
     }
   }
 
   Future<void> _saveProfile() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_name', _nameController.text);
-      await prefs.setString('user_nickname', _nicknameController.text);
-      await prefs.setInt('daily_goal', selectedTime);
-      debugPrint(
-        'Profile saved: Ad: ${_nameController.text}, Kullanıcı Adı: ${_nicknameController.text}, Süre: $selectedTime dk',
+    final confirmed = await _showPasswordDialog();
+    if (!confirmed) return;
+
+    final authService = AuthService();
+    final token = await authService.getString('token');
+    final userId = await authService.getString('user_id');
+
+    final response = await http.post(
+      Uri.parse('$baseURL/settings/change_password'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'current_password': _passwordController.text,
+        'new_password': _passwordController.text,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Şifre yanlış.')),
       );
+      return;
+    }
+
+    final updateResponse = await http.put(
+      Uri.parse('$baseURL/auth/users/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        "username": _usernameController.text,
+        "email": _emailController.text,
+        "level": "beginner",
+        "notification_preferences": {
+          "email": notificationsOn,
+          "push": notificationsOn
+        },
+        "theme": "light",
+        "language": "tr",
+        "avatar": avatarPath
+      }),
+    );
+
+    if (updateResponse.statusCode == 200) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', _usernameController.text);
+      await prefs.setString('user_mail', _emailController.text);
+      await prefs.setInt('daily_goal', selectedTime);
+      await prefs.setBool('notifications_on', notificationsOn);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profil başarıyla güncellendi.')),
       );
-    } catch (e) {
-      debugPrint('Error saving profile: $e');
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profil güncelleme başarısız.')),
       );
     }
   }
 
+  Future<bool> _showPasswordDialog() async {
+    _passwordController.clear();
+
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              backgroundColor: const Color.fromARGB(213, 45, 33, 59),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                "Lütfen işlemi onaylamak için şifrenizi giriniz.",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Poppins-Regular',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              content: TextField(
+                controller: _passwordController,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: '',
+                  hintStyle: TextStyle(color: Colors.white38),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white38),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              actions: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildDialogFixedButton("Vazgeç",
+                        () => Navigator.pop(context, false),
+                        color: Colors.red),
+                    const SizedBox(width: 24),
+                    _buildDialogFixedButton("Düzenle", () {
+                      if (_passwordController.text.isNotEmpty) {
+                        Navigator.pop(context, true);
+                      }
+                    }, color: Colors.green),
+                  ],
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  Widget _buildDialogFixedButton(String text, VoidCallback onPressed,
+      {Color color = Colors.white}) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: 'Poppins-Regular',
+          fontSize: 14,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _nameController.dispose();
-    _nicknameController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -189,8 +299,31 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildTextField('Ad Soyad', _nameController),
-                  _buildTextField('Kullanıcı Adı', _nicknameController),
+                  _buildTextField('Kullanıcı Adı', _usernameController),
+                  _buildTextField('E-posta', _emailController),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Bildirimleri Aç/Kapat',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Poppins-Regular',
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Switch(
+                    value: notificationsOn,
+                    onChanged: (value) async {
+                      setState(() {
+                        notificationsOn = value;
+                      });
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('notifications_on', value);
+                    },
+                    activeColor: Colors.green,
+                    inactiveThumbColor: Colors.red,
+                  ),
                   const SizedBox(height: 24),
                   const Text(
                     'Günlük Görev',
@@ -210,9 +343,8 @@ class _ProfileUpdateState extends State<ProfileUpdate> {
                           label: Text(
                             '$minute dk',
                             style: TextStyle(
-                              color: isSelected
-                                  ? Colors.black
-                                  : Colors.blueGrey,
+                              color:
+                                  isSelected ? Colors.black : Colors.blueGrey,
                               fontFamily: 'Poppins-Regular',
                             ),
                           ),

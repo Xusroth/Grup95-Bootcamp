@@ -37,52 +37,52 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submitLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isLoading = true);
+  setState(() => isLoading = true);
 
-    final url = Uri.parse('$baseURL/auth/login'); // kendi backend IP'n
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'username': _emailController.text,
-        'password': _passwordController.text,
-      },
-    );
+  final url = Uri.parse('$baseURL/auth/login');
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: {
+      'username': _emailController.text,
+      'password': _passwordController.text,
+    },
+  );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final token = data['access_token'];
-      final prefs = AuthService();
-      await prefs.setString('token', token.toString());
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    final accessToken = data['access_token'];
+    final refreshToken = data['refresh_token'];
 
-    try {
-      final userInfo = await fetchUserInfo(token);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DersSec(
-            userName: userInfo['username'] ?? "Kullanıcı",
-            userMail: userInfo['email'] ?? "bilinmiyor@mail.com",
-          ),
+    final authService = AuthService();
+    await authService.setString('token', accessToken);
+    await authService.setString('refresh_token', refreshToken);
+
+    await authService.setTokenAndUserData(accessToken);
+
+    final userName = await authService.getString('user_name') ?? 'Kullanıcı';
+    final userMail = await authService.getString('user_mail') ?? 'bilinmiyor@mail.com';
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DersSec(
+          userName: userName,
+          userMail: userMail,
         ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-    } else {
-      final detail = jsonDecode(response.body)['detail'] ?? 'Giriş başarısız';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(detail)),
-      );
-    }
-
-    setState(() => isLoading = false);
+      ),
+    );
+  } else {
+    final detail = jsonDecode(response.body)['detail'] ?? 'Giriş başarısız';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(detail)),
+    );
   }
 
+  setState(() => isLoading = false);
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

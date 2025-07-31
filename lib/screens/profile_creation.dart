@@ -29,7 +29,6 @@ class _ProfileCreationState extends State<ProfileCreation> {
   final String baseUrl = '$baseURL';
 
 Future<void> registerUser() async {
-  
   final registerResponse = await http.post(
     Uri.parse('$baseUrl/auth/register'),
     headers: {'Content-Type': 'application/json'},
@@ -43,38 +42,29 @@ Future<void> registerUser() async {
   if (registerResponse.statusCode == 201) {
     print("✅ Kayıt başarılı");
 
-    
     final loginResponse = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: {
-        'username': _mailController.text.trim(), 
+        'username': _mailController.text.trim(),
         'password': _passwordController.text.trim(),
-      }
+      },
     );
 
     if (loginResponse.statusCode == 200) {
       final loginData = jsonDecode(loginResponse.body);
-      final token = loginData['access_token'];
+      final accessToken = loginData['access_token'];
+      final refreshToken = loginData['refresh_token'];
 
       final auth = AuthService();
-      await auth.setString('token', token);
+      await auth.setString('token', accessToken);
+      await auth.setString('refresh_token', refreshToken);
 
-      print("🔐 Token alındı ve kaydedildi: $token");
+      print("🔐 Tokenlar kaydedildi");
 
-      
-      final meResponse = await http.get(
-        Uri.parse('$baseUrl/auth/me'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      // Kullanıcı bilgilerini ve avatarı al
+      await auth.setTokenAndUserData(accessToken);
 
-      if (meResponse.statusCode == 200) {
-        final userInfo = jsonDecode(meResponse.body);
-        print("👤 Kullanıcı Bilgisi: $userInfo");
-        
-      } else {
-        print("⚠️ Kullanıcı bilgisi alınamadı");
-      }
     } else {
       throw Exception('Giriş başarısız: ${loginResponse.body}');
     }
