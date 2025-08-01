@@ -7,9 +7,8 @@ from starlette import status
 from sqlalchemy.orm import Session
 import bcrypt
 from database import SessionLocal, engine
-from models import User, Lesson
+from models import User, Lesson, Base
 from schemas import UserRegister, UserLogin
-from models import Base
 from typing import Annotated
 from routers.auth import router as auth_router, create_admin
 from routers.lesson import router as lesson_router
@@ -21,6 +20,7 @@ from routers.settings import router as settings_router
 from routers.avatar import router as avatar_router
 from utils.streak import start_streak_scheduler
 from utils.health import start_health_scheduler
+from utils.daily_tasks import start_daily_tasks_scheduler, stop_daily_tasks_scheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
 
@@ -67,21 +67,23 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 health_scheduler = None # health_count zamanlayıcısı
 streak_scheduler = None # streak zamanlayıcısı
+daily_tasks_scheduler = None # daily_tasks zamanlayıcısı
 
 
 @app.on_event("startup")
 async def startup_event():
-    global health_scheduler, streak_scheduler
+    global health_scheduler, streak_scheduler, daily_tasks_scheduler
     logger.info("Uygulama başlatılıyor...")
     create_admin() # uygulama çalıştığında otomatik olarak admin kullanıcısı yoksa admin kullanıcısı oluşacak     # email -> admin@gmail.com    # password -> Admin123!
     health_scheduler = start_health_scheduler()
     streak_scheduler = start_streak_scheduler()
+    daily_tasks_scheduler = start_daily_tasks_scheduler()
     logger.info("Zamanlayıcılar başlatıldı.")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    global health_scheduler, streak_scheduler
+    global health_scheduler, streak_scheduler, daily_tasks_scheduler
     logger.info("Uygulama kapatılıyor..!")
     if health_scheduler:
         health_scheduler.shutdown()
@@ -89,6 +91,8 @@ async def shutdown_event():
     if streak_scheduler:
         streak_scheduler.shutdown()
         logger.info("Streak yenileme zamanlayıcısı durduruldu.")
+    if daily_tasks_scheduler:
+        stop_daily_tasks_scheduler(daily_tasks_scheduler)
 
 
 @app.get('/')
