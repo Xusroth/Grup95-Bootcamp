@@ -37,6 +37,7 @@ class _DersSecState extends State<DersSec> {
   String avatarPath = 'profile_pic.png';
   int healthCount = 6;
   int streakCount = 0;
+  
 
   @override
   void initState() {
@@ -90,13 +91,13 @@ class _DersSecState extends State<DersSec> {
   }
 
   String getBatteryAsset(int count) {
-    if (count <= 0) return 'assets/batteries/battery_empty.png';
+    if (count <= 0) return 'assets/batteries/battery_0.png';
     if (count == 1) return 'assets/batteries/battery_1.png';
     if (count == 2) return 'assets/batteries/battery_2.png';
     if (count == 3) return 'assets/batteries/battery_3.png';
     if (count == 4) return 'assets/batteries/battery_4.png';
     if (count == 5) return 'assets/batteries/battery_5.png';
-    return 'assets/batteries/battery_full.png';
+    return 'assets/batteries/battery_6.png';
   }
 
   Future<void> dersiSec(int lessonId) async {
@@ -620,4 +621,5 @@ class _DersSecState extends State<DersSec> {
       ),
     );
   }
+
 }

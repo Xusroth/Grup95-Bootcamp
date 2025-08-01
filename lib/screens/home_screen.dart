@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String avatarPath = 'profile_pic.png';
   int healthCount = 6;
   int streakCount = 0;
+  int _selectedIndex = 0;
   List<Map<String, dynamic>> selectedLessons = [];
   List<dynamic> streakList = [];
 
@@ -84,13 +85,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String getBatteryAsset(int count) {
-    if (count <= 0) return 'assets/batteries/battery_empty.png';
+    if (count <= 0) return 'assets/batteries/battery_0.png';
     if (count == 1) return 'assets/batteries/battery_1.png';
     if (count == 2) return 'assets/batteries/battery_2.png';
     if (count == 3) return 'assets/batteries/battery_3.png';
     if (count == 4) return 'assets/batteries/battery_4.png';
     if (count == 5) return 'assets/batteries/battery_5.png';
-    return 'assets/batteries/battery_full.png';
+    return 'assets/batteries/battery_6.png';
   }
 
   Future<void> fetchDailyTasks() async {
@@ -325,36 +326,54 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(
+                          setState(() => _selectedIndex = 0);
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => HomeScreen(userMail: '', userName: widget.userName),
+                              builder: (_) => HomeScreen(userMail: widget.userMail, userName: widget.userName),
                             ),
                           );
                         },
-                        child: Image.asset("assets/home.png", height: 28),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 200),
+                          width: _selectedIndex == 0 ? 30.0 : 24.0,
+                          height: _selectedIndex == 0 ? 30.0 : 24.0,
+                          child: Image.asset("assets/home.png"),
+                        ),
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(
+                          setState(() => _selectedIndex = 1);
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => DersSec(userMail: '', userName: widget.userName),
+                              builder: (_) => DersSec(userMail: widget.userMail, userName: widget.userName),
                             ),
                           );
                         },
-                        child: Image.asset("assets/ders.png", height: 28),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 1000),
+                          width: _selectedIndex == 1 ? 30.0 : 24.0,
+                          height: _selectedIndex == 1 ? 30.0 : 24.0,
+                          child: Image.asset("assets/ders.png"),
+                        ),
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(
+                          setState(() => _selectedIndex = 2);
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (_) => ProfilePage(userName: widget.userName),
                             ),
                           );
                         },
-                        child: Image.asset("assets/profile.png", height: 28),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 1000),
+                          width: _selectedIndex == 2 ? 30.0 : 24.0,
+                          height: _selectedIndex == 2 ? 30.0 : 24.0,
+                          child: Image.asset("assets/profile.png"),
+                        ),
                       ),
                     ],
                   ),

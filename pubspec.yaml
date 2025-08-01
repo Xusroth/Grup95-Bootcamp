@@ -33,7 +33,7 @@ dependencies:
 
   animated_text_kit: ^4.2.2
   flutter_dotenv: ^5.0.2
-  app_links: ^3.4.1
+  app_links: ^5.0.0
   shared_preferences: ^2.5.3
   http: ^1.4.0
   cupertino_icons: ^1.0.8
@@ -151,8 +151,8 @@ flutter:
     - assets/batteries/battery_3.png
     - assets/batteries/battery_4.png
     - assets/batteries/battery_5.png
-    - assets/batteries/battery_empty.png
-    - assets/batteries/battery_full.png
+    - assets/batteries/battery_0.png
+    - assets/batteries/battery_6.png
     - assets/streak.png
     - assets/terminal.png
     - assets/tick.png

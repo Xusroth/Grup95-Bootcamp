@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
-import 'package:android_studio/lessons/result.dart'; 
 
 class QuestionPage extends StatefulWidget {
   final int sectionIndex;
@@ -38,6 +37,9 @@ class _QuestionPageState extends State<QuestionPage>
   int currentQuestionIndex = 0;
   int correctAnswers = 0;
   double progress = 0.0;
+  
+  // ValueNotifier olarak tanımlayalım
+  late ValueNotifier<int> remainingHealthNotifier;
 
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
@@ -54,6 +56,21 @@ class _QuestionPageState extends State<QuestionPage>
         'Authorization': 'Bearer $token',
       },
     );
+
+    final meResponse = await http.get(
+      Uri.parse('$baseURL/auth/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (meResponse.statusCode == 200) {
+      final meData = jsonDecode(meResponse.body);
+      setState(() {
+        remainingHealthNotifier.value = meData['health_count'] ?? 6;
+      });
+    }
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -85,29 +102,42 @@ class _QuestionPageState extends State<QuestionPage>
         }),
       );
 
+      print('Response status: ${response.statusCode}'); // Debug
+
       if (response.statusCode == 200) {
         setState(() {
           correctAnswer = question['correct_answer'];
           isCorrect = true;
           correctAnswers++;
           progress = correctAnswers / questions.length;
+          answered = true;
         });
       } else if (response.statusCode == 400) {
         final data = jsonDecode(response.body);
+        print('Full response body: ${response.body}'); // Tam response'u görelim
+        print('Parsed data: $data'); // Parse edilmiş data'yı görelim
+        final newHealth = data['health_count'];
+        
+        print('Önceki health: ${remainingHealthNotifier.value}'); // Debug
+        print('Yeni health: $newHealth'); // Debug
+
         setState(() {
           correctAnswer = question['correct_answer'];
           isCorrect = false;
+          answered = true;
+          // Health count'u direkt olarak güncelle
+          if (newHealth != null) {
+            remainingHealthNotifier.value = newHealth;
+            print('Health güncellendi: ${remainingHealthNotifier.value}'); // Debug
+          } else {
+            // Eğer backend health_count döndürmüyorsa manuel olarak azalt
+            remainingHealthNotifier.value = (remainingHealthNotifier.value - 1).clamp(0, 6);
+            print('Health manuel olarak azaltıldı: ${remainingHealthNotifier.value}'); // Debug
+          }
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['detail'] ?? 'Yanlış cevap')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cevap gönderilemedi.')),
-        );
       }
     } catch (e) {
+      print('Error in sendAnswer: $e'); // Debug
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bir hata oluştu.')),
       );
@@ -121,7 +151,7 @@ class _QuestionPageState extends State<QuestionPage>
 
     setState(() {
       selectedAnswer = key;
-      answered = true;
+      // answered = true; // Bu satırı kaldırdık, sendAnswer içinde yapacağız
     });
 
     sendAnswer(key);
@@ -129,15 +159,45 @@ class _QuestionPageState extends State<QuestionPage>
 
   Color getAnswerColor(String key) {
     if (!answered) return Colors.white.withOpacity(0.1);
-    if (key == selectedAnswer && isCorrect) return Colors.green;
-    if (key == selectedAnswer && !isCorrect) return Colors.red;
-    if (key == correctAnswer && !isCorrect) return Colors.green.withOpacity(0.6);
+    if (key == selectedAnswer && isCorrect) return const Color.fromARGB(255, 60, 138, 63);
+    if (key == selectedAnswer && !isCorrect) return const Color.fromARGB(255, 167, 46, 37);
+    if (key == correctAnswer && !isCorrect) return const Color.fromARGB(255, 60, 138, 63);
     return Colors.white.withOpacity(0.1);
+  }
+
+  Widget batteryBar() {
+    return ValueListenableBuilder<int>(
+      valueListenable: remainingHealthNotifier,
+      builder: (context, healthValue, child) {
+        final healthLevel = healthValue.clamp(0, 6);
+        print('batteryBar build - healthLevel: $healthLevel'); // Debug
+        
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 800),
+          switchInCurve: Curves.elasticOut,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return ScaleTransition(
+              scale: animation,
+              child: child,
+            );
+          },
+          child: Image.asset(
+            'assets/batteries/battery_$healthLevel.png',
+            key: ValueKey<int>(healthLevel),
+            height: 48,
+          ),
+        );
+      },
+    );
   }
 
   @override
   void initState() {
     super.initState();
+    
+    // ValueNotifier'ı başlatalım
+    remainingHealthNotifier = ValueNotifier<int>(6);
 
     if (widget.isLevelCompleted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -161,6 +221,7 @@ class _QuestionPageState extends State<QuestionPage>
   @override
   void dispose() {
     _controller.dispose();
+    remainingHealthNotifier.dispose(); // ValueNotifier'ı dispose edelim
     super.dispose();
   }
 
@@ -250,7 +311,7 @@ class _QuestionPageState extends State<QuestionPage>
                     ),
                     Row(
                       children: [
-                        Image.asset('assets/health_bar.png', height: 24),
+                        batteryBar(),
                         const SizedBox(width: 10),
                         GestureDetector(
                           onTap: () {
@@ -345,7 +406,9 @@ class _QuestionPageState extends State<QuestionPage>
               child: Container(
                 height: 160,
                 decoration: BoxDecoration(
-                  color: isCorrect ? Colors.green.withOpacity(0.9) : Colors.red.withOpacity(0.9),
+                  color: isCorrect
+                      ? const Color.fromARGB(255, 60, 138, 63)
+                      : const Color.fromARGB(255, 167, 46, 37),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(30),
                     topRight: Radius.circular(30),
@@ -368,7 +431,7 @@ class _QuestionPageState extends State<QuestionPage>
                         _controller.reset();
 
                         if (currentQuestionIndex == questions.length - 1) {
-                          Future.delayed(const Duration(milliseconds: 300), () {
+                          Future.delayed(const Duration(milliseconds: 600), () {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
