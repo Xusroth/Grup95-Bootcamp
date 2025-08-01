@@ -1,6 +1,7 @@
 
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi.responses import RedirectResponse
 from typing import Annotated
 from pydantic import BaseModel
 from database import SessionLocal
@@ -403,6 +404,8 @@ async def request_password_reset(db: db_dependency, request: PasswordResetReques
     if user.role == 'guest':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Misafir kullanıcılar şifre sıfırlayamaz.")
 
+    active_token = db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user.id, PasswordResetToken.expires_time > datetime.now(timezone.utc)).delete()
+
     token = create_access_token(data={'sub': user.email, 'purpose': 'password_reset'}, expires_delta=timedelta(hours=1)) # token oluşturma
 
     reset_token = PasswordResetToken(user_id=user.id, token=token, expires_time=datetime.now(timezone.utc) + timedelta(hours=1)) # token sıfırlama ve db'ye kaydetme
@@ -412,6 +415,37 @@ async def request_password_reset(db: db_dependency, request: PasswordResetReques
 
     send_reset_email(user.email, token) # e posta gönderme
     return {'message': "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi."}
+
+
+@router.get('/reset-redirect')
+async def reset_redirect(db: db_dependency, token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get('purpose') != 'password_reset':
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token amacı geçersiz.")
+
+        email = payload.get('sub')
+        if not email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz token.")
+
+        reset_token = db.query(PasswordResetToken).filter(PasswordResetToken.token == token).first()
+        if not reset_token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
+
+        expires_time = reset_token.expires_time
+        if expires_time.tzinfo is None:
+            expires_time = expires_time.replace(tzinfo=timezone.utc)
+
+        if expires_time < datetime.now(timezone.utc):
+            db.delete(reset_token)
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token.")
+
+        deeplink = f'codebite://reset-password?token={token}' # flutter için deeplink oluşturuldu
+        return RedirectResponse(url=deeplink)
+
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz veya süresi dolmuş token. Lütfen yeni bir şifre sıfırlama talebi oluşturun.")
 
 
 @router.post('/password_reset')
