@@ -46,6 +46,8 @@ def generate_daily_tasks_scheduler(): # tüm kullanıcılar için günlük göre
     db = SessionLocal()
 
     try:
+        cleanup_expired_tasks_scheduler()
+
         users = db.query(User).filter(User.role != 'guest').all()
         total_created = 0
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
