@@ -13,6 +13,7 @@ class StreakPage1 extends StatefulWidget {
 
 class _StreakPage1State extends State<StreakPage1> {
   int streakCount = 0;  
+  List<dynamic> streakList = [];
 
   @override
   void initState() {
@@ -28,16 +29,26 @@ class _StreakPage1State extends State<StreakPage1> {
       if (token == null) return;
 
       final response = await http.get(
-        Uri.parse('$baseURL/auth/streak_count'),
+        Uri.parse('$baseURL/auth/streaks'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          streakCount = data['streak'] ?? 0;
-        });
+      final List<dynamic> fetchedStreaks = json.decode(response.body);
+
+      if (fetchedStreaks.isNotEmpty) {
+        
+        streakList = fetchedStreaks;
+
+        
+        fetchedStreaks.sort((a, b) => b['streak_count'].compareTo(a['streak_count']));
+        streakCount = fetchedStreaks[0]['streak_count'];
       } else {
+        streakCount = 0;
+      }
+    }
+      
+      else {
         debugPrint('Streak fetch failed: ${response.statusCode}');
       }
     } catch (e) {

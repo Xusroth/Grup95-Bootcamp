@@ -26,8 +26,9 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
   int subsectionCompletion = 0;
   Map<int, int> completedQuestionsMap = {};
   String avatarPath = 'profile_pic.png';
-  int healthCount = 3;
+  int healthCount = 6;
   int streakCount = 0;
+  List<dynamic> streakList = [];
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         headers: {'Authorization': 'Bearer $token'},
       );
       final streakRes = await http.get(
-        Uri.parse('$baseURL/auth/streak_count'),
+        Uri.parse('$baseURL/auth/streaks'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -63,9 +64,19 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         healthCount = healthData['health_count'];
       }
       if (streakRes.statusCode == 200) {
-        final streakData = json.decode(streakRes.body);
-        streakCount = streakData['streak_count'];
+      final List<dynamic> fetchedStreaks = json.decode(streakRes.body);
+
+      if (fetchedStreaks.isNotEmpty) {
+        
+        streakList = fetchedStreaks;
+
+        
+        fetchedStreaks.sort((a, b) => b['streak_count'].compareTo(a['streak_count']));
+        streakCount = fetchedStreaks[0]['streak_count'];
+      } else {
+        streakCount = 0;
       }
+    }
       setState(() {});
     } catch (e) {
       print("Hata: $e");
