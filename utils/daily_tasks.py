@@ -74,13 +74,13 @@ def generate_daily_tasks_scheduler(): # tüm kullanıcılar için günlük göre
         db.close()
 
 
-def start_daily_tasks_scheduler(): # her gün 00.00'da görevleri otomatik olarak temizler ve yeniden oluşturur
+def start_daily_tasks_scheduler(): # her gün 23.59'da görevleri otomatik olarak temizler ve yeniden oluşturur
     scheduler = AsyncIOScheduler()
 
     try:
         scheduler.add_job(
             func=cleanup_expired_tasks_scheduler,
-            trigger=CronTrigger(hour=0, minute=0, second=30),
+            trigger=CronTrigger(hour=23, minute=59, second=0),
             id='cleanup_expired_tasks',
             name='Süresi Dolmuş Görevleri Temizle',
             replace_existing=True
@@ -88,7 +88,7 @@ def start_daily_tasks_scheduler(): # her gün 00.00'da görevleri otomatik olara
 
         scheduler.add_job(
             func=generate_daily_tasks_scheduler,
-            trigger=CronTrigger(hour=0, minute=1, second=0),  # 00:01:00'da çalış
+            trigger=CronTrigger(hour=0, minute=1, second=0),  # 00.01 geçe çalış
             id='generate_daily_tasks',
             name='Günlük Görevler Oluştur',
             replace_existing=True
