@@ -62,6 +62,9 @@ class _SettingsPageState extends State<SettingsPage> {
       Uri.parse('$baseURL/auth/users/me/delete'),
       headers: {'Authorization': 'Bearer $token'},
     );
+
+    if (!context.mounted) return;
+
     if (response.statusCode == 200) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -69,10 +72,43 @@ class _SettingsPageState extends State<SettingsPage> {
         (route) => false,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Hesap silinemedi: ${response.statusCode}")),
-      );
+      _showStyledSnackBar("Hesap silinemedi. Lütfen tekrar deneyin.", isError: true);
     }
+  }
+
+  void _showStyledSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red[600] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
   }
 
   @override
@@ -89,10 +125,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -143,12 +176,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   context: context,
                                   builder: (context) {
                                     return AlertDialog(
-                                      backgroundColor: const Color.fromARGB(
-                                        213,
-                                        45,
-                                        33,
-                                        59,
-                                      ),
+                                      backgroundColor: const Color.fromARGB(213, 45, 33, 59),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
                                       ),
@@ -160,15 +188,13 @@ class _SettingsPageState extends State<SettingsPage> {
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
-                                      actionsPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 12,
-                                          ),
+                                      actionsPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
                                       actions: [
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                          mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             _buildDialogFixedButton(
                                               "Hayır",
@@ -176,10 +202,14 @@ class _SettingsPageState extends State<SettingsPage> {
                                               color: Colors.green,
                                             ),
                                             const SizedBox(width: 24),
-                                            _buildDialogFixedButton("Evet", () {
-                                              Navigator.pop(context);
-                                              deleteAccount();
-                                            }, color: Colors.redAccent),
+                                            _buildDialogFixedButton(
+                                              "Evet",
+                                              () {
+                                                Navigator.pop(context);
+                                                deleteAccount();
+                                              },
+                                              color: Colors.redAccent,
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -190,12 +220,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 showDialog(
                                   context: context,
                                   builder: (_) => AlertDialog(
-                                    backgroundColor: const Color.fromARGB(
-                                      213,
-                                      45,
-                                      33,
-                                      59,
-                                    ),
+                                    backgroundColor: const Color.fromARGB(213, 45, 33, 59),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
                                     ),
@@ -222,8 +247,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     ),
                                     actions: [
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           _buildDialogFixedButton(
                                             "Tamam",
@@ -238,12 +262,10 @@ class _SettingsPageState extends State<SettingsPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ChangePasswordInAppScreen(),
+                                    builder: (_) => const ChangePasswordInAppScreen(),
                                   ),
                                 );
-                              } else if (itemText ==
-                                  "S.S.S\n(Sıkça Sorulan Sorular)") {
+                              } else if (itemText == "S.S.S\n(Sıkça Sorulan Sorular)") {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -302,8 +324,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
-
-          
           Positioned(
             bottom: 40,
             left: 0,
@@ -315,11 +335,8 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildDialogFixedButton(
-    String text,
-    VoidCallback onPressed, {
-    Color color = const Color(0xFF8E24AA),
-  }) {
+  Widget _buildDialogFixedButton(String text, VoidCallback onPressed,
+      {Color color = const Color(0xFF8E24AA)}) {
     return SizedBox(
       width: 120,
       child: TextButton(

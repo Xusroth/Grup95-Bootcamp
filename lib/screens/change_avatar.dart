@@ -36,54 +36,77 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   String? selectedAvatar;
   bool isLoading = false;
 
-  Future<void> _submitAvatar() async {
-  if (selectedAvatar == null) return;
-
-  setState(() {
-    isLoading = true;
-  });
-
-  final authService = AuthService();
-  final token = await authService.getString('token');
-
-  final response = await http.put(
-    Uri.parse('$baseURL/avatar/update'),
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-    body: jsonEncode({'avatar': selectedAvatar}),
-  );
-
-  setState(() {
-    isLoading = false;
-  });
-
-  if (!context.mounted) return;
-
-  if (response.statusCode == 200) {
-    //  Avatarı yerel belleğe de kaydet
-    await authService.setString('user_avatar', selectedAvatar!);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Avatar başarıyla güncellendi")),
-    );
-
-    Navigator.pop(context, selectedAvatar); 
-  } else if (response.statusCode == 403) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Misafir kullanıcılar avatar güncelleyemez")),
-    );
-  } else {
+  void showStyledSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Hata: ${jsonDecode(response.body)['detail'] ?? 'Bilinmeyen hata'}"),
-        backgroundColor: Colors.red,
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red[600] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
       ),
     );
   }
-}
 
+  Future<void> _submitAvatar() async {
+    if (selectedAvatar == null) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    final authService = AuthService();
+    final token = await authService.getString('token');
+
+    final response = await http.put(
+      Uri.parse('$baseURL/avatar/update'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'avatar': selectedAvatar}),
+    );
+
+    setState(() {
+      isLoading = false;
+    });
+
+    if (!context.mounted) return;
+
+    if (response.statusCode == 200) {
+      await authService.setString('user_avatar', selectedAvatar!);
+      showStyledSnackBar("Avatar başarıyla güncellendi");
+      Navigator.pop(context, selectedAvatar);
+    } else if (response.statusCode == 403) {
+      showStyledSnackBar("Misafir kullanıcılar avatar güncelleyemez", isError: true);
+    } else {
+      final detail = jsonDecode(response.body)['detail'] ?? 'Bilinmeyen hata';
+      showStyledSnackBar("Hata: $detail", isError: true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +169,6 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                 ),
               ),
 
-              // Kaydet Butonu
               if (selectedAvatar != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

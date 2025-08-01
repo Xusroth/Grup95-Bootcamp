@@ -26,27 +26,70 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
     });
   }
 
+  void showStyledSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red[600] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
+  }
+
   Future<void> sendResetRequest() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      showStyledSnackBar("Lütfen geçerli bir e-posta adresi girin", isError: true);
+      return;
+    }
+
     setState(() => isLoading = true);
 
     final response = await http.post(
       Uri.parse('$baseURL/auth/password_reset_request'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': _emailController.text.trim()}),
+      body: jsonEncode({'email': email}),
     );
 
     setState(() => isLoading = false);
 
+    if (!context.mounted) return;
+
     if (response.statusCode == 200) {
+      showStyledSnackBar("Şifre sıfırlama bağlantısı gönderildi");
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const EmailSentScreen()),
       );
     } else {
       final message = jsonDecode(response.body)['detail'] ?? 'Bir hata oluştu.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      showStyledSnackBar("Hata: $message", isError: true);
     }
   }
 

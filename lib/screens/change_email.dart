@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:android_studio/screens/email_sent.dart';
 
-
 class EmailChangeScreen extends StatefulWidget {
   const EmailChangeScreen({super.key});
 
@@ -12,13 +11,50 @@ class EmailChangeScreen extends StatefulWidget {
 class _EmailChangeScreenState extends State<EmailChangeScreen> {
   final TextEditingController _emailController = TextEditingController();
 
+  void showStyledSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red[600] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
+  }
+
   void _submitEmail() {
-    if (_emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lütfen geçerli bir e-posta girin")),
-      );
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      showStyledSnackBar("Lütfen geçerli bir e-posta girin", isError: true);
       return;
     }
+
+    showStyledSnackBar("Doğrulama e-postası gönderildi");
 
     Navigator.push(
       context,

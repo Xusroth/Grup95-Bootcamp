@@ -16,21 +16,59 @@ class _ChangePasswordInAppScreenState extends State<ChangePasswordInAppScreen> {
   final _newController = TextEditingController();
   final _confirmController = TextEditingController();
 
-  String? errorMessage;
   bool isLoading = false;
 
+  void showStyledSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red[600] : Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
+  }
+
   Future<void> changePassword() async {
-    if (_newController.text != _confirmController.text) {
-      setState(() {
-        errorMessage = "Yeni şifreler birbiriyle uyuşmuyor.";
-      });
+    final current = _currentController.text.trim();
+    final newPass = _newController.text.trim();
+    final confirmPass = _confirmController.text.trim();
+
+    if (current.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
+      showStyledSnackBar("Tüm alanları doldurmalısınız", isError: true);
       return;
     }
 
-    setState(() {
-      errorMessage = null;
-      isLoading = true;
-    });
+    if (newPass != confirmPass) {
+      showStyledSnackBar("Yeni şifreler birbiriyle uyuşmuyor", isError: true);
+      return;
+    }
+
+    setState(() => isLoading = true);
 
     final auth = AuthService();
     final token = await auth.getString('token');
@@ -42,26 +80,23 @@ class _ChangePasswordInAppScreenState extends State<ChangePasswordInAppScreen> {
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'current_password': _currentController.text,
-        'new_password': _newController.text,
+        'current_password': current,
+        'new_password': newPass,
       }),
     );
 
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
+
+    if (!context.mounted) return;
 
     if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Şifre başarıyla değiştirildi")),
-      );
+      showStyledSnackBar("Şifre başarıyla değiştirildi");
       _currentController.clear();
       _newController.clear();
       _confirmController.clear();
     } else {
-      setState(() {
-        errorMessage = jsonDecode(response.body)['detail'] ?? "Hata oluştu.";
-      });
+      final detail = jsonDecode(response.body)['detail'] ?? "Hata oluştu.";
+      showStyledSnackBar("Hata: $detail", isError: true);
     }
   }
 
@@ -103,12 +138,6 @@ class _ChangePasswordInAppScreenState extends State<ChangePasswordInAppScreen> {
                       _buildTextField("Mevcut şifre", _currentController),
                       _buildTextField("Yeni şifre", _newController),
                       _buildTextField("Yeni şifre tekrar", _confirmController),
-                      const SizedBox(height: 16),
-                      if (errorMessage != null)
-                        Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
