@@ -235,102 +235,106 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
                       child: Stack(
-                        alignment: Alignment.centerLeft,
                         children: [
                           Image.asset(
                             'assets/user_bar.png',
                             fit: BoxFit.contain,
-                            width: 400,
+                            width: double.infinity,
                             height: 70,
                           ),
-                          Positioned(
-                            left: 0,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ProfilePage(userName: widget.userName),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                width: 55,
-                                height: 55,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  image: DecorationImage(
-                                    image: AssetImage(
-                                      avatarPath.startsWith('avatar_')
-                                          ? 'assets/avatars/$avatarPath'
-                                          : 'assets/$avatarPath',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 65,
+                          Positioned.fill(
                             child: Row(
                               children: [
-                              Text(
-                                widget.userName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'Poppins-Regular',
-                                  fontSize: 20,
+                               
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProfilePage(userName: widget.userName),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    width: 55,
+                                    height: 55,
+                                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      image: DecorationImage(
+                                        image: AssetImage(
+                                          avatarPath.startsWith('avatar_')
+                                              ? 'assets/avatars/$avatarPath'
+                                              : 'assets/$avatarPath',
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 20),
-                              Row(
-                                children: [
-                                  Image.asset(getBatteryAsset(healthCount), height: 55),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$healthCount',
+
+                                
+                                Expanded(
+                                  child: Text(
+                                    widget.userName,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontFamily: 'Poppins-Bold',
-                                      fontSize: 20,
+                                      fontFamily: 'Poppins-Regular',
+                                      fontSize: 16,
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(width: 16),
-                              Row(
-                                children: [
-                                  Image.asset('assets/streak.png', height: 36),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$streakCount',
-                                    style: const TextStyle(
-                                      color: Colors.deepOrange,
-                                      fontFamily: 'Poppins-Bold',
-                                      fontSize: 20,
+                                ),
+
+                               
+                                Row(
+                                  children: [
+                                    Image.asset(getBatteryAsset(healthCount), height: 48),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$healthCount',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Poppins-Bold',
+                                        fontSize: 18,
+                                      ),
                                     ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+
+                              
+                                Row(
+                                  children: [
+                                    Image.asset('assets/streak.png', height: 32),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$streakCount',
+                                      style: const TextStyle(
+                                        color: Colors.deepOrange,
+                                        fontFamily: 'Poppins-Bold',
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+
+                              
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => ReportScreen1()),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: Image.asset('assets/report.png', height: 22),
                                   ),
-                                ],
-                              ),
-                            ],
-                            ),
-                          ),
-                          Positioned(
-                            right: 20,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ReportScreen1(),
-                                  ),
-                                );
-                              },
-                              child: Image.asset(
-                                'assets/report.png',
-                                height: 22,
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
