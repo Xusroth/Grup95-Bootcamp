@@ -430,7 +430,7 @@ class _DersSecState extends State<DersSec> {
                         ipucuMaskot(),
                         const SizedBox(
                           height: 80,
-                        ), // Alt bar için boşluk bıraktık
+                        ), 
                       ],
                     ),
                   ),
@@ -439,7 +439,7 @@ class _DersSecState extends State<DersSec> {
             ),
           ),
 
-          // Sabit Alt Bar
+          
           Positioned(
             bottom: 20,
             left: 0,

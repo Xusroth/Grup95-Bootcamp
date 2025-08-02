@@ -9,34 +9,30 @@ import 'package:android_studio/constants.dart';
 import 'dart:convert';
 import 'package:android_studio/auth_service.dart';
 
-class AlgorithmLessonOverview extends StatefulWidget {
+class PythonLessonOverview extends StatefulWidget {
   final String userName;
   final int lessonId;
 
-  const AlgorithmLessonOverview({super.key, required this.userName, required this.lessonId});
+  const PythonLessonOverview({super.key, required this.userName, required this.lessonId});
 
   @override
-  State<AlgorithmLessonOverview> createState() => _AlgorithmLessonOverviewState();
+  State<PythonLessonOverview> createState() => _PythonLessonOverviewState();
 }
 
-class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
-  List<dynamic> allSections = [];
-  int currentSectionOrder = 1;
-  String currentSubsection = 'beginner';
-  int subsectionCompletion = 0;
-  Map<int, int> completedQuestionsMap = {};
+class _PythonLessonOverviewState extends State<PythonLessonOverview> {
+  List<Map<String, dynamic>> accessibleSections = [];
   String avatarPath = 'profile_pic.png';
   int healthCount = 6;
   int streakCount = 0;
   List<dynamic> streakList = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     loadAvatar();
     fetchUserStatus();
-    fetchSections();     
-    fetchProgress();
+    fetchAccessibleSections();
   }
 
   Future<void> loadAvatar() async {
@@ -64,19 +60,16 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         healthCount = healthData['health_count'];
       }
       if (streakRes.statusCode == 200) {
-      final List<dynamic> fetchedStreaks = json.decode(streakRes.body);
+        final List<dynamic> fetchedStreaks = json.decode(streakRes.body);
 
-      if (fetchedStreaks.isNotEmpty) {
-        
-        streakList = fetchedStreaks;
-
-        
-        fetchedStreaks.sort((a, b) => b['streak_count'].compareTo(a['streak_count']));
-        streakCount = fetchedStreaks[0]['streak_count'];
-      } else {
-        streakCount = 0;
+        if (fetchedStreaks.isNotEmpty) {
+          streakList = fetchedStreaks;
+          fetchedStreaks.sort((a, b) => b['streak_count'].compareTo(a['streak_count']));
+          streakCount = fetchedStreaks[0]['streak_count'];
+        } else {
+          streakCount = 0;
+        }
       }
-    }
       setState(() {});
     } catch (e) {
       print("Hata: $e");
@@ -93,76 +86,49 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     return 'assets/batteries/battery_6.png';
   }
 
-  Future<void> fetchSections() async {
+  Future<void> fetchAccessibleSections() async {
     final token = await AuthService().getString('token');
+    final userId = await AuthService().getUserIdFromToken(); 
 
-    final response = await http.get(
-      Uri.parse('$baseURL/sections/lessons/${widget.lessonId}/sections'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
+    if (userId == null) {
+      print("Kullanıcı ID bulunamadı");
+      return;
+    }
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        allSections = List.generate(30, (i) => {
-          'order': i + 1,
-          'title': data.firstWhere(
-            (s) => s['order'] == i + 1,
-            orElse: () => {'title': ''},
-          )['title'],
+    try {
+      final response = await http.get(
+        Uri.parse('$baseURL/progress/users/$userId/lessons/${widget.lessonId}/accessible-sections'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          accessibleSections = data.cast<Map<String, dynamic>>();
+          isLoading = false;
         });
+      } else {
+        print("Hata: ${response.statusCode} - ${response.body}");
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Bağlantı hatası: $e");
+      setState(() {
+        isLoading = false;
       });
     }
   }
 
-  Future<void> fetchProgress() async {
-    final token = await AuthService().getString('token');
-
-    final progressRes = await http.get(
-      Uri.parse('$baseURL/progress/me'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (progressRes.statusCode == 200) {
-      final progressData = jsonDecode(progressRes.body);
-      final lessonProgress = progressData.where((e) => e['lesson_id'] == widget.lessonId).toList();
-
-      for (var item in lessonProgress) {
-        completedQuestionsMap[item['section_id']] = item['completed_questions'];
-      }
-
-      final active = lessonProgress.firstWhere(
-        (e) => e['current_subsection'] != 'completed',
-        orElse: () => null,
-      );
-
-      if (active != null) {
-        setState(() {
-          currentSectionOrder = active['section_id'];
-          currentSubsection = active['current_subsection'];
-          subsectionCompletion = active['subsection_completion'];
-        });
-      } else {
-        final maxSection = lessonProgress.map((e) => e['section_id'] as int).fold(0, (a, b) => a > b ? a : b);
-        setState(() {
-          currentSectionOrder = maxSection + 1;
-          currentSubsection = 'beginner';
-          subsectionCompletion = 0;
-        });
-      }
-    }
-  }
-
-  String getImageAsset(int order) {
-    if (order < currentSectionOrder) return 'assets/3-3_ders.png';
-    if (order > currentSectionOrder) return 'assets/bos_ders.png';
-
+  String getImageAsset(Map<String, dynamic> section) {
+    if (!section['is_accessible']) return 'assets/bos_ders.png';
+    if (section['is_completed']) return 'assets/3-3_ders.png';
+    
+    final currentSubsection = section['current_subsection'] as String?;
     switch (currentSubsection) {
       case 'beginner': return 'assets/bos_ders.png';
       case 'intermediate': return 'assets/1-3_ders.png';
@@ -172,11 +138,8 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     }
   }
 
-  bool isUnlocked(int order) => order <= currentSectionOrder;
-  bool isCompleted(int order) => order < currentSectionOrder;
-
-  Widget getSubsectionWidget(int order) {
-    if (order < currentSectionOrder) {
+  Widget getSubsectionWidget(Map<String, dynamic> section) {
+    if (section['is_completed']) {
       return SizedBox(
         height: 90,
         child: Center(
@@ -184,9 +147,11 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
         ),
       );
     }
-    if (order > currentSectionOrder) {
+    if (!section['is_accessible']) {
       return const SizedBox.shrink();
     }
+    
+    final subsectionCompletion = section['subsection_completion'] as int? ?? 0;
     return SizedBox(
       height: 90,
       child: Center(
@@ -202,16 +167,43 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
     );
   }
 
-  bool hasIncompleteQuestions(int sectionOrder) {
-    final completed = completedQuestionsMap[sectionOrder] ?? 0;
-    return completed > 0 && completed % 10 != 0;
+  String getStatusText(Map<String, dynamic> section) {
+    if (!section['is_accessible']) return "Kilitli Aşama";
+    if (section['is_completed']) return "Tamamlandı";
+    
+    final currentSubsection = section['current_subsection'] as String?;
+    if (currentSubsection == null) return "Devam Ediyor";
+    
+    return "Devam Ediyor";
+  }
+
+  Color getStatusColor(Map<String, dynamic> section) {
+    if (!section['is_accessible']) return const Color.fromARGB(226, 255, 255, 255);
+    if (section['is_completed']) return Colors.greenAccent;
+    return Colors.yellowAccent;
   }
 
   @override
   Widget build(BuildContext context) {
-    final beginner = allSections.where((e) => e['order'] <= 10).toList();
-    final intermediate = allSections.where((e) => e['order'] > 10 && e['order'] <= 20).toList();
-    final advanced = allSections.where((e) => e['order'] > 20).toList();
+    if (isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/arkaplan.png"),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
+    final beginner = accessibleSections.where((e) => e['order'] <= 10).toList();
+    final intermediate = accessibleSections.where((e) => e['order'] > 10 && e['order'] <= 20).toList();
+    final advanced = accessibleSections.where((e) => e['order'] > 20).toList();
 
     final List<Map<String, dynamic>> sectionGroups = [
       {'title': 'Beginner', 'items': beginner},
@@ -233,113 +225,113 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
               Column(
                 children: [
                   Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
-                      child: Stack(
-                        children: [
-                          Image.asset(
-                            'assets/user_bar.png',
-                            fit: BoxFit.contain,
-                            width: double.infinity,
-                            height: 70,
-                          ),
-                          Positioned.fill(
-                            child: Row(
-                              children: [
-                               
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ProfilePage(userName: widget.userName),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+                    child: Stack(
+                      children: [
+                        Image.asset(
+                          'assets/user_bar.png',
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: 70,
+                        ),
+                        Positioned.fill(
+                          child: Row(
+                            children: [
+                              
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ProfilePage(userName: widget.userName),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 55,
+                                  height: 55,
+                                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    image: DecorationImage(
+                                      image: AssetImage(
+                                        avatarPath.startsWith('avatar_')
+                                            ? 'assets/avatars/$avatarPath'
+                                            : 'assets/$avatarPath',
                                       ),
-                                    );
-                                  },
-                                  child: Container(
-                                    width: 55,
-                                    height: 55,
-                                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      image: DecorationImage(
-                                        image: AssetImage(
-                                          avatarPath.startsWith('avatar_')
-                                              ? 'assets/avatars/$avatarPath'
-                                              : 'assets/$avatarPath',
-                                        ),
-                                        fit: BoxFit.cover,
-                                      ),
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
                                 ),
+                              ),
 
-                                
-                                Expanded(
-                                  child: Text(
-                                    widget.userName,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
+                              
+                              Expanded(
+                                child: Text(
+                                  widget.userName,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Poppins-Regular',
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+
+                            
+                              Row(
+                                children: [
+                                  Image.asset(getBatteryAsset(healthCount), height: 48),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$healthCount',
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontFamily: 'Poppins-Regular',
-                                      fontSize: 16,
+                                      fontFamily: 'Poppins-Bold',
+                                      fontSize: 18,
                                     ),
                                   ),
-                                ),
-
-                               
-                                Row(
-                                  children: [
-                                    Image.asset(getBatteryAsset(healthCount), height: 48),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '$healthCount',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontFamily: 'Poppins-Bold',
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 12),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
 
                               
-                                Row(
-                                  children: [
-                                    Image.asset('assets/streak.png', height: 32),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '$streakCount',
-                                      style: const TextStyle(
-                                        color: Colors.deepOrange,
-                                        fontFamily: 'Poppins-Bold',
-                                        fontSize: 18,
-                                      ),
+                              Row(
+                                children: [
+                                  Image.asset('assets/streak.png', height: 32),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$streakCount',
+                                    style: const TextStyle(
+                                      color: Colors.deepOrange,
+                                      fontFamily: 'Poppins-Bold',
+                                      fontSize: 18,
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(width: 12),
-
-                              
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => ReportScreen1()),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: Image.asset('assets/report.png', height: 28),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
+
+                           
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => ReportScreen1()),
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: Image.asset('assets/report.png', height: 28),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                  ),
                   const SizedBox(height: 8),
                   Expanded(
                     child: ListView.builder(
@@ -348,7 +340,9 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                       itemBuilder: (context, index) {
                         final group = sectionGroups[index];
                         final title = group['title'] as String;
-                        final items = group['items'] as List<dynamic>;
+                        final items = group['items'] as List<Map<String, dynamic>>;
+
+                        if (items.isEmpty) return const SizedBox.shrink();
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
@@ -376,30 +370,32 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                 ),
                                 itemBuilder: (context, i) {
                                   final section = items[i];
-                                  final order = section['order'];
-                                  final unlocked = isUnlocked(order);
-                                  final completed = isCompleted(order);
-                                  final imageAsset = getImageAsset(order);
+                                  final imageAsset = getImageAsset(section);
 
                                   return Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       GestureDetector(
                                         onTap: () {
-                                          if (order == currentSectionOrder) {
+                                          if (section['is_accessible'] && !section['is_completed']) {
+                                            final currentSubsection = section['current_subsection'] as String? ?? 'beginner';
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (_) => QuestionPage(
-                                                  sectionIndex: order - 1,
+                                                  sectionIndex: section['order'] - 1,
                                                   levelIndex: 0,
-                                                  sectionId: order,
-                                                  isLevelCompleted: completed,
+                                                  sectionId: section['id'],
+                                                  isLevelCompleted: section['is_completed'],
                                                   lessonId: widget.lessonId,
                                                   currentSubsection: currentSubsection,
                                                 ),
                                               ),
-                                            );
+                                            ).then((_) {
+                                             
+                                              fetchAccessibleSections();
+                                              fetchUserStatus();
+                                            });
                                           }
                                         },
                                         child: SizedBox(
@@ -409,12 +405,12 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                             alignment: Alignment.center,
                                             children: [
                                               Image.asset(imageAsset, width: 140, height: 140),
-                                              if (!unlocked && !completed)
+                                              if (!section['is_accessible'])
                                                 Image.asset('assets/kilitli_dosya.png', height: 60),
-                                              if (order == currentSectionOrder || completed)
+                                              if (section['is_accessible'])
                                                 Align(
                                                   alignment: Alignment.center,
-                                                  child: getSubsectionWidget(order),
+                                                  child: getSubsectionWidget(section),
                                                 ),
                                             ],
                                           ),
@@ -434,24 +430,12 @@ class _AlgorithmLessonOverviewState extends State<AlgorithmLessonOverview> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        !unlocked && !completed
-                                            ? "Kilitli Aşama"
-                                            : completed
-                                                ? "Tamamlandı"
-                                                : hasIncompleteQuestions(order)
-                                                    ? "Eksiklerini kontrol et"
-                                                    : "Devam Ediyor",
+                                        getStatusText(section),
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontFamily: 'Poppins-Regular',
-                                          color: !unlocked && !completed
-                                              ? const Color.fromARGB(226, 255, 255, 255)
-                                              : completed
-                                                  ? Colors.greenAccent
-                                                  : hasIncompleteQuestions(order)
-                                                      ? const Color.fromARGB(255, 255, 54, 54)
-                                                      : Colors.yellowAccent,
-                                        ),  
+                                          color: getStatusColor(section),
+                                        ),
                                         textAlign: TextAlign.center,
                                       ),
                                     ],

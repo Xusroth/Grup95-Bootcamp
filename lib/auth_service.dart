@@ -35,7 +35,7 @@ class AuthService {
       await setString('user_id', userData['id'].toString());
       await setString('user_name', userData['username']);
       await setString('user_mail', userData['email']);
-      await fetchAndSaveUserAvatar(token); // Avatar da burada otomatik güncelleniyor
+      await fetchAndSaveUserAvatar(token); 
     } else {
       print("auth/me çağrısı başarısız: ${response.statusCode}");
     }

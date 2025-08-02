@@ -38,7 +38,7 @@ class _QuestionPageState extends State<QuestionPage>
   int correctAnswers = 0;
   double progress = 0.0;
   
-  // ValueNotifier olarak tanımlayalım
+  
   late ValueNotifier<int> remainingHealthNotifier;
 
   late AnimationController _controller;
@@ -102,7 +102,7 @@ class _QuestionPageState extends State<QuestionPage>
         }),
       );
 
-      print('Response status: ${response.statusCode}'); // Debug
+      print('Response status: ${response.statusCode}'); 
 
       if (response.statusCode == 200) {
         setState(() {
@@ -114,30 +114,30 @@ class _QuestionPageState extends State<QuestionPage>
         });
       } else if (response.statusCode == 400) {
         final data = jsonDecode(response.body);
-        print('Full response body: ${response.body}'); // Tam response'u görelim
-        print('Parsed data: $data'); // Parse edilmiş data'yı görelim
+        print('Full response body: ${response.body}'); 
+        print('Parsed data: $data'); 
         final newHealth = data['health_count'];
         
-        print('Önceki health: ${remainingHealthNotifier.value}'); // Debug
-        print('Yeni health: $newHealth'); // Debug
+        print('Önceki health: ${remainingHealthNotifier.value}'); 
+        print('Yeni health: $newHealth'); 
 
         setState(() {
           correctAnswer = question['correct_answer'];
           isCorrect = false;
           answered = true;
-          // Health count'u direkt olarak güncelle
+          
           if (newHealth != null) {
             remainingHealthNotifier.value = newHealth;
-            print('Health güncellendi: ${remainingHealthNotifier.value}'); // Debug
+            print('Health güncellendi: ${remainingHealthNotifier.value}'); 
           } else {
-            // Eğer backend health_count döndürmüyorsa manuel olarak azalt
+            
             remainingHealthNotifier.value = (remainingHealthNotifier.value - 1).clamp(0, 6);
-            print('Health manuel olarak azaltıldı: ${remainingHealthNotifier.value}'); // Debug
+            print('Health manuel olarak azaltıldı: ${remainingHealthNotifier.value}'); 
           }
         });
       }
     } catch (e) {
-      print('Error in sendAnswer: $e'); // Debug
+      print('Error in sendAnswer: $e'); 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bir hata oluştu.')),
       );
@@ -151,7 +151,7 @@ class _QuestionPageState extends State<QuestionPage>
 
     setState(() {
       selectedAnswer = key;
-      // answered = true; // Bu satırı kaldırdık, sendAnswer içinde yapacağız
+     
     });
 
     sendAnswer(key);
@@ -170,7 +170,7 @@ class _QuestionPageState extends State<QuestionPage>
       valueListenable: remainingHealthNotifier,
       builder: (context, healthValue, child) {
         final healthLevel = healthValue.clamp(0, 6);
-        print('batteryBar build - healthLevel: $healthLevel'); // Debug
+        print('batteryBar build - healthLevel: $healthLevel'); 
         
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 800),
@@ -196,7 +196,7 @@ class _QuestionPageState extends State<QuestionPage>
   void initState() {
     super.initState();
     
-    // ValueNotifier'ı başlatalım
+   
     remainingHealthNotifier = ValueNotifier<int>(6);
 
     if (widget.isLevelCompleted) {
@@ -221,7 +221,7 @@ class _QuestionPageState extends State<QuestionPage>
   @override
   void dispose() {
     _controller.dispose();
-    remainingHealthNotifier.dispose(); // ValueNotifier'ı dispose edelim
+    remainingHealthNotifier.dispose(); 
     super.dispose();
   }
 
@@ -339,7 +339,7 @@ class _QuestionPageState extends State<QuestionPage>
               children: [
                 Image.asset('assets/corner_gradient_rectangle_long.png', height: 800),
                 Padding(
-                  padding: const EdgeInsets.only(top: 90.0),
+                  padding: const EdgeInsets.only(top: 25.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
