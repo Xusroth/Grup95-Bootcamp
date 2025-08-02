@@ -366,6 +366,10 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
 
             KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
 
+            KOD UZUNLUK KURALI: Kod analizi/çıktı sorularındaki kodlar KISA ve HAFİF ORTA uzunlukta olsun. Uzun kodlar yazma, ekrana sığmayacak kodlar kullanma.
+
+            ÖNEMLİ: Doğru cevaplar farklı şıklarda dağıtılmalı. A, B, C, D şıklarının hepsi arka arkaya aynı doğru şıklar olmasın.
+
             Her soru bu formatta olmalı:
             - Question: [Soru metni + kod varsa buraya yaz]
             - A: [Seçenek A]
@@ -403,6 +407,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
             - D: Hata
 
             Her seviyeden en az 10 soru olsun (beginner, intermediate, advanced).
+            Doğru cevapları dengeli dağıt: Arka arkaya aynı doğru şıklar olmasın.
             Sadece soruları üret, başka açıklama yapma.
             """
     else:
@@ -410,6 +415,8 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
             Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için {current_user.level} seviyesinde TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
 
             KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
+
+            ÖNEMLİ: Doğru cevaplar farklı şıklarda dağıtılmalı. A, B, C, D şıklarının hepsi arka arkaya aynı doğru şıklar olmasın.
 
             Her soru bu formatta olmalı:
             - Question: [Soru metni + kod varsa buraya yaz]
@@ -439,6 +446,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
         {current_user.level} seviyesine uygun sorular üret.
         Soruları '{section.title}' bölümünün konusuna odaklan.
 
+        Doğru cevapları dengeli dağıt: Arka arkaya aynı doğru şıklar olmasın.
         Sadece soruları üret, başka açıklama yapma.
             """
 
