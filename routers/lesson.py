@@ -362,11 +362,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
         prompt = f"""
             Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
 
-            SORU TİPLERİ: 30 sorunun yaklaşık %70'i teorik bilgi soruları, %30'ı kod analizi/çıktı soruları olsun.
-
-            KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
-
-            KOD UZUNLUK KURALI: Kod analizi/çıktı sorularındaki kodlar KISA ve HAFİF ORTA uzunlukta olsun. Uzun kodlar yazma, ekrana sığmayacak kodlar kullanma.
+            SORU TİPLERİ: 30 sorunun tamamı teorik bilgi soruları olsun.
 
             ÖNEMLİ: Doğru cevaplar farklı şıklarda dağıtılmalı. A, B, C, D şıklarının hepsi arka arkaya aynı doğru şıklar olmasın.
 
@@ -406,15 +402,13 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
             - C: 15
             - D: Hata
 
-            Her seviyeden en az 10 soru olsun (beginner, intermediate, advanced).
+            Her seviyeden 10 soru olsun ve aynı seviyedeki soruları arka arkaya oluştur. (beginner, intermediate, advanced).
             Doğru cevapları dengeli dağıt: Arka arkaya aynı doğru şıklar olmasın.
             Sadece soruları üret, başka açıklama yapma.
             """
     else:
         prompt = f"""
             Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için {current_user.level} seviyesinde TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
-
-            KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
 
             ÖNEMLİ: Doğru cevaplar farklı şıklarda dağıtılmalı. A, B, C, D şıklarının hepsi arka arkaya aynı doğru şıklar olmasın.
 
@@ -446,7 +440,7 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
         {current_user.level} seviyesine uygun sorular üret.
         Soruları '{section.title}' bölümünün konusuna odaklan.
 
-        Doğru cevapları dengeli dağıt: Arka arkaya aynı doğru şıklar olmasın.
+        Doğru cevapları dengeli dağıt: Arka arkaya aynı doğru şıklar olmasın. Aynı seviyedeki soruları arka arkaya oluştur.
         Sadece soruları üret, başka açıklama yapma.
             """
 
