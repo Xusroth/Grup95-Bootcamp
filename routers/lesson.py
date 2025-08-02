@@ -360,58 +360,88 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
     model = genai.GenerativeModel('gemini-2.5-flash')
     if current_user.username == 'admin':
         prompt = f"""
-            Generate exactly 6 multiple-choice programming questions for a lesson titled '{lesson.title}' in category '{lesson.category}', specifically for the section titled '{section.title}'.
-            Each question must strictly follow this format and include exactly 4 options:
-            - Question: [The question text]
-            - A: [Option A]
-            - B: [Option B]
-            - C: [Option C]
-            - D: [Option D]
-            - Correct Answer: [A, B, C, or D]
+            Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
+
+            SORU TİPLERİ: 30 sorunun yaklaşık %70'i teorik bilgi soruları, %30'ı kod analizi/çıktı soruları olsun.
+
+            KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
+
+            Her soru bu formatta olmalı:
+            - Question: [Soru metni + kod varsa buraya yaz]
+            - A: [Seçenek A]
+            - B: [Seçenek B] 
+            - C: [Seçenek C]
+            - D: [Seçenek D]
+            - Correct Answer: [A, B, C, veya D]
             - Level: [beginner, intermediate, advanced]
 
-            Ensure the questions are relevant to the lesson topic '{lesson.title}', category '{lesson.category}', and section topic '{section.title}' (e.g., if section is 'Python'a Giriş', focus on basic Python syntax, variables, etc.).
-            Provide clear, concise, and accurate programming questions suitable for all levels (beginner to advanced).
-            Do not include any introductory text, additional comments, or explanations.
-            Ensure exactly 6 questions are generated, with at least two question per level (beginner, intermediate, advanced).
+            DOĞRU ÖRNEKLER:
 
-            Example:
-            - Question: What is the correct syntax to print "Hello" in Python?
-            - A: print("Hello")
-            - B: echo "Hello"
-            - C: printf("Hello")
-            - D: print['Hello']
-            - Correct Answer: A
+            TEORİK SORU ÖRNEĞİ:
+            - Question: Python'da hangi veri tipi sayısal değerleri saklamak için kullanılır?
+            - A: string
+            - B: list
+            - C: int
+            - D: dict
+            - Correct Answer: C
             - Level: beginner
+
+            KOD SORU ÖRNEĞİ:
+            - Question: Bu Python kodunun çıktısı nedir? x = 10; y = 5; print(x - y)
+            - A: 15
+            - B: 5
+            - C: 10
+            - D: Hata
+            - Correct Answer: B
+            - Level: beginner
+
+            YANLIŞ ÖRNEK (böyle yapma):
+            - Question: Aşağıdaki kodun çıktısı nedir?
+            - A: 5
+            - B: 10
+            - C: 15
+            - D: Hata
+
+            Her seviyeden en az 10 soru olsun (beginner, intermediate, advanced).
+            Sadece soruları üret, başka açıklama yapma.
             """
     else:
-        f"""
-            Generate exactly 6 multiple-choice programming questions for a lesson titled '{lesson.title}' in category '{lesson.category}', specifically for the section titled '{section.title}' for a {current_user.level} level user.
-            Each question must strictly follow this format and include exactly 4 options:
-            - Question: [The question text]
-            - A: [Option A]
-            - B: [Option B]
-            - C: [Option C]
-            - D: [Option D]
-            - Correct Answer: [A, B, C, or D]
+        prompt = f"""
+            Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için {current_user.level} seviyesinde TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
+
+            KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
+
+            Her soru bu formatta olmalı:
+            - Question: [Soru metni + kod varsa buraya yaz]
+            - A: [Seçenek A]
+            - B: [Seçenek B]
+            - C: [Seçenek C] 
+            - D: [Seçenek D]
+            - Correct Answer: [A, B, C, veya D]
             - Level: [beginner, intermediate, advanced]
 
-            Ensure the questions are relevant to the lesson topic '{lesson.title}', category '{lesson.category}', and section topic '{section.title}' (e.g., if section is 'Python'a Giriş', focus on basic Python syntax, variables, etc.).
-            For beginner level, focus on basic concepts (e.g., syntax, variables, basic functions).
-            For intermediate level, include moderately complex topics (e.g., loops, conditionals, basic data structures).
-            For advanced level, include complex topics (e.g., object-oriented programming, advanced algorithms).
-            Provide clear, concise, and accurate programming questions. Do not include any introductory text, additional comments, or explanations.
-            Ensure exactly 6 questions are generated.
-
-            Example:
-            - Question: What is the correct syntax to print "Hello" in Python?
-            - A: print("Hello")
-            - B: echo "Hello"
-            - C: printf("Hello")
-            - D: print['Hello']
-            - Correct Answer: A
+            DOĞRU ÖRNEK (kod dahil):
+            - Question: Bu Python kodunun çıktısı nedir? x = 10; y = 5; print(x - y)
+            - A: 15
+            - B: 5
+            - C: 10
+            - D: Hata
+            - Correct Answer: B
             - Level: beginner
-        """
+
+            YANLIŞ ÖRNEK (böyle yapma):
+            - Question: Aşağıdaki kodun çıktısı nedir?
+            - A: 5
+            - B: 10
+            - C: 15
+            - D: Hata
+
+        {current_user.level} seviyesine uygun sorular üret.
+        Soruları '{section.title}' bölümünün konusuna odaklan.
+
+        Sadece soruları üret, başka açıklama yapma.
+            """
+
     try:
         response = model.generate_content(prompt)
         response_text = response.text.strip()
