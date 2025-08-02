@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'package:android_studio/auth_service.dart';
-import 'package:android_studio/constants.dart';
-import 'package:android_studio/screens/change_password_inapp.dart';
-import 'package:android_studio/screens/email_sent.dart';
-import 'package:android_studio/screens/sss.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:android_studio/constants.dart';
+import 'package:android_studio/auth_service.dart';
+import 'package:android_studio/screens/change_password_inapp.dart';
+import 'package:android_studio/screens/sss.dart';
+import 'package:android_studio/screens/email_sent.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -111,6 +111,136 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _handleSettingsTap(String itemText) {
+    if (itemText == "Hesabı Sil") {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: const Color.fromARGB(213, 45, 33, 59),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            "Hesabınızı silmek istediğinize emin misiniz?",
+            style: TextStyle(
+              color: Colors.white,
+              fontFamily: 'Poppins-Regular',
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildDialogFixedButton("Hayır", () => Navigator.pop(context), color: Colors.green),
+                const SizedBox(width: 24),
+                _buildDialogFixedButton("Evet", () {
+                  Navigator.pop(context);
+                  deleteAccount();
+                }, color: Colors.redAccent),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else if (itemText == "Dil Tercihi") {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: const Color.fromARGB(213, 45, 33, 59),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            "Dil seçenekleri",
+            style: TextStyle(
+              color: Colors.white,
+              fontFamily: 'Poppins-SemiBold',
+            ),
+            textAlign: TextAlign.center,
+          ),
+          content: const Text(
+            "Sonraki güncellemelerle gelecek",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontFamily: 'Poppins-Regular',
+            ),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildDialogFixedButton("Tamam", () => Navigator.pop(context)),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else if (itemText == "Şifreyi Değiştir") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordInAppScreen()));
+    } else if (itemText == "S.S.S\n(Sıkça Sorulan Sorular)") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqScreen()));
+    } else if (itemText == "Öneri ve İstek") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen1()));
+    }
+  }
+
+  Widget _buildSettingsCard(Map<String, dynamic> item) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFBC52FC), Color(0xFF857BFB)],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.asset(item["icon"], width: 22, height: 22, color: Colors.white),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              item["text"],
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogFixedButton(String text, VoidCallback onPressed, {Color color = const Color(0xFF8E24AA)}) {
+    return SizedBox(
+      width: 120,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: color,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,7 +257,6 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
@@ -135,7 +264,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 27, 27, 27),
                             shape: BoxShape.circle,
                             image: DecorationImage(
                               image: AssetImage("assets/avatars/$avatarPath"),
@@ -155,168 +283,25 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.white),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => Navigator.pop(context),
                         ),
                       ],
                     ),
                     const SizedBox(height: 32),
                     Expanded(
-                      child: ListView.separated(
-                        itemCount: settingsItems.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 32),
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              final itemText = settingsItems[index]["text"];
-
-                              if (itemText == "Hesabı Sil") {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      backgroundColor: const Color.fromARGB(213, 45, 33, 59),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      title: const Text(
-                                        "Hesabınızı silmek istediğinize emin misiniz?",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontFamily: 'Poppins-Regular',
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      actionsPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      actions: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            _buildDialogFixedButton(
-                                              "Hayır",
-                                              () => Navigator.pop(context),
-                                              color: Colors.green,
-                                            ),
-                                            const SizedBox(width: 24),
-                                            _buildDialogFixedButton(
-                                              "Evet",
-                                              () {
-                                                Navigator.pop(context);
-                                                deleteAccount();
-                                              },
-                                              color: Colors.redAccent,
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              } else if (itemText == "Dil Tercihi") {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    backgroundColor: const Color.fromARGB(213, 45, 33, 59),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    title: const Text(
-                                      "Dil seçenekleri",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontFamily: 'Poppins-SemiBold',
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    content: const Text(
-                                      "Sonraki güncellemelerle gelecek",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontFamily: 'Poppins-Regular',
-                                      ),
-                                    ),
-                                    actionsPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    actions: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          _buildDialogFixedButton(
-                                            "Tamam",
-                                            () => Navigator.pop(context),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            ...settingsItems.map((item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 32),
+                                  child: GestureDetector(
+                                    onTap: () => _handleSettingsTap(item["text"]),
+                                    child: _buildSettingsCard(item),
                                   ),
-                                );
-                              } else if (itemText == "Şifreyi Değiştir") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ChangePasswordInAppScreen(),
-                                  ),
-                                );
-                              } else if (itemText == "S.S.S\n(Sıkça Sorulan Sorular)") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const FaqScreen(),
-                                  ),
-                                );
-                              } else if (itemText == "Öneri ve İstek") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ReportScreen1(),
-                                  ),
-                                );
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFBC52FC),
-                                    Color(0xFF857BFB),
-                                  ],
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Image.asset(
-                                    settingsItems[index]["icon"],
-                                    width: 22,
-                                    height: 22,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Text(
-                                      settingsItems[index]["text"],
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                                )),
+                            const SizedBox(height: 160), 
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -325,38 +310,14 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           Positioned(
-            bottom: 40,
+            bottom: 0,
             left: 0,
             right: 0,
-            child: Image.asset('assets/sari_cloud.png', fit: BoxFit.fitWidth),
+            child: IgnorePointer(
+              child: Image.asset('assets/sari_cloud.png', fit: BoxFit.fitWidth),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDialogFixedButton(String text, VoidCallback onPressed,
-      {Color color = const Color(0xFF8E24AA)}) {
-    return SizedBox(
-      width: 120,
-      child: TextButton(
-        style: TextButton.styleFrom(
-          backgroundColor: color,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
       ),
     );
   }

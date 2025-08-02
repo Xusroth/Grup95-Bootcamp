@@ -318,62 +318,57 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                SizedBox(width: 350, child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill)),
+                SizedBox(
+                  width: 350,
+                  child: Image.asset("assets/alt_bar.png", fit: BoxFit.fill),
+                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 60.0,
+                    vertical: 12,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       GestureDetector(
                         onTap: () {
-                          setState(() => _selectedIndex = 0);
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => HomeScreen(userMail: widget.userMail, userName: widget.userName),
+                              builder: (_) => HomeScreen(
+                                userMail: '',
+                                userName: widget.userName,
+                              ),
                             ),
                           );
                         },
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 200),
-                          width: _selectedIndex == 0 ? 30.0 : 24.0,
-                          height: _selectedIndex == 0 ? 30.0 : 24.0,
-                          child: Image.asset("assets/home.png"),
-                        ),
+                        child: Image.asset("assets/home.png", height: 28),
                       ),
                       GestureDetector(
                         onTap: () {
-                          setState(() => _selectedIndex = 1);
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => DersSec(userMail: widget.userMail, userName: widget.userName),
+                              builder: (_) => DersSec(
+                                userMail: '',
+                                userName: widget.userName,
+                              ),
                             ),
                           );
                         },
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 1000),
-                          width: _selectedIndex == 1 ? 30.0 : 24.0,
-                          height: _selectedIndex == 1 ? 30.0 : 24.0,
-                          child: Image.asset("assets/ders.png"),
-                        ),
+                        child: Image.asset("assets/ders.png", height: 28),
                       ),
                       GestureDetector(
                         onTap: () {
-                          setState(() => _selectedIndex = 2);
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProfilePage(userName: widget.userName),
+                              builder: (_) =>
+                                  ProfilePage(userName: widget.userName),
                             ),
                           );
                         },
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 1000),
-                          width: _selectedIndex == 2 ? 30.0 : 24.0,
-                          height: _selectedIndex == 2 ? 30.0 : 24.0,
-                          child: Image.asset("assets/profile.png"),
-                        ),
+                        child: Image.asset("assets/profile.png", height: 28),
                       ),
                     ],
                   ),

@@ -6,15 +6,12 @@ import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/screens/change_avatar.dart';
 
-
 class ProfileCreation extends StatefulWidget {
   const ProfileCreation({super.key});
 
   @override
   State<ProfileCreation> createState() => _ProfileCreationState();
 }
-
-
 
 class _ProfileCreationState extends State<ProfileCreation> {
   int selectedTime = 5;
@@ -25,53 +22,90 @@ class _ProfileCreationState extends State<ProfileCreation> {
 
   bool notificationsOn = true;
   String? warningMessage;
+  String? passwordError;
 
   final String baseUrl = '$baseURL';
 
-Future<void> registerUser() async {
-  final registerResponse = await http.post(
-    Uri.parse('$baseUrl/auth/register'),
-    headers: {'Content-Type': 'application/json'},
-    body: json.encode({
-      'username': _nicknameController.text.trim(),
-      'email': _mailController.text.trim(),
-      'password': _passwordController.text.trim(),
-    }),
-  );
+  bool _validatePassword(String password) {
+    if (password.length < 8) {
+      setState(() {
+        passwordError = 'Şifre en az 8 karakter olmalıdır';
+      });
+      return false;
+    }
 
-  if (registerResponse.statusCode == 201) {
-    print("✅ Kayıt başarılı");
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      setState(() {
+        passwordError = 'Şifre en az 1 büyük harf içermelidir';
+      });
+      return false;
+    }
 
-    final loginResponse = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'username': _mailController.text.trim(),
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      setState(() {
+        passwordError = 'Şifre en az 1 küçük harf içermelidir';
+      });
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      setState(() {
+        passwordError = 'Şifre en az 1 sayı içermelidir';
+      });
+      return false;
+    }
+
+    setState(() {
+      passwordError = null;
+    });
+    return true;
+  }
+
+  Future<void> registerUser() async {
+    if (!_validatePassword(_passwordController.text.trim())) {
+      return;
+    }
+
+    final registerResponse = await http.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'username': _nicknameController.text.trim(),
+        'email': _mailController.text.trim(),
         'password': _passwordController.text.trim(),
-      },
+      }),
     );
 
-    if (loginResponse.statusCode == 200) {
-      final loginData = jsonDecode(loginResponse.body);
-      final accessToken = loginData['access_token'];
-      final refreshToken = loginData['refresh_token'];
+    if (registerResponse.statusCode == 201) {
+      print("✅ Kayıt başarılı");
 
-      final auth = AuthService();
-      await auth.setString('token', accessToken);
-      await auth.setString('refresh_token', refreshToken);
+      final loginResponse = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'username': _mailController.text.trim(),
+          'password': _passwordController.text.trim(),
+        },
+      );
 
-      print("🔐 Tokenlar kaydedildi");
+      if (loginResponse.statusCode == 200) {
+        final loginData = jsonDecode(loginResponse.body);
+        final accessToken = loginData['access_token'];
+        final refreshToken = loginData['refresh_token'];
 
-      // Kullanıcı bilgilerini ve avatarı al
-      await auth.setTokenAndUserData(accessToken);
+        final auth = AuthService();
+        await auth.setString('token', accessToken);
+        await auth.setString('refresh_token', refreshToken);
 
+        print("🔐 Tokenlar kaydedildi");
+        await auth.setTokenAndUserData(accessToken);
+      } else {
+        throw Exception('Giriş başarısız: ${loginResponse.body}');
+      }
     } else {
-      throw Exception('Giriş başarısız: ${loginResponse.body}');
+      throw Exception('Kayıt başarısız: ${registerResponse.body}');
     }
-  } else {
-    throw Exception('Kayıt başarısız: ${registerResponse.body}');
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -79,10 +113,7 @@ Future<void> registerUser() async {
       body: Stack(
         children: [
           SizedBox.expand(
-            child: Image.asset(
-              'assets/arkaplan.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/arkaplan.png', fit: BoxFit.cover),
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -104,13 +135,69 @@ Future<void> registerUser() async {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AvatarSelectionScreen()),
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          backgroundColor: const Color.fromARGB(213, 45, 33, 59),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          title: const Text(
+                            "Avatar değişikliği",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Poppins-SemiBold',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          content: const Text(
+                            "Avatarınızı profil oluşturduktan sonra Profili Düzenle sayfasından değiştirebilirsiniz.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontFamily: 'Poppins-Regular',
+                            ),
+                          ),
+                          actionsPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          actions: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFBF8BFA),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Tamam",
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins-SemiBold',
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -170,7 +257,23 @@ Future<void> registerUser() async {
                   _buildTextField('Ad Soyad', _nameController),
                   _buildTextField('Kullanıcı Adı', _nicknameController),
                   _buildTextField('E-Posta', _mailController),
-                  _buildTextField('Şifre', _passwordController, isPassword: true),
+                  _buildTextField(
+                    'Şifre',
+                    _passwordController,
+                    isPassword: true,
+                  ),
+                  if (passwordError != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        passwordError!,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                          fontFamily: 'Poppins-Regular',
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 24),
                   const Text(
                     'Günlük Görev',
@@ -190,7 +293,9 @@ Future<void> registerUser() async {
                           label: Text(
                             '$minute dk',
                             style: TextStyle(
-                              color: isSelected ? Colors.black : Colors.blueGrey,
+                              color: isSelected
+                                  ? Colors.black
+                                  : Colors.blueGrey,
                               fontFamily: 'Poppins-Regular',
                             ),
                           ),
@@ -229,6 +334,10 @@ Future<void> registerUser() async {
                         setState(() {
                           warningMessage = "Tüm alanlar doldurulmalıdır.";
                         });
+                      } else if (!_validatePassword(
+                        _passwordController.text.trim(),
+                      )) {
+                        
                       } else {
                         setState(() {
                           warningMessage = null;
@@ -248,14 +357,18 @@ Future<void> registerUser() async {
                           );
                         } catch (e) {
                           setState(() {
-                            warningMessage = 'Kayıt başarısız. Lütfen bilgileri gözden geçirin.';
+                            warningMessage =
+                                'Kayıt başarısız. Lütfen bilgileri gözden geçirin.';
                           });
                         }
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.greenAccent.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 60,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -279,16 +392,26 @@ Future<void> registerUser() async {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {bool isPassword = false}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    bool isPassword = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 6),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        style: const TextStyle(color: Colors.white, fontFamily: 'Poppins-Regular'),
+        style: const TextStyle(
+          color: Colors.white,
+          fontFamily: 'Poppins-Regular',
+        ),
         decoration: InputDecoration(
           hintText: label,
-          hintStyle: const TextStyle(color: Colors.white38, fontFamily: 'Poppins-Regular'),
+          hintStyle: const TextStyle(
+            color: Colors.white38,
+            fontFamily: 'Poppins-Regular',
+          ),
           filled: true,
           fillColor: Colors.white10,
           border: OutlineInputBorder(

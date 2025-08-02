@@ -128,6 +128,7 @@ flutter:
     - assets/tercih.png
     - assets/dikdortgen1.png
     - assets/dikdortgent2.png
+    - assets/avatars/profile_pic.png
     - assets/avatars/avatar_alien.png
     - assets/avatars/avatar_astrout.png
     - assets/avatars/avatar_boom.png
