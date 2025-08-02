@@ -352,7 +352,7 @@ class _DersSecState extends State<DersSec> {
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.only(right: 8.0),
-                                    child: Image.asset('assets/report.png', height: 26),
+                                    child: Image.asset('assets/report.png', height: 28),
                                   ),
                                 ),
                               ],

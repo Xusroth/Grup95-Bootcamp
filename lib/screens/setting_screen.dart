@@ -314,7 +314,7 @@ class _SettingsPageState extends State<SettingsPage> {
             left: 0,
             right: 0,
             child: IgnorePointer(
-              child: Image.asset('assets/sari_cloud.png', fit: BoxFit.fitWidth),
+              child: Image.asset('assets/sari_cloud.png', height: 250,),
             ),
           ),
         ],

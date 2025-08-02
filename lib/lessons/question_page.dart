@@ -322,7 +322,7 @@ class _QuestionPageState extends State<QuestionPage>
                               ),
                             );
                           },
-                          child: Image.asset('assets/report.png', height: 24),
+                          child: Image.asset('assets/report.png', height: 28),
                         ),
                       ],
                     ),
@@ -331,19 +331,21 @@ class _QuestionPageState extends State<QuestionPage>
               ),
             ),
           ),
-          Center(
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.only(top: 100.0), 
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                Image.asset('assets/corner_gradient_rectangle_long.png', height: 570),
+                Image.asset('assets/corner_gradient_rectangle_long.png', height: 800),
                 Padding(
-                  padding: const EdgeInsets.only(top: 10.0),
+                  padding: const EdgeInsets.only(top: 90.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.symmetric(horizontal: 80, vertical: 30),
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.symmetric(horizontal: 48, vertical: 30),
                         decoration: BoxDecoration(
                           color: Colors.white12,
                           borderRadius: BorderRadius.circular(20),
@@ -359,7 +361,7 @@ class _QuestionPageState extends State<QuestionPage>
                         ),
                       ),
                       SizedBox(
-                        width: 260,
+                        width: 300,
                         child: Column(
                           children: List.generate(4, (index) {
                             String key = String.fromCharCode(65 + index);
@@ -367,7 +369,7 @@ class _QuestionPageState extends State<QuestionPage>
                               padding: const EdgeInsets.symmetric(vertical: 10.0),
                               child: Container(
                                 width: double.infinity,
-                                height: 75,
+                                height: 80,
                                 decoration: BoxDecoration(
                                   color: getAnswerColor(key),
                                   borderRadius: BorderRadius.circular(20),

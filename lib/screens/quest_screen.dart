@@ -314,7 +314,7 @@ Future<void> loadAvatar() async {
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.only(right: 8.0),
-                                    child: Image.asset('assets/report.png', height: 22),
+                                    child: Image.asset('assets/report.png', height: 28),
                                   ),
                                 ),
                               ],
