@@ -1,6 +1,8 @@
 //buradaki IP'yi cmd'ye "ipconfig" yazdıktan sonra IPv4 adresindeki IP ile değiştirmeniz lazım
 
-const String baseURL = "https://codebite-backend.onrender.com";
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+String get baseURL => dotenv.env['API_BASE_URL'] ?? 'https://codebite-backend.onrender.com';
 
 // renk kodu 2D213B
 

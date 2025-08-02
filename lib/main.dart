@@ -1,18 +1,26 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:app_links/app_links.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
-
 import 'package:android_studio/screens/welcome_screen1.dart';
 import 'package:android_studio/screens/home_screen.dart';
 import 'package:android_studio/screens/password_reset_screen.dart';
 
-void main() async{
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+ 
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint("Environment loaded - API URL: ${dotenv.env['API_BASE_URL']}");
+  } catch (e) {
+    debugPrint("Environment load error: $e");
+    
+  }
+  
   runApp(const MyApp());  
 }
 
@@ -37,125 +45,144 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  String? token;
-  bool isLoading = true;
+  final AuthService _authService = AuthService();
   final AppLinks _appLinks = AppLinks();
+  
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _handleIncomingLinks();
-    _checkTokenAndLoadUserData();
+    _initializeApp();
   }
 
-  Future<void> _checkTokenAndLoadUserData() async {
-    final prefs = AuthService();
-    String? storedToken = await prefs.getString('token');
+  Future<void> _initializeApp() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
 
-    setState(() {
-      token = storedToken;
-      isLoading = false;
-    });
+     
+      final isLoggedIn = await _authService.isLoggedIn();
+      
+      if (isLoggedIn) {
+        await _loadUserDataAndNavigate();
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      debugPrint("Uygulama başlatma hatası: $e");
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Bir hata oluştu. Lütfen tekrar deneyin.";
+      });
+    }
+  }
 
-    if (token != null && token!.isNotEmpty) {
-      try {
-        final userInfo = await _fetchUserInfo(token!);
+  Future<void> _loadUserDataAndNavigate() async {
+    try {
+      final userResponse = await _authService.makeAuthenticatedRequest(
+        'GET', 
+        '/auth/me'
+      );
+      
+      if (userResponse?.statusCode != 200) {
+        throw Exception('Kullanıcı bilgisi alınamadı');
+      }
 
-        await prefs.setString('user_id', userInfo['id'].toString());
-        await prefs.setString('user_name', userInfo['username']);
-        await prefs.setString('user_mail', userInfo['email']);
+      final userInfo = jsonDecode(userResponse!.body);
 
-        final avatar = await _fetchUserAvatar(token!);
-        await prefs.setString('user_avatar', avatar ?? 'profile_pic.png');
+      
+      await _authService.setString('user_id', userInfo['id'].toString());
+      await _authService.setString('user_name', userInfo['username']);
+      await _authService.setString('user_mail', userInfo['email']);
 
-        if (!mounted) return;
+     
+      await _authService.fetchAndSaveUserAvatar(
+        await _authService.getString('token') ?? ''
+      );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(
-              userName: userInfo['username'],
-              userMail: userInfo['email'],
-            ),
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(
+            userName: userInfo['username'],
+            userMail: userInfo['email'],
           ),
+        ),
+      );
+    } catch (e) {
+      debugPrint("Kullanıcı verisi yükleme hatası: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _handleIncomingLinks() {
+    _appLinks.uriLinkStream.listen(
+      (Uri? uri) => _processAppLink(uri),
+      onError: (err) => debugPrint('App link error: $err'),
+    );
+
+    _appLinks.getInitialAppLink().then((Uri? uri) {
+      if (uri != null) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _processAppLink(uri)
         );
-      } catch (e) {
-        debugPrint("Kullanıcı bilgisi alınamadı: $e");
       }
-    }
-  }
-
-  Future<Map<String, dynamic>> _fetchUserInfo(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseURL/auth/me'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Kullanıcı bilgisi alınamadı');
-    }
-  }
-
-  Future<String?> _fetchUserAvatar(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseURL/avatar/current'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['avatar'];
-    } else {
-      debugPrint("Avatar bilgisi alınamadı: ${response.statusCode}");
-      return null;
-    }
-  }
-
-  void _handleIncomingLinks() async {
-    _appLinks.uriLinkStream.listen((Uri? uri) {
-      if (uri?.scheme == 'codebite' && uri?.host == 'reset-password') {
-        final token = uri?.queryParameters['token'];
-        if (token != null && token.isNotEmpty) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PasswordResetScreen(token: token),
-            ),
-          );
-        }
-      }
-    }, onError: (err) {
-      debugPrint('App link error: $err');
     });
+  }
 
-    final Uri? initialUri = await _appLinks.getInitialAppLink();
-    if (initialUri?.scheme == 'codebite' && initialUri?.host == 'reset-password') {
-      final token = initialUri?.queryParameters['token'];
-      if (token != null && token.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PasswordResetScreen(token: token),
-            ),
-          );
-        });
-      }
+  void _processAppLink(Uri? uri) {
+    if (uri?.scheme != 'codebite' || uri?.host != 'reset-password') {
+      return;
+    }
+
+    final token = uri?.queryParameters['token'];
+    if (token?.isNotEmpty == true) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PasswordResetScreen(token: token!),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    if (_isLoading) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(
           child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _initializeApp,
+                child: const Text('Tekrar Dene'),
+              ),
+            ],
+          ),
         ),
       );
     }

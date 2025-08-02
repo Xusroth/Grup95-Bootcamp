@@ -19,12 +19,12 @@ class _ProfileCreationState extends State<ProfileCreation> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _mailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   bool notificationsOn = true;
+  bool isLoading = false;
   String? warningMessage;
   String? passwordError;
-
-  final String baseUrl = '$baseURL';
 
   bool _validatePassword(String password) {
     if (password.length < 8) {
@@ -61,50 +61,70 @@ class _ProfileCreationState extends State<ProfileCreation> {
     return true;
   }
 
-  Future<void> registerUser() async {
+  Future<bool> registerAndLoginUser() async {
     if (!_validatePassword(_passwordController.text.trim())) {
-      return;
+      return false;
     }
 
-    final registerResponse = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'username': _nicknameController.text.trim(),
-        'email': _mailController.text.trim(),
-        'password': _passwordController.text.trim(),
-      }),
-    );
+    try {
+      setState(() => isLoading = true);
 
-    if (registerResponse.statusCode == 201) {
-      print("✅ Kayıt başarılı");
-
-      final loginResponse = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'username': _mailController.text.trim(),
+     
+      final registerResponse = await http.post(
+        Uri.parse('$baseURL/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': _nicknameController.text.trim(),
+          'email': _mailController.text.trim(),
           'password': _passwordController.text.trim(),
-        },
+        }),
       );
 
-      if (loginResponse.statusCode == 200) {
-        final loginData = jsonDecode(loginResponse.body);
-        final accessToken = loginData['access_token'];
-        final refreshToken = loginData['refresh_token'];
-
-        final auth = AuthService();
-        await auth.setString('token', accessToken);
-        await auth.setString('refresh_token', refreshToken);
-
-        print("🔐 Tokenlar kaydedildi");
-        await auth.setTokenAndUserData(accessToken);
-      } else {
-        throw Exception('Giriş başarısız: ${loginResponse.body}');
+      if (registerResponse.statusCode != 201) {
+        final errorData = json.decode(registerResponse.body);
+        setState(() {
+          warningMessage = errorData['detail'] ?? 'Kayıt başarısız';
+        });
+        return false;
       }
-    } else {
-      throw Exception('Kayıt başarısız: ${registerResponse.body}');
+
+      print("✅ Kayıt başarılı");
+
+     
+      final loginResult = await _authService.login(
+        _mailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      if (loginResult != null) {
+        print("🔐 Login başarılı, tokenlar kaydedildi");
+        return true;
+      } else {
+        setState(() {
+          warningMessage = 'Giriş başarısız. Lütfen tekrar deneyin.';
+        });
+        return false;
+      }
+    } catch (e) {
+      print('Register error: $e');
+      setState(() {
+        warningMessage = 'Kayıt sırasında bir hata oluştu.';
+      });
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nicknameController.dispose();
+    _mailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -212,7 +232,6 @@ class _ProfileCreationState extends State<ProfileCreation> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
                   const Text(
                     'Bildirimler',
@@ -323,10 +342,11 @@ class _ProfileCreationState extends State<ProfileCreation> {
                           fontSize: 14,
                           fontFamily: 'Poppins-Regular',
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ElevatedButton(
-                    onPressed: () async {
+                    onPressed: isLoading ? null : () async {
                       if (_nameController.text.trim().isEmpty ||
                           _nicknameController.text.trim().isEmpty ||
                           _mailController.text.trim().isEmpty ||
@@ -334,33 +354,26 @@ class _ProfileCreationState extends State<ProfileCreation> {
                         setState(() {
                           warningMessage = "Tüm alanlar doldurulmalıdır.";
                         });
-                      } else if (!_validatePassword(
-                        _passwordController.text.trim(),
-                      )) {
-                        
-                      } else {
-                        setState(() {
-                          warningMessage = null;
-                        });
-                        try {
-                          await registerUser();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => WelcomeScreen3(
-                                userName: _nameController.text.trim(),
-                                userNickname: _nicknameController.text.trim(),
-                                userMail: _mailController.text.trim(),
-                                userPassword: _passwordController.text.trim(),
-                              ),
+                        return;
+                      }
+
+                      setState(() {
+                        warningMessage = null;
+                      });
+
+                      final success = await registerAndLoginUser();
+                      if (success && mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WelcomeScreen3(
+                              userName: _nameController.text.trim(),
+                              userNickname: _nicknameController.text.trim(),
+                              userMail: _mailController.text.trim(),
+                              userPassword: _passwordController.text.trim(),
                             ),
-                          );
-                        } catch (e) {
-                          setState(() {
-                            warningMessage =
-                                'Kayıt başarısız. Lütfen bilgileri gözden geçirin.';
-                          });
-                        }
+                          ),
+                        );
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -373,14 +386,19 @@ class _ProfileCreationState extends State<ProfileCreation> {
                         borderRadius: BorderRadius.circular(24),
                       ),
                     ),
-                    child: const Text(
-                      'Oluştur',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontFamily: 'Poppins-Regular',
-                      ),
-                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          )
+                        : const Text(
+                            'Oluştur',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontFamily: 'Poppins-Regular',
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 40),
                 ],

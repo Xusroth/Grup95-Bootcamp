@@ -199,7 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   GestureDetector(
                     onTap: () async {
                       final authService = AuthService();
-                      authService.clearString('token');
+                      authService.logout();
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => WelcomeScreen2()),

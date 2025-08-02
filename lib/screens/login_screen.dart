@@ -17,100 +17,92 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
   bool isLoading = false;
-
-  Future<Map<String, dynamic>> fetchUserInfo(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseURL/auth/me'), // kendi backend IP'n
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final msg =
-          jsonDecode(response.body)['detail'] ?? 'Kullanıcı bilgisi alınamadı';
-      throw Exception(msg);
-    }
-  }
 
   void _submitLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => isLoading = true);
 
-    final url = Uri.parse('$baseURL/auth/login');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'username': _emailController.text,
-        'password': _passwordController.text,
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final accessToken = data['access_token'];
-      final refreshToken = data['refresh_token'];
-
-      final authService = AuthService();
-      await authService.setString('token', accessToken);
-      await authService.setString('refresh_token', refreshToken);
-
-      await authService.setTokenAndUserData(accessToken);
-
-      final userName = await authService.getString('user_name') ?? 'Kullanıcı';
-      final userMail =
-          await authService.getString('user_mail') ?? 'bilinmiyor@mail.com';
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DersSec(userName: userName, userMail: userMail),
-        ),
+    try {
+      
+      final result = await _authService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
-    } else {
-      final detail = jsonDecode(response.body)['detail'] ?? 'Giriş başarısız';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                detail == 'Giriş başarısız'
-                    ? Icons.error_outline
-                    : Icons.check_circle,
-                color: Colors.white,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  detail,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: detail == 'Giriş başarısız'
-              ? Colors.red[600]
-              : const Color.fromARGB(255, 255, 4, 4),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          duration: const Duration(seconds: 3),
-          elevation: 6,
-        ),
-      );
+
+      if (result != null) {
+        
+        final userName = await _authService.getString('user_name') ?? 'Kullanıcı';
+        final userMail = await _authService.getString('user_mail') ?? 'bilinmiyor@mail.com';
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DersSec(userName: userName, userMail: userMail),
+            ),
+          );
+        }
+      } else {
+        
+        if (mounted) {
+          _showErrorSnackBar('E-posta veya şifre hatalı');
+        }
+      }
+    } catch (e) {
+      print('Login error: $e');
+      if (mounted) {
+        _showErrorSnackBar('Giriş sırasında bir hata oluştu');
+      }
     }
 
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        duration: const Duration(seconds: 3),
+        elevation: 6,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -186,7 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? "Şifre boş bırakılamaz"
                                 : null,
                           ),
-
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
@@ -194,8 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        const PasswordChangeScreen(),
+                                    builder: (_) => const PasswordChangeScreen(),
                                   ),
                                 );
                               },
@@ -210,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           SizedBox(
                             width: 200,
                             child: ElevatedButton(

@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
 
   animated_text_kit: ^4.2.2
-  flutter_dotenv: ^5.0.2
+  flutter_dotenv: ^5.1.0
   app_links: ^5.0.0
   shared_preferences: ^2.5.3
   http: ^1.4.0
@@ -69,6 +69,7 @@ flutter:
 
 
   assets:
+    - .env
     - assets/anasayfa_maskot.png
     - assets/google_icon.png
     - assets/misafir_icon.png

@@ -9,8 +9,81 @@ import 'package:android_studio/screens/login_screen.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
 import 'package:http/http.dart' as http;
 
-class WelcomeScreen2 extends StatelessWidget {
+class WelcomeScreen2 extends StatefulWidget {
   const WelcomeScreen2({super.key});
+
+  @override
+  State<WelcomeScreen2> createState() => _WelcomeScreen2State();
+}
+
+class _WelcomeScreen2State extends State<WelcomeScreen2> {
+  final AuthService _authService = AuthService();
+  bool isGuestLoading = false;
+
+  Future<void> _handleGuestLogin() async {
+    setState(() => isGuestLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseURL/auth/guest'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final accessToken = data['access_token'];
+        final refreshToken = data['refresh_token'];
+        final username = data['username'];
+
+        
+        await _authService.setString('token', accessToken);
+        await _authService.setString('refresh_token', refreshToken);
+
+        await _authService.setTokenAndUserData(accessToken);
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WelcomeScreen3(
+                userName: username,
+                userNickname: username,
+                userMail: '',
+                userPassword: '',
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          _showErrorSnackBar("Misafir girişi başarısız oldu");
+        }
+      }
+    } catch (e) {
+      print('Guest login error: $e');
+      if (mounted) {
+        _showErrorSnackBar("Bağlantı hatası. Lütfen tekrar deneyin.");
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isGuestLoading = false);
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +94,7 @@ class WelcomeScreen2 extends StatelessWidget {
           Image.asset('assets/arkaplan.png', fit: BoxFit.cover),
           Column(
             children: [
-              // Üstteki butonlar
+
               SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -31,13 +104,13 @@ class WelcomeScreen2 extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Geri Butonu
+              
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                       ),
 
-                      // Report ikonu - IconButton ile
+                      
                       IconButton(
                         onPressed: () {
                           Navigator.push(
@@ -57,7 +130,7 @@ class WelcomeScreen2 extends StatelessWidget {
                   ),
                 ),
               ),
-                  Expanded(
+              Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
@@ -89,7 +162,7 @@ class WelcomeScreen2 extends StatelessWidget {
                       ),
                       const SizedBox(height: 36),
 
-                      // Profil oluştur butonu
+         
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -103,7 +176,7 @@ class WelcomeScreen2 extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
                                 blurRadius: 6,
@@ -125,10 +198,11 @@ class WelcomeScreen2 extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // google ile giriş
+                   
                       GestureDetector(
                         onTap: () {
-                          // Google ile giriş işlemleri burada olacak
+                        
+                          _showErrorSnackBar("Google girişi henüz aktif değil");
                         },
                         child: Container(
                           width: 300,
@@ -140,7 +214,7 @@ class WelcomeScreen2 extends StatelessWidget {
                               end: Alignment.centerRight,
                             ),
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
                                 blurRadius: 6,
@@ -167,59 +241,9 @@ class WelcomeScreen2 extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // misafir girişi için değerlerin belirlenmesi
+                  
                       GestureDetector(
-                      onTap: () async {
-                        final response = await http.post(
-                          Uri.parse('$baseURL/auth/guest'),
-                          headers: {'Content-Type': 'application/json'},
-                        );
-
-                        if (response.statusCode == 200) {
-                          final data = json.decode(response.body);
-                          final token = data['access_token'];
-
-                          
-                          final authService = AuthService();
-                          await authService.setString('token', token);
-
-                          
-                          final userResponse = await http.get(
-                            Uri.parse('$baseURL/auth/me'),
-                            headers: {
-                              'Authorization': 'Bearer $token',
-                              'Content-Type': 'application/json',
-                            },
-                          );
-
-                          if (userResponse.statusCode == 200) {
-                            final userData = json.decode(userResponse.body);
-                            final username = userData['username'];
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => WelcomeScreen3(
-                                  userName: username,
-                                  userNickname: username,
-                                  userMail: '',
-                                  userPassword: '',
-                                ),
-                              ),
-                            );
-                          } else {
-                            
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Kullanıcı bilgisi alınamadı")),
-                            );
-                          }
-                        } else {
-                          
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Misafir girişi başarısız oldu")),
-                          );
-                        }
-                      },
+                        onTap: isGuestLoading ? null : _handleGuestLogin,
                         child: Container(
                           width: 300,
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -230,7 +254,7 @@ class WelcomeScreen2 extends StatelessWidget {
                               end: Alignment.centerRight,
                             ),
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
                                 blurRadius: 6,
@@ -241,11 +265,21 @@ class WelcomeScreen2 extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Image.asset('assets/misafir_icon.png', height: 24),
+                              if (isGuestLoading)
+                                const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              else
+                                Image.asset('assets/misafir_icon.png', height: 24),
                               const SizedBox(width: 12),
-                              const Text(
-                                "Misafir Girişi",
-                                style: TextStyle(
+                              Text(
+                                isGuestLoading ? "Giriş yapılıyor..." : "Misafir Girişi",
+                                style: const TextStyle(
                                   fontFamily: 'Poppins-Regular',
                                   fontSize: 18,
                                   color: Colors.black,
@@ -258,12 +292,13 @@ class WelcomeScreen2 extends StatelessWidget {
 
                       const SizedBox(height: 12),
 
-
-                      // Zaten hesabım var 
+                     
                       GestureDetector(
                         onTap: () {
-                        Navigator.push(context, 
-                        MaterialPageRoute(builder: (_) => LoginScreen()));
+                          Navigator.push(
+                            context, 
+                            MaterialPageRoute(builder: (_) => const LoginScreen())
+                          );
                         },
                         child: const Text(
                           "Zaten hesabım var",
