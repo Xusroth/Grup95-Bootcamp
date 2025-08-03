@@ -101,60 +101,62 @@ class _DersSecState extends State<DersSec> {
   }
 
   Future<void> dersiSec(int lessonId) async {
-    final authService = AuthService();
-    final token = await authService.getString('token');
+  final authService = AuthService();
+  final token = await authService.getString('token');
 
-    if (token == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Giriş yapılmamış.")));
-      return;
-    }
-
-    final response = await http.get(
-      Uri.parse('$baseURL/auth/me'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode != 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
-      );
-      return;
-    }
-
-    final userData = json.decode(response.body);
-    final userId = userData['id'];
-
-    final dersKayitResponse = await http.post(
-      Uri.parse('$baseURL/lesson/users/$userId/lessons/$lessonId'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (dersKayitResponse.statusCode == 200) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SeviyeSecSayfasi(
-            userName: widget.userName,
-            userMail: widget.userMail,
-          ),
-        ),
-      );
-    } else {
-      final errorMessage =
-          json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Ders seçilemedi: $errorMessage")));
-    }
+  if (token == null) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Giriş yapılmamış.")));
+    return;
   }
+
+  final response = await http.get(
+    Uri.parse('$baseURL/auth/me'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Kullanıcı bilgisi alınamadı.")),
+    );
+    return;
+  }
+
+  final userData = json.decode(response.body);
+  final userId = userData['id'];
+
+  final dersKayitResponse = await http.post(
+    Uri.parse('$baseURL/lesson/users/$userId/lessons/$lessonId'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (dersKayitResponse.statusCode == 200) {
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SeviyeSecSayfasi(
+          userName: widget.userName,
+          userMail: widget.userMail,
+          lessonId: lessonId, 
+        ),
+      ),
+    );
+  } else {
+    final errorMessage =
+        json.decode(dersKayitResponse.body)['detail'] ?? "Bir hata oluştu";
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Ders seçilemedi: $errorMessage")));
+  }
+}
 
   void handleFlip(int index, bool locked) {
     if (locked) {

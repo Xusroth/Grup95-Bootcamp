@@ -5,16 +5,21 @@ import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
 import 'package:android_studio/auth_service.dart';
 import 'package:android_studio/lessons/algorithmlesson.dart';
+import 'package:android_studio/lessons/pythonlesson.dart'; 
+import 'package:android_studio/lessons/javalesson.dart';
+import 'package:android_studio/lessons/csharplesson.dart';
 import 'package:android_studio/screens/ReportScreen1.dart';
 
 class SeviyeSecSayfasi extends StatefulWidget {
   final String userMail;
   final String userName;
+  final int lessonId; 
 
   const SeviyeSecSayfasi({
     super.key,
     required this.userMail,
     required this.userName,
+    required this.lessonId, 
   });
 
   @override
@@ -24,7 +29,6 @@ class SeviyeSecSayfasi extends StatefulWidget {
 class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
   String userRole = 'guest';
   bool isLoading = true;
-  int lessonId = 1;
 
   @override
   void initState() {
@@ -62,6 +66,40 @@ class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
         userRole = 'guest';
         isLoading = false;
       });
+    }
+  }
+
+  
+  Widget _getCorrectLessonPage() {
+    switch (widget.lessonId) {
+      case 1: 
+        return AlgorithmLessonOverview(
+          userName: widget.userName,
+          lessonId: widget.lessonId,
+        );
+      case 2: 
+        return PythonLessonOverview(
+          userName: widget.userName,
+          lessonId: widget.lessonId,
+        );
+      
+      case 3: 
+         return JavaLessonOverview(
+           userName: widget.userName,
+           lessonId: widget.lessonId,
+  
+        );
+      case 4: 
+          return CsharpLessonOverview(
+            userName: widget.userName,
+            lessonId: widget.lessonId,
+         );
+        
+      default:
+        return AlgorithmLessonOverview(
+          userName: widget.userName,
+          lessonId: widget.lessonId,
+        );
     }
   }
 
@@ -146,10 +184,7 @@ class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => AlgorithmLessonOverview(
-                                    userName: widget.userName,
-                                    lessonId: 1,
-                                  ),
+                                  builder: (_) => _getCorrectLessonPage(), // Doğru sayfayı çağır
                                 ),
                               );
                             },
@@ -197,8 +232,7 @@ class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        
-                                        builder: (context) => LevelTestPage(lessonId: lessonId),
+                                        builder: (context) => LevelTestPage(lessonId: widget.lessonId), // Dinamik lesson ID
                                       ),
                                     );
                                   },
