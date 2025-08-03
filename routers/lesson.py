@@ -362,7 +362,11 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
         prompt = f"""
             Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
 
-            SORU TİPLERİ: 30 sorunun tamamı teorik bilgi soruları olsun.
+            SORU TİPLERİ: 30 sorunun yaklaşık %70'i teorik bilgi soruları, %30'u kod analizi/çıktı soruları olsun.
+            
+            KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
+            
+            KOD UZUNLUK KURALI: Kod analizi/çıktı sorularındaki kodlar KISA ve HAFİF ORTA uzunlukta olsun. Uzun kodlar yazma, ekrana sığmayacak kodlar kullanma.
 
             ÖNEMLİ: Doğru cevaplar farklı şıklarda dağıtılmalı. A, B, C, D şıklarının hepsi arka arkaya aynı doğru şıklar olmasın.
 
@@ -409,6 +413,12 @@ async def generate_questions(db: db_dependency, lesson_id: int, section_id: int,
     else:
         prompt = f"""
             Sen bir programlama soruları üreticisisin. '{lesson.title}' dersi, '{lesson.category}' kategorisi, '{section.title}' bölümü için {current_user.level} seviyesinde TAM OLARAK 30 adet çoktan seçmeli soru üreteceksin.
+            
+            SORU TİPLERİ: 30 sorunun yaklaşık %70'i teorik bilgi soruları, %30'u kod analizi/çıktı soruları olsun.
+            
+            KRİTİK KURAL: Kod analizi veya çıktı soruları yaparken, kodu mutlaka soru metninin içine yaz. Kodu ayrı gösterme, referans verme, "aşağıdaki kod" deme. Kodu doğrudan soru cümlesinin devamına ekle.
+            
+            KOD UZUNLUK KURALI: Kod analizi/çıktı sorularındaki kodlar KISA ve HAFİF ORTA uzunlukta olsun. Uzun kodlar yazma, ekrana sığmayacak kodlar kullanma.
 
             ÖNEMLİ: Doğru cevaplar farklı şıklarda dağıtılmalı. A, B, C, D şıklarının hepsi arka arkaya aynı doğru şıklar olmasın.
 
