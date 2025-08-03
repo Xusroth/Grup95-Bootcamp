@@ -100,13 +100,35 @@ Yazılıma adım atmak hiç bu kadar kolay olmamıştı. *İlk ısırığını a
 
 ## Daily Scrum
 
-- Sprint içinde tamamlanması tahmin edilen puan: 450 Puan
-- Puan tamamlama mantığı: Toplamda proje boyunca tamamlanması gereken 350 puanlık backlog bulunmaktadır. 3 sprint'e bölündüğünde ilk sprint 100, ikinci sprint 200 ve üçüncü sprint 150 olmasına karar verildi.
+- Sprint içinde tamamlanması tahmin edilen puan: 600 Puan
+- Puan tamamlama mantığı: Toplamda proje boyunca tamamlanması gereken 600 puanlık backlog bulunmaktadır. 3 sprint'e bölündüğünde ilk sprint 100, ikinci sprint 200 ve üçüncü sprint 300 olmasına karar verildi.
 - Daily Scrum: Bootcamp’in gününden beri günde en az bir kere zaten toplantı yapmakla beraber bu iki haftalık süreçte genelde günde iki toplantı yapıyorduk. İlk toplantıda o gün ne yapacağımızı konuşurken akşamki toplantıya kadar görevlerimizi yapmış oluyorduk. Gün içinde Whatsapp grubumuzdan karşılaştığımız sorunları ve fikir alışverişini yaparken [Notion](https://www.notion.so/Daily-Scrum-21d82b3b80e880cdb404e33998104b38) üzerinden de görev dağılımı ve daily scrum’ın takibini yaptık.
 - [Daily Scrum / Sprint 1](https://www.notion.so/Daily-Scrum-21d82b3b80e880cdb404e33998104b38)
 - [Daily Scrum / Sprint 2](https://www.notion.so/Daily-Scrum-Sprint2-23382b3b80e8805a9bebdfd8e8b1cd9a?source=copy_link)
+- [Daily Scrum / Sprint 3](https://www.notion.so/Daily-Scrum-Sprint3-23882b3b80e8802dbdd9e37e0c412d10?source=copy_link)
 
 ---
+
+## END OF THE BOOTCAMP
+
+
+İstek ve önerilerinizi ulaştırmak için CodeBite mail adresi :                   
+- codebite95@gmail.com
+
+CodeBite Sosyal Medyada
+- [CodeBite Youtube Kanalı](https://www.youtube.com/@codebite95)
+
+App Teaser
+- [Uygulama Reklam Videomuz](https://www.youtube.com/watch?v=7kisxeUH-VY)
+
+App Tutorial
+- [Uygulama Tanıtım Videomuz](https://www.youtube.com/shorts/UQtqm0-AJiE)
+
+Apk File
+- [Uygulamayı indirmek isterseniz APK dosyamız burada](https://drive.google.com/file/d/1cwMspISifag3W_JXycaDu5n_eVHIILoY/view?usp=sharing)
+
+
+----
 
 
 <details>
@@ -589,3 +611,490 @@ Flutter kısmında hala belirli sıkıntılar var. Özellikle backend ile entegr
 - Admin girişi yapıp giriş sonrası alınan JWT token ile yetkili işlemler, 4 dersi oluşturup swagger UI üzerinden endpoint ile dersler eklenip 3 farklı zorluk seviyesinde soru ürettirilicek.
 
 </details>
+
+<details>
+
+
+<summary>SPRINT 3</summary>
+
+---
+
+<details>
+
+
+<summary>Daily Scrum</summary>
+
+### Bu sprintte gerçekleştirdiğimiz toplantılar, geliştirme süreçleri ve diğer detaylar için [Daily Scrum sayfamızı](https://www.notion.so/Daily-Scrum-Sprint3-23882b3b80e8802dbdd9e37e0c412d10?source=copy_link) inceleyebilirsiniz.
+
+
+</details>
+
+
+---
+<details>
+<summary>Sprint Notes</summary>
+
+# **Sprint Notes**
+
+### **Front-end & UI/UX**
+
+- Avatar sistemi oluşturuldu ve backend ile entegre edildi.
+- Streak sistemi başarıyla entegre edildi.
+- Ayarlar sayfasının navigasyonu güncellendi.
+- Geri bildirim sayfası yenilendi.
+- Misafir giriş sistemi backend ile bağlandı.
+- Yeni sayfalar eklendi ve front-end güncellendi.
+- Günlük görev sistemi entegre edildi.
+- Hesap silme ve dil değiştirme özellikleri düzeltildi.
+- Avatar güncelleme özellikleri `profile.dart` ve `update_profile` sayfalarına eklendi.
+- Snackbar ve kullanıcı çubuğu iyileştirildi.
+- APK dosyası hazırlandı.
+- Login ve ders seç sayfaları güncellendi.
+- Şifre yenileme entegrasyonu tamamlandı.
+- Typing animasyonu eklendi ve nickname alanı düzeltildi.
+
+### **Tanıtım**
+
+- Kısa ekran kayıtları alındı ve reklam yazıları hazırlandı.
+- Reklam filmi denemeleri yapıldı ve müzik eklendi.
+- Youtube kanalı oluşturuldu, reklam ve tutorial videoları yüklendi.
+
+### **Backend Geliştirmede Kullanılan Kütüphaneler ve Modüller**
+
+- **`FastAPI`**: Uygulamanın tüm backend yapısını kurmak ve API endpoint’lerini tanımlamak için kullanıldı.
+- **`SQLAlchemy`**: Veritabanı modellerini oluşturmak ve tablolar arası ilişkileri yönetmek amacıyla projeye dahil edildi.
+- **`Alembic`**: Veritabanı üzerinde yapılan şema değişikliklerini takip etmek ve versiyonlamak için entegre edildi.
+- **`SQLite`**: Geliştirme sürecinde lokal testler için tercih edildi.
+- **`PostgreSQL`**: Canlı ortamda güvenli ve ölçeklenebilir veritabanı yapısı sağlamak amacıyla kullanıldı.
+- **`python-jose`**: JWT (JSON Web Token) tabanlı kimlik doğrulama ve yetkilendirme işlemleri gerçekleştirildi.
+- **`authlib`**: Google ile giriş özelliğini entegre etmek için denendi ancak bu özellik daha sonra askıya alındı.
+- **`datetime`**: Token süresi hesaplama ve tarih bazlı işlemler için kullanıldı.
+- **`passlib`**: Kullanıcı şifrelerinin güvenli bir şekilde hash’lenmesi için kullanıldı.
+- **`smtplib`**: Sistem tarafından otomatik e-posta gönderimi sağlamak amacıyla projeye entegre edildi.
+- **`email.mime`**: E-posta içeriklerini biçimlendirmek ve zengin içerikli e-posta oluşturmak için kullanıldı.
+- **`uuid`**: Uygulama içerisindeki kullanıcı, görev ve diğer varlıklar için benzersiz kimlikler oluşturmakta kullanıldı.
+- **`logging`**: Uygulama içi olayları kayıt altına almak ve hata ayıklama sürecini desteklemek için kullanıldı.
+- **`os`** ve **`python-dotenv`**: `.env` dosyasındaki ortam değişkenlerini uygulamaya aktarmak için birlikte kullanıldı.
+- **`pydantic`**: API endpoint’lerinde kullanılan giriş ve çıkış verilerinin doğruluğunu kontrol etmek ve şema tanımlamak amacıyla tercih edildi.
+- **`APScheduler`**: Bazı işlemlerin otomatik olarak zamanlanması için denendi ve entegrasyon süreci başlatıldı.
+
+</details>
+
+---
+
+<details>
+<summary>Uygulama Ekran Görüntüleri</summary>
+
+# Uygulama Ekran görüntüleri
+
+[Uygulama Ekran Kaydımız](https://youtube.com/shorts/k9HM3KN2m-A)
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="photos/app_ici_sifre_degistirme.jpg" width="200"/><br/>
+      <b>Şifre Değiştirme Ekranı (Uygulama içi)</b>
+    </td>
+    <td align="center">
+      <img src="photos/avatari_degistir.jpg" width="200"/><br/>
+      <b>Avatar Değiştirme Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/ayarlar_ekrani.jpg" width="200"/><br/>
+      <b>Ayarlar Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/ders_ekrani.jpg" width="200"/><br/>
+      <b>Ders Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/email_gonderildi.jpg" width="200"/><br/>
+      <b>Email Gönderme Ekranı</b>
+    </td>
+        <td align="center">
+      <img src="photos/email_sifre_degistirme.jpg" width="200"/><br/>
+      <b>Email Şifre Değiştirme Ekranı</b>
+    </td>
+        <td align="center">
+      <img src="photos/profili_guncelle.jpg" width="200"/><br/>
+      <b>Profil Güncelleme Ekranı</b>
+    </td>
+</tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="photos/profili_guncelle_sifre_onayi.jpg" width="200"/><br/>
+      <b>Profil güncelleme şifre Onayı Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/seviye_belirleme_sonucu.jpg" width="200"/><br/>
+      <b>Seviye Belirleme Sonuç Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/seviye_belirleme_testi.jpg" width="200"/><br/>
+      <b>Seviye Belirleme Test Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/sifremi_unuttum.jpg" width="200"/><br/>
+      <b>Şifremi Unuttum Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/sikca_sorulan_sorular.jpg" width="200"/><br/>
+      <b>Sıkça Sorulan Sorular Ekranı</b>
+    </td>
+        <td align="center">
+      <img src="photos/soru_ekrani.jpg" width="200"/><br/>
+      <b>Soru Ekranı</b>
+    </td>
+    <td align="center">
+      <img src="photos/sonuc_ekrani.jpg" width="200"/><br/>
+      <b>Sonuç Ekranı</b>
+    </td>
+</tr>
+</table>
+
+</details>
+
+
+----
+<details>
+<summary>Burndown Chart</summary>
+
+## Burndown chart
+![Sprint2 Burndown Chart](photos/burndownchart_sprint3.png)
+
+</details>
+
+---
+<details>
+<summary>Sprint Board Güncellemeleri</summary>
+
+## Sprint Board Güncellemeleri
+
+![Sprint 3 Board 1](photos/sprint3_board1.png)
+
+![Sprint 3 Board 2](photos/sprint3_board2.png)
+
+![Sprint 3 Table 1](photos/sprint3_board3.png)
+
+![Sprint 3 Table 2](photos/sprint3_board4.png)
+
+
+
+
+</details>
+
+---
+
+<details>
+<summary>Sprint İçinde Tamamlanması Tahmin Edilen Puan </summary>
+
+
+## Sprint İçinde Tamamlanması Tahmin Edilen 300 puan
+Sprint 3 için toplam 300 puanlık bir iş yükü belirlendi. Bu puan, öncelikli olarak Front-end tarafında yapılacak yeni eklemeler ve güncellemeler nedeniyle 110 olarak belirlendi. Uygulamanın tanıtımı kapsamında hazırlanacak tutorial ve reklam videoları için 40 puan, Backend tarafındaki geliştirmeler için ise 150 puan ayrıldı. Aşağıdaki tablolarda her kategoriye ait puan dağılımı detaylı şekilde sunulmuştur.
+
+</details>
+
+---
+
+
+<details>
+<summary>Puan Tamamlama Mantığı</summary>
+
+## Puan Tamamlama Mantığı
+
+### Front-end 
+
+| No | Görevler | Puan |
+| --- | --- | --- |
+| 1 | Profil sayfası için avatarların oluşturulması | 4 |
+| 2 | Avatar sisteminin backend'e bağlanması | 3 |
+| 3 | Streak sisteminin entegrasyonu | 4 |
+| 4 | Ayarlar sayfasındaki navigasyon yapılması | 3 |
+| 5 | Ayarlar sayfasının backend ile entegre edilmesi | 3 |
+| 6 | Geri bildirim sayfasının yenilenmesi | 4 |
+| 7 | Feedback ekranında önceki sayfaya yönlendirme yapılması | 2 |
+| 8 | Misafir giriş sisteminin backend ile bağlanması | 3 |
+| 9 | Front-end güncellenmesi ve yeni sayfaların eklenmesi | 5 |
+| 10 | Ayarlar sayfasına SSS bölümünün eklenmesi | 3 |
+| 11 | Günlük görev sisteminin entegrasyonu | 5 |
+| 12 | Uygulamanın yayına alınması araştırması | 3 |
+| 13 | Test işlemlerinin tamamlanması | 4 |
+| 14 | Hesap silme özelliğinin düzeltilmesi | 3 |
+| 15 | Dil değiştirme için seçim paneli eklenmesi | 3 |
+| 16 | Quest ekranı kullanıcı çubuğunun düzeltilmesi | 3 |
+| 17 | Ders ve bölümler için ön araştırma yapılması | 2 |
+| 18 | Şifre değiştirme ekranının güncellenmesi | 3 |
+| 19 | Çıkış yap seçeneğinin düzeltilmesi | 3 |
+| 20 | Home screen ve profile.dart’a avatar güncelleme eklenmesi | 4 |
+| 21 | Update_profile sayfasına avatar güncelleme eklenmesi | 3 |
+| 22 | Güncellenen front-end dosyalarının teslim edilmesi | 2 |
+| 23 | Ders seç sayfasının güncellenmesi | 3 |
+| 24 | Welcome_screen1/2/3 sayfalarının güncellenmesi | 3 |
+| 25 | Login_screen sayfasının güncellenmesi | 3 |
+| 26 | Password_screen sayfasının güncellenmesi | 3 |
+| 27 | Profil oluşturma sayfasının güncellenmesi (bildirim seçeneği) | 3 |
+| 28 | Ayarlar sayfasının güncellenmesi (gizlilik kaldırma, uyarılar) | 3 |
+| 29 | Update_profile sayfasının güncellenmesi | 3 |
+| 30 | Profil ekranı güncellemesi (görev yönlendirme, streak arka planı) | 4 |
+| 31 | Snackbar yapılandırmasının güncellenmesi | 3 |
+| 32 | Home screen’de "Devam Et" butonunun kaldırılması | 2 |
+| 33 | APK dosyasının hazırlanması | 3 |
+| 34 | CodeBite logosunun asset dosyasının değiştirilmesi | 2 |
+| 35 | Ders seç sayfasının kontrol edilmesi | 2 |
+| 36 | Login_screen’e kırmızı snackbar eklenmesi | 2 |
+| 37 | Change_avatar, change_email, change_password sayfalarının kontrolü | 3 |
+| 38 | Profil sayfasına şifre hatası mesajı eklenmesi | 3 |
+| 39 | Update_profile sayfasına yeni snackbar sistemi eklenmesi | 3 |
+| 40 | User_bar’da nickname kısmının düzeltilmesi | 2 |
+| 41 | Email ile şifre yenileme entegrasyonu yapılması | 2 |
+| 42 | Typing animasyonu eklenmesi | 2 |
+| 43 | Ders ve bölümler için araştırma yapılması (Deneme 2) | 2 |
+| 44 | Readme sayfasının güncellenmesi | 2 |
+|  | **Toplam Puan** | 110 |
+
+### Reklam/Tanıtım Videoları
+
+| No | Görevler | Puan |
+| --- | --- | --- |
+| 1 | Uygulamadan kısa ekran kayıtlarının alınması | 5 |
+| 2 | Reklam yazılarının taslaklarının hazırlanması | 4 |
+| 3 | Reklam filmi yapımı araştırılması | 3 |
+| 4 | Reklam filmi deneme 1 | 4 |
+| 5 | Reklam filmine müzik eklenmesi | 3 |
+| 6 | Seviye Belirleme kısmının reklam tanıtımına eklenmesi | 3 |
+| 7 | Reklam filmi deneme 2 | 4 |
+| 8 | CodeBite Youtube kanalının oluşturulması | 3 |
+| 9 | Reklam videosunun Youtube’a yüklenmesi | 3 |
+| 10 | Tutorial videosunun hazırlanması | 3 |
+| 11 | Tutorial videosunun Youtube’a yüklenmesi | 1 |
+|  | **Toplam Puan** | 40 |
+
+### Back-end
+
+| No | Görevler | Puan |
+| --- | --- | --- |
+| 1 | Modellerin oluşturulması ve güncellenmesi | 15 |
+| 2 | Refresh token sistemi eklenmesi | 10 |
+| 3 | Section ve Daily Task tablolarının oluşturulması | 10 |
+| 4 | Progress tablosuna yeni alanların eklenmesi | 10 |
+| 5 | UserQuestion tablosunun oluşturulması | 10 |
+| 6 | Şema güncellemeleri (schemas.py) | 10 |
+| 7 | Authentication endpoint güncellemeleri | 15 |
+| 8 | Parola sıfırlama işlemlerinin eklenmesi | 10 |
+| 9 | Token yönetimi ve güvenlik iyileştirmeleri | 15 |
+| 10 | Günlük görev sisteminin backend entegrasyonu | 10 |
+| 11 | İlerleme ve bölüm yönetimi endpointleri | 10 |
+| 12 | E-posta sistemi entegrasyonu | 10 |
+| 13 | Migration ve veritabanı ayarları | 15 |
+| 14 | Loglama sistemi eklenmesi | 10 |
+| 15 | Backend raporunun oluşturulması | 5 |
+|  | **Toplam Puan** | 150 |
+
+</details>
+
+---
+<details>
+<summary>Sprint Review</summary>
+
+# Sprint Review
+
+### **Front-end & UI/UX**
+
+- Avatar sistemi oluşturuldu ve backend’e bağlandı.
+- Streak sistemi ve günlük görevler entegre edildi.
+- Ayarlar, profil, şifre değiştirme ve çıkış ekranları güncellendi.
+- Geri bildirim sayfası yenilendi, misafir giriş backend ile bağlandı.
+- Yeni sayfalar eklendi, testler tamamlandı, APK hazırlandı.
+- Kullanıcı uyarıları ve animasyonlar iyileştirildi.
+- Ders ve bölüm araştırmaları yapıldı.
+
+### **Tanıtım & Pazarlama**
+
+- Reklam kayıtları alındı, metinler hazırlandı, reklam filmi yapıldı ve revize edildi.
+- CodeBite Youtube kanalı açıldı, reklam ve tutorial videoları yüklendi.
+
+### **Backend**
+
+- Şifre yenileme sistemi eklendi, token yönetimi iyileştirildi.
+- Ders bölümleri ve günlük görevler için modeller ve API’ler geliştirildi.
+- Misafir kullanıcılar için erişim kısıtlamaları ve otomatik temizleme yapıldı.
+- Kullanıcı ilerlemesi için progress ve alt bölüm sistemi güncellendi.
+- **Seviye belirleme testi sistemi hayata geçti; kullanıcı seviyeleri otomatik belirleniyor.**
+- Günlük görevler ve can sistemi entegre edildi; kötüye kullanım engellendi.
+- Adminler için test kolaylıkları sağlandı.
+- Canlı ortama geçiş yapıldı, PostgreSQL external database ile bağlantı kuruldu.
+- Token süresi dolanlar otomatik siliniyor, refresh token sistemi eklendi.
+- E-posta sistemi tamamlandı, deeplink entegrasyonu için endpointler hazırlandı.
+
+Sprint Review'a Katılanlar: İbrahim Ateş, Rabia Altundal, Bora Eren Erdem, Nevroz Aslan, Nuri Alp Mutlu
+
+</details>
+
+
+---
+<details>
+<summary>Sprint Retrospective</summary>
+
+# Sprint Retrospective
+
+- Front-end ve backend entegrasyonunu sağlamak beklediğimizden daha karmaşık oldu; ciddi zaman harcadık.
+- Uygulamayı canlıya alma aşaması, bu alanda tecrübemiz olmadığı için epey yorucuydu.
+- Veritabanı sistemimizi SQLite’tan PostgreSQL’e taşımamız gerekti; bu geçiş teknik olarak oldukça zahmetliydi.
+- Otomatik soru üretimi ve bu soruların bölümlere ayrılması aşamasında çeşitli mantıksal sorunlar çıktı.
+- Soruların arayüzde düzgün görüntülenebilmesi için fazladan düzenlemeler yapmak zorunda kaldık.
+- Avatar sistemi ve diğer yeni geliştirmelerin her ekranda tek tek uygulanması süreçleri uzattı.
+- Emülatörler geliştirme sürecinde sıkça hata verdi; test ve entegrasyonları defalarca yeniden yapmak zorunda kaldık.
+- Arayüz iyileştirmeleri sırasında kullanılan bazı araçlar ve teknolojiler teknik sınırlamalar yarattı.
+- Bu sprintte en çok gurur duyduğumuz kısım tanıtım filmi oldu.
+- Reklam hazırlıkları ve yapılan revizyonlar, ekip olarak en çok motive olduğumuz ve keyif aldığımız alanlardan biriydi.
+
+</details>
+
+---
+
+<details>
+<summary>Backend Güncelleme ve Geliştirme Raporu</summary>
+
+# Backend Güncelleme ve Geliştirme Raporu
+
+---
+
+### 1. Modeller ve Veritabanı Yapısı
+
+- `models.py` dosyasına şifre yenileme işlemleri için gerekli olan tablo eklendi. Bu tablo diğer modellerle ilişkiler kurularak veritabanı yapısına entegre edildi.
+- Kullanıcıların oturum yönetimi için kritik olan `refresh_tokens` tablosu `models.py` dosyasına eklendi ve `users` tablosu ile ilişkisi kuruldu. Böylece uygulamada hem **access token** hem de **refresh token** kontrolleri uygulanmaya başlandı.
+- `Section` ve `Daily Task` tabloları da `models.py` dosyasına eklendi. Bu tablolar arasında one-to-many ve many-to-many ilişkiler tanımlandı. Section tablosu üzerinde ilerleyen süreçte revize çalışmaları yapılması planlanıyor.
+- `Progress` tablosuna derslerin alt bölümlerini takip edebilmek adına `section_id`, `current_subsection` ve `subsection_completion` alanları eklendi. Böylece kullanıcı bazında bölümlerin ilerleyiş durumu detaylı şekilde takip edilebiliyor.
+- Seviye belirleme sınavına giren kullanıcıların aynı sorularla karşılaşmaması için `UserQuestion` tablosu oluşturuldu. Bu tablo kullanıcıların seviyelerine göre sorulan soruları kaydederek tekrar sorulmasını engelliyor.
+
+---
+
+### 2. Şema Güncellemeleri (`schemas.py`)
+
+- Şifre sıfırlama işlemleri için `PasswordResetRequest` ve `PasswordReset` sınıfları eklendi. Bu sayede API üzerinden parola sıfırlama istekleri düzgün şekilde yönetilebiliyor.
+- `Section` ve `Daily Task` modellerine uygun şemalar eklendi ve genel `schemas.py` yapısı güncellendi.
+- Bölüm güncellemeleri için `SectionUpdate`, ilerleme takibi için `ProgressResponse` sınıfları eklendi.
+- Kullanıcı sağlık sayacı (can sistemi) ile ilgili olarak `UserPublicResponse` sınıfına `health_count` ve `health_count_update_time` değişkenleri eklendi.
+- Frontend’in streak (günlük devamlılık) verilerini detaylı şekilde alabilmesi için `StreakResponse` sınıfı oluşturuldu.
+
+---
+
+### 3. Router ve Endpoint Güncellemeleri
+
+**Authentication (Kimlik Doğrulama)**
+
+- `auth.py` dosyasındaki token oluşturma ve süresi (`expires_delta`) ile ilgili bölümler revize edildi.
+- Parola sıfırlama işlemleri için API endpointleri tanımlandı: parola sıfırlama isteği (`password_reset_request`) ve parola sıfırlama işlemi (`password_reset`).
+- Aynı kullanıcı için birden fazla aktif token oluşması engellendi. Yeni token oluşturulmadan önce mevcut aktif tokenlar siliniyor, böylece veritabanının gereksiz büyümesi önlenmiş oldu.
+- Flutter uygulamasının parola sıfırlama linki (deeplink) üzerinden yönlendirilmesini sağlamak amacıyla `reset-redirect` endpointi oluşturuldu.
+- Misafir kullanıcılar için özel bir `guest` endpointi eklendi. Bu kullanıcıların erişimleri kısıtlandı ve 7 gün boyunca aktif olmayan misafir kullanıcılar veritabanından otomatik olarak siliniyor.
+- Kayıt (`register`), giriş (`login`), kullanıcı listeleme (`list_user`) ve sağlık sayacı (`health_count`) endpointlerinde hata düzeltmeleri ve iyileştirmeler yapıldı.
+
+**Ders ve Bölüm Yönetimi**
+
+- `lesson.py` ve ilgili router dosyalarında çeşitli güncellemeler gerçekleştirildi.
+- Derslerin alt bölümlerini yönetmek amacıyla `Create_section`, `get_sections` ve `get_questions_by_sections` endpointleri eklendi.
+- Ders seçimi (`select_lesson`), ilerleme oluşturma (`create_progress`), soru üretme (`generate_questions`), seviye testi (`level_test`) ve seviye testi sonuç gönderme (`submit_level_test`) endpointleri yenilendi.
+- Seviye testi kapsamında kullanıcıya 3 seviyeden (beginner, intermediate, advanced) toplam 20 soru soruluyor. Doğru yanıt sayısına göre kullanıcı seviyesi belirleniyor.
+- Kullanıcılara sorulan sorular veritabanına kaydediliyor ve tekrar sorulmaması sağlanıyor.
+- Hataların daha kolay takibi için kapsamlı bir loglama sistemi entegre edildi.
+
+**Günlük Görevler (Tasks)**
+
+- `routers/tasks.py` dosyasında görevlerin üst üste binmesi sorununu çözdük. Artık görevler doğru şekilde atanıyor ve görüntüleniyor.
+- `utils/daily_tasks.py` dosyasında günlük görevlerin otomatik olarak atanması için gerekli fonksiyonlar geliştirildi.
+- `generate_daily_tasks` ve `get_daily_tasks` endpointleri üzerinde iyileştirmeler yapıldı.
+- `answer_question` endpointi tamamen yenilendi, entegrasyon süreci devam ediyor; mevcutta bazı sorunlar bulunuyordu düzeltildi ve entegre edildi.
+
+**İlerleme ve Bölüm İşlemleri**
+
+- `routers/progress.py` ve `routers/sections.py` dosyaları oluşturuldu.
+- İlerleme takibi ve bölüm yönetimi için CRUD işlemleri ve ilgili API endpointleri eklendi.
+- Endpointlere yetkilendirme ve kapsamlı logging eklendi.
+
+---
+
+**4. İşlevsel Güncellemeler ve Mantık**
+
+- `get question by lesson` fonksiyonu güncellendi. Veritabanında yalnızca ilgili derse kayıtlı sorular çekiliyor.
+- Streak sistemi geliştirildi. Kullanıcı seçmediği dersten streak alamıyor. Ayrıca, her dersten kullanıcı günde yalnızca bir kez streak alabilir hale getirildi.
+- `getDailyTasks` fonksiyonundaki hata giderildi; kullanıcının sadece seçtiği derslere ait günlük görevler atanıyor. Örneğin, kullanıcı sadece Python seçtiyse ona sadece Python görevleri geliyor; birden fazla ders seçtiyse bu derslerden rastgele görevler atanıyor.
+- Alt konu ilerleme sistemi test edildi. Kullanıcı subsection 3/3 tamamladığında bir sonraki bölüme geçebiliyor. (Bu kısımda hala küçük hatalar olabilir, test ediliyor.)
+- Can (health_count) sistemi `Daily Task` ve `Progress` ile entegre edildi:
+    - Yanlış cevap verilmesi durumunda kullanıcıdan bir can düşüyor.
+    - Can sıfıra indiğinde 2 saatlik bekleme süresi (timeout) başlıyor.
+    - Kullanıcının aynı soruyu tekrar tekrar cevaplayarak sistemi istismar etmesi engellendi. Aynı soruya ikinci kez cevap verilemez, bu durumda kullanıcıya "Bu soruya daha önce cevap verdiniz." mesajı gösteriliyor.
+- Admin kullanıcılar için can sayısını sıfırlamak veya doldurmak amacıyla özel bir endpoint oluşturuldu.
+- Misafir kullanıcıların erişim yetkileri sınırlandırıldı, böylece sistem güvenliği arttırıldı.
+
+---
+
+**5. E-posta Sistemi ve Flutter Entegrasyonu**
+
+- `utils/email.py` dosyası oluşturuldu ve backend tarafında SMTP protokolü kullanılarak e-posta gönderme işlemleri gerçekleştirildi.
+- Flutter uygulamasının e-posta içerisindeki deeplink’i yakalayabilmesi için `auth.py` dosyasına `reset-redirect` endpointi eklendi. Bu sayede parola sıfırlama işlemi Flutter üzerinden sorunsuz yürütülebiliyor.
+
+---
+
+**6. Altyapı, Migration ve Veritabanı Ayarları**
+
+- `config.py` dosyası `utils` klasörüne taşındı, modülerlik ve düzen sağlandı.
+- `main.py` dosyasına yeni routerlar tanımlandı ve uygulamaya başarıyla bağlandı.
+- Canlı ortamda çalışan backend için **Alembic** ile migration işlemi gerçekleştirildi.
+- Render platformunda PostgreSQL Internal Database kullanıldığı için backend yalnızca canlı ortamda çalışıyordu. External Database bağlantısı kullanıma alınarak backend’in lokal geliştirme ortamında da sorunsuz çalışması sağlandı.
+- PostgreSQL yapılandırmaları iyileştirilerek sistem stabilitesi ve performansı artırıldı.
+
+---
+
+**7. Token Yönetimi ve Güvenlik İyileştirmeleri**
+
+- Süresi dolan token'ların veritabanında birikmesi sorunu giderildi.
+    
+    Daha önce bir kullanıcı şifre sıfırlama isteği gönderdiğinde, her seferinde yeni bir token oluşturuluyordu ancak eski (henüz süresi dolmamış) token'lar veritabanında kalıyordu. Bu da zamanla DB'de gereksiz yığılmaya sebep oluyordu.
+    
+    Artık sistem, aynı kullanıcıdan gelen yeni şifre sıfırlama talebinde önce aktif (henüz süresi dolmamış) token'ı kontrol ediyor ve varsa onu siliyor. Böylece sadece en güncel ve tek bir token tutulmuş oluyor. Bu hem veritabanı temizliği hem de güvenlik açısından önemli bir adım oldu.
+    
+- Misafir kullanıcılar için refresh token sistemi eklendi.
+    
+    Önceden sadece kayıtlı kullanıcılar için token yönetimi uygulanıyordu. Artık misafir (guest) kullanıcılar da refresh token mekanizmasından faydalanabiliyor. Bu sayede onların da oturum süresi uzatılabilir hâle geldi ve uygulama genelinde daha tutarlı bir kullanıcı deneyimi sağlanmış oldu.
+    
+- Reset işlemi için `reset-redirect` endpoint’i tanımlandı.
+    
+    Kullanıcı şifresini sıfırlamak istediğinde, e-mail üzerinden bir bağlantı gönderiliyor. Flutter tarafı bu bağlantıyı yakalayabilsin diye özel bir `deeplink` tanımlandı. `reset-redirect` endpoint’i sayesinde, gönderilen link doğrudan Flutter’a yönleniyor. Flutter da bu linki yakalayıp kullanıcının şifresini sıfırlayacağı ilgili ekrana yönlendirecek.
+    
+
+---
+
+**8. Flutter Entegrasyonu ve Canlı Backend Kullanımı**
+
+- Flutter uygulaması, canlı backend ile iletişim kurmak için API URL'sini `.env` dosyasında saklayarak güvenli bir şekilde yönetiyor.
+- `.env` dosyası Flutter’da `flutter_dotenv` paketi kullanılarak yüklendi ve farklı ortamlar için kolayca değiştirilebilir şekilde yapılandırıldı.
+- Backend ile yapılan tüm API çağrıları bu ortam değişkeninden alınan URL baz alınarak gerçekleştiriliyor.
+- Şifre sıfırlama işlemi için backend tarafından oluşturulan token’lı link, Flutter’da deeplink mekanizmasıyla yakalanıyor ve kullanıcı ilgili şifre sıfırlama ekranına yönlendiriliyor.
+- Backend tarafında Flutter’ın yönlendirmesini destekleyen özel bir endpoint tanımlandı; bu endpoint sayesinde parola sıfırlama işlemi Flutter uygulamasında sorunsuz ilerliyor.
+- Flutter uygulamasında, `access` ve `refresh` token’lar güvenli şekilde saklanıyor (örneğin `flutter_secure_storage` kullanılarak) ve token süreleri takip edilerek gerektiğinde yenileniyor.
+
+---
+
+### Genel Değerlendirme ve Sonuçlar
+
+- Geliştirilen modüller kapsamlı şekilde test edildi, ancak bazı bölümlerde hâlâ ufak tefek hatalar olabilir. Bunlar test aşamasında tespit edilip giderilecek.
+- Loglama ve debug endpointleri eklenerek test süreci kolaylaştırıldı.
+- Proje şu anki haliyle oldukça işlevsel ve kapsamlı bir backend yapısına sahip.
+- İlerleyen süreçte yapılacak yeni güncellemeler, iyileştirmeler ve hata düzeltmeleri için ekip olarak hazırız.
+</details>
+
+
+
+</details>
+
+----
+
+
+
+
+
+
