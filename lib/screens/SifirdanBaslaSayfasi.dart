@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:android_studio/lessons/leveltest.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:android_studio/constants.dart';
@@ -23,6 +24,7 @@ class SeviyeSecSayfasi extends StatefulWidget {
 class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
   String userRole = 'guest';
   bool isLoading = true;
+  int lessonId = 1;
 
   @override
   void initState() {
@@ -192,7 +194,13 @@ class _SeviyeSecSayfasiState extends State<SeviyeSecSayfasi> {
                                 )
                               : ElevatedButton(
                                   onPressed: () {
-                                    // Seviye testi başlat
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        
+                                        builder: (context) => LevelTestPage(lessonId: lessonId),
+                                      ),
+                                    );
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white.withOpacity(0.1),
