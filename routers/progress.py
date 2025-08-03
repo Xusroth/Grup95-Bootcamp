@@ -204,7 +204,7 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                 task.current_progress += 1
                 if task.current_progress >= task.target:
                     task.is_completed = True
-                    user.health_count = min(user.health_count + 2, 6)
+                    user.health_count = min(user.health_count + 1, 6)
                     user.health_count_update_time = datetime.now(timezone.utc)
 
             if progress.subsection_completion == 3:
@@ -220,7 +220,7 @@ async def answer_question(db: db_dependency, current_user: user_dependency, requ
                 for task in section_tasks:
                     task.current_progress = 1
                     task.is_completed = True
-                    user.health_count = min(user.health_count + 2, 6)
+                    user.health_count = min(user.health_count + 1, 6)
                     user.health_count_update_time = datetime.now(timezone.utc)
 
         else:
